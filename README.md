@@ -1,6 +1,6 @@
 # Hardware Description Language
 
-Domain-specific language for molecular nanotechnology.
+Domain-specific language for molecular nanotechnology. This repository includes a geometry, bond topology, and mechanosynthetic build sequence compiler.
 
 Table of Contents
 - [Overview](#overview)
@@ -9,12 +9,19 @@ Table of Contents
 - [Operations](#operations)
     - [Filter](#filter)
     - [Lattice](#lattice)
+    - [Topology](#topology)
     - [Volume](#volume)
 - [Tips](#tips)
 
 ## Overview
 
 TODO: Provide a general explanation.
+
+TODO: Add a code sample to the docs, showing how to manually generate 2D planar lattices from 3D lattices. Reproduces the graphene-silicene bilayer from: https://www.nature.com/articles/s41598-017-15610-3
+
+TODO: Export a mechanosynthetic build sequence from `Lattice`. Likely requires an $O(n^2)$ workflow\* that generates a new hydrogen topology for every added radical. Allow different crystal planes to be specified with a `SIMD3<Float>` and reject unrecognized planes. Note that the API only supports elemental silicon. This should be an instance member instead of a DSL keyword. It should also fail gracefully by throwing a Swift error for objects/planes that couldn't be built. This functionality could let the user try several available build plates and see whether any will work.
+
+> \* If you're animating a build sequence, you only need to generate a hydrogen topology for every frame rendered in the video.
 
 ### Objects
 
@@ -41,11 +48,16 @@ struct Entity {
 
 `EntityType` can extract information about the type, such as atomic number or bond order. Atomic numbers can be any element from the [MM4 force field](https://github.com/philipturner/MM4) (H, C, N, O, F, Si, P, S, and Ge). Zero for the type's raw value indicates `.empty`.
 
+Gold atoms are also supported. They will generate a face-centered cubic `Lattice` but can't form covalent bonds in `Topology`. Any bonds forbidden by MM4, such as Au-S, Si-S, and H-S, will not be formed. For example, in a custom `Filter`, hydrogens will never be presented as neighbors to a sulfur. If you add new hydrogens to the sulfur's neighbor list, there will be an error.
+
 ```swift
+// Specify lattice edits, if any, in the trailing closure.
 Lattice<Basis> { h, k, l in
   Material { ... }
   Bounds { ... }
 }
+
+// Property to retrieve the geometry.
 Lattice<Basis>.entities
 ```
 
@@ -54,19 +66,20 @@ Object encapsulating crystal plane algebra.
 Creates a lattice of crystal unit cells to edit. Coordinates are represented in numbers of crystal unit cells. The coordinate system may be mapped to a non-orthonormal coordinate system internally. Keep this in mind when processing `SIMD3<Float>` vectors. For example, avoid normalizing any vectors.
 
 ```swift
-Topology { 
-  Copy { [Entity] }
+// Specify filters, if any, in the trailing closure.
+Topology([Entity]) { 
+  ...
 }
-Topology.atomicNumbers: [UInt8]
-Topology.bonds: [SIMD2<UInt32>]
-Topology.positions: [SIMD3<Float>]
+
+// Property to retrieve the geometry.
+Topology.entities
 ```
 
-Object encapsulating bond topology filters.
+Object for relating atoms to local neighbors.
 
-Creates a list of atoms in Morton order, with sigma bonds connecting them. Free radicals are not yet passivated. Geometric overlap between potential passivators is detected.
+Creates a topology of atoms with sigma bonds connecting them. Free radicals are not yet passivated, but overlap between potential passivators is detected. Atoms are sorted in Morton order to maximize simulation efficiency.
 
-The compiled topology is provided through a set of properties. These properties can be entered directly into `MM4ParametersDescriptor` or `MM4RigidBodyDescriptor`. If an entity exists where passivators collide, its atomic number is `0`.
+The bond generation for `Topology` uses an algorithm suggested by Eric Drexler in private communication. It is not source code derived from or sponsored by the MSEP project. This note is only to give proper credit to the algorithm's inventor.
 
 ### Scopes
 
@@ -125,9 +138,7 @@ Filter.connectSharpCorners: FilterType
 Filter.removePrimaryAtoms: FilterType
 Filter.hydrogenPassivate: FilterType
 
-Topology {
-  Copy { ... }
-  
+Topology(...) {
   Filter(Filter.connectSharpCorners)
   Filter(Filter.removePrimaryAtoms)
   Filter(Filter.hydrogenPassivate)
@@ -245,6 +256,58 @@ Material { MaterialType }
 ```
 
 Specifies the atom types to fill the lattice with, and the lattice constant. This must be called in the top-level scope.
+
+### Topology
+
+The following APIs are available for `Topology`. They are not used like DSL keywords, because they must be called after the `Topology` has initialized. Therefore, they are instance methods or type methods. The primary purpose of DSL syntax is to encapsulate geometry compilation. After a `Lattice` or `Topology` is initialized, the only geometry modifications are manual modifications external to the compiler.
+
+The only mutating function is purely subtractive, to preserve Morton order. The selection of mutating APIs was carefully chosen to minimize the amount of complexity in state changes.
+
+```swift
+Topology.atomicNumbers: [UInt8] { get }
+Topology.bonds: [SIMD2<UInt32>] { get }
+Topology.entities: [Entity] { get }
+Topology.positions: [SIMD3<Float>] { get }
+```
+
+The compiled topology is provided through a set of properties. These properties can be entered directly into `MM4ParametersDescriptor` or `MM4RigidBodyDescriptor`. If an entity exists where passivators collide, its atomic number is `0`.
+
+```swift
+Topology.atomsToAtomsMap: [SIMD4<UInt32>]
+Topology.atomsToBondsMap: [SIMD4<UInt32>]
+```
+
+A map from atoms indices of neighboring atoms and covalent bonds. This can be used to quickly search for hydrogen neighbors and delete them before generating a new Topology object.
+
+> WARNING: Invalid bonds are marked with `UInt32.max`. Always check that a bond index is within the bounds of `Topology.bonds`.
+
+```swift
+extension Topology {
+  func match(_ input: [Entity]) -> [UInt32?]
+  func match(_ input: [Entity], _ closure: MatchType) -> [UInt32?]
+}
+
+// Shorthand for the function signature.
+typealias MatchType = (
+  input: Entity, candidate: Entity
+) -> Bool
+```
+
+Reports the closest entity in the array using an $O(n)$ algorithm. A closure may be entered to choose only the closest entity meeting a specific condition. For example, one may with to screen nearby hydrogens for replacing with a different atom when connecting two surfaces. The match operation will return `nil` for an array index, if no match was found in a 1 nm radius.
+
+```swift
+extension Topology {
+  mutating func remove(_ indices: [UInt32])
+}
+```
+
+Remove atoms at the specified indices. This function adjusts `bonds` to reflect the new atom indices.
+
+Atom indices are always specified as `UInt32`. This data type reflects the intentional limit on maximum atom count, and the storage format of the bonds.
+
+> TODO: Adjust `bonds`, `atomsToAtomsMap`, and `atomsToBondsMap`.
+>
+> TODO: Compact the grid in-place, ensuring `match` behaves correctly. Search for the grid location where each removed atom is, assert the atom is present, and remove from the cell's backing array. This may be less efficient than mark-and-sweep, but is simpler and the overhead is constant.
 
 ### Volume
 

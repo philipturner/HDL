@@ -5,18 +5,14 @@
 //  Created by Philip Turner on 12/2/23.
 //
 
-// Methods to resolve conflicts when a keyword is valid in multiple
-// scopes. This also throws an error when you use a keyword outside of a valid
-// scope.
+/// Utility for checking that you're using each keyword in the correct scope.
 enum GlobalScope {
   case lattice
-  case solid
   case topology
   
   var description: String {
     switch self {
     case .lattice: return "Lattice"
-    case .solid: return "Solid"
     case .topology: return "Topology"
     }
   }

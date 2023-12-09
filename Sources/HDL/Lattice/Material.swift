@@ -45,6 +45,7 @@ public struct Material {
       case .carbon: break
       case .silicon: break
       case .germanium: break
+      case .gold: break
       default: fatalError("Unrecognized material type: \(materialType)")
       }
     case .checkerboard(let a, let b):
@@ -88,6 +89,11 @@ extension Float {
       cubicSpacing = 0.5431
     case .elemental(.germanium):
       cubicSpacing = 0.5658
+    case .elemental(.gold):
+      cubicSpacing = 0.4078
+      guard constantType == .square else {
+        fatalError("Hexagonal gold is unsupported.")
+      }
     default:
       fatalError("Unrecognized material type: \(materialType)")
     }

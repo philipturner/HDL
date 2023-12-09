@@ -16,6 +16,7 @@ public enum Element: UInt8, CustomStringConvertible {
   case phosphorus = 15
   case sulfur = 16
   case germanium = 32
+  case gold = 79
   
   @inlinable @inline(__always)
   public init(_ atomicNumber: UInt8) {
@@ -33,6 +34,7 @@ public enum Element: UInt8, CustomStringConvertible {
     case .phosphorus: return ".phosphorus"
     case .sulfur: return ".sulfur"
     case .germanium: return ".germanium"
+    case .gold: return ".gold"
     }
   }
 }

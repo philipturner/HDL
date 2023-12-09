@@ -208,9 +208,9 @@ ConstantType.square  // Cubic - square side length
 let latticeConstant = Constant(.square) { .elemental(.carbon) }
 ```
 
-Values of the lattice constants, for use in custom geometry processing code. 
+Values of the lattice constants, for use in custom geometry processing code.
 
-> TODO: Change the hexagonal lattice constants to the true energy minima, rather than something scaled to align with cubic (111) surfaces.
+The hexagonal lattice constants are not the exact energy minima. Rather, they are scaled to align with cubic (111) surfaces.
 
 ```swift
 // Lattice vectors originate from the smallest repeatable unit of crystal. For

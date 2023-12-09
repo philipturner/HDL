@@ -17,11 +17,7 @@ Table of Contents
 
 TODO: Provide a general explanation.
 
-TODO: Add a code sample to the docs, showing how to manually generate 2D planar lattices from 3D lattices. Reproduces the graphene-silicene bilayer from: https://www.nature.com/articles/s41598-017-15610-3
-
-TODO: Export a mechanosynthetic build sequence from `Lattice`. Likely requires an $O(n^2)$ workflow\* that generates a new hydrogen topology for every added radical. Allow different crystal planes to be specified with a `SIMD3<Float>` and reject unrecognized planes. Note that the API only supports elemental silicon. This should be an instance member instead of a DSL keyword. It should also fail gracefully by throwing a Swift error for objects/planes that couldn't be built. This functionality could let the user try several available build plates and see whether any will work.
-
-> \* If you're animating a build sequence, you only need to generate a hydrogen topology for every frame rendered in the video.
+The tutorial is located [here](./Documentation/GrapheneSiliceneBilayer.md).
 
 ### Objects
 
@@ -179,6 +175,10 @@ A filter for cleaning up diamond (100) surfaces. Sigma bonds are generated appro
 ### Lattice
 
 The following keywords may be called inside a `Lattice`.
+
+> TODO: Export a mechanosynthetic build sequence from `Lattice`. Likely requires an $O(n^2)$ workflow\* that generates a new hydrogen topology for every added radical. Allow different crystal planes to be specified with a `SIMD3<Float>` and reject unrecognized planes. Note that the API only supports elemental silicon. This should be an instance member instead of a DSL keyword. It should also fail gracefully by throwing a Swift error for objects/planes that couldn't be built. This functionality could let the user try several available build plates and see whether any will work.
+>
+> \* If you're animating a build sequence, you only need to generate a hydrogen topology for every frame rendered in the video.
 
 ```swift
 protocol Basis

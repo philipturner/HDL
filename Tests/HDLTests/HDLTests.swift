@@ -1,5 +1,9 @@
 import XCTest
+#if DEBUG
 @testable import HDL
+#else
+import HDL
+#endif
 
 final class HDLTests: XCTestCase {
   func testAdamantane() throws {
@@ -91,15 +95,19 @@ final class HDLTests: XCTestCase {
     }
     
     let topology1 = Topology(lattice.entities)
+    #if DEBUG
     XCTAssertEqual(topology1.grid.origin, SIMD3(0, 0, 0))
     XCTAssertEqual(topology1.grid.dimensions, SIMD3(3, 3, 3))
+    #endif
     
     let topology2 = Topology(lattice.entities.map {
       var copy = $0
       copy.position -= 0.5
       return copy
     })
+    #if DEBUG
     XCTAssertEqual(topology2.grid.origin, SIMD3(-1, -1, -1))
     XCTAssertEqual(topology2.grid.dimensions, SIMD3(3, 3, 3))
+    #endif
   }
 }

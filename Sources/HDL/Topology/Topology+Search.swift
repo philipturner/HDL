@@ -134,6 +134,7 @@ struct TopologyValues {
 // MARK: - Traversal
 
 extension TopologyGrid {
+  // The input is the absolute position in 3D space.
   func search(
     origin: SIMD3<Int32>,
     keys: ArraySlice<Entity>,
@@ -169,9 +170,9 @@ extension TopologyGrid {
     }
     
     // Iterate over all cells within the search radius.
-    for xDelta in Int32(-1)...1 {
+    for zDelta in Int32(-1)...1 {
       for yDelta in Int32(-1)...1 {
-        for zDelta in Int32(-1)...1 {
+        for xDelta in Int32(-1)...1 {
           loop(SIMD3(xDelta, yDelta, zDelta))
         }
       }

@@ -79,6 +79,7 @@ struct TopologyGrid {
     }
   }
   
+  // The input is the position relative to the grid's origin.
   @inline(__always)
   func createCellID(originDelta: SIMD3<Int32>) -> Int {
     var coords = originDelta

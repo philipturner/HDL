@@ -172,10 +172,6 @@ extension TopologyGrid {
     for xDelta in Int32(-1)...1 {
       for yDelta in Int32(-1)...1 {
         for zDelta in Int32(-1)...1 {
-          // TODO: Profile the overhead of traversal against the setup code
-          // surrounding it, such as array sorting. Determine whether the total
-          // overhead of a reasonable size for 'match' is enough to parallelize
-          // over multiple CPU cores.
           loop(SIMD3(xDelta, yDelta, zDelta))
         }
       }

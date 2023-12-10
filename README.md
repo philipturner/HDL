@@ -1,6 +1,6 @@
 # Hardware Description Language
 
-Domain-specific language for molecular nanotechnology. This repository includes a geometry, bond topology, and mechanosynthetic build sequence compiler.
+Domain-specific language for molecular nanotechnology. This repository includes a geometry and bond topology compiler.
 
 Table of Contents
 - [Overview](#overview)
@@ -67,6 +67,9 @@ Topology([Entity]) {
   ...
 }
 
+// Shorthand for an initializer with no filters.
+Topology([Entity])
+
 // Property to retrieve the geometry.
 Topology.entities
 ```
@@ -109,7 +112,8 @@ Filter { atom, neighbors in ... }
 
 // Shorthand for the function signature.
 typealias FilterType = (
-  atom: inout Entity, neighbors: inout [Entity]
+  atom: inout Entity, 
+  neighbors: inout [Entity]
 ) -> Void
 ```
 
@@ -173,10 +177,6 @@ A filter for cleaning up diamond (100) surfaces. Sigma bonds are generated appro
 ### Lattice
 
 The following keywords may be called inside a `Lattice`.
-
-> TODO: Export a mechanosynthetic build sequence from `Lattice`. Likely requires an $O(n^2)$ workflow\* that generates a new hydrogen topology for every added radical. Allow different crystal planes to be specified with a `SIMD3<Float>` and reject unrecognized planes. Note that the API only supports elemental silicon. This should be an instance member instead of a DSL keyword. It should also fail gracefully by throwing a Swift error for objects/planes that couldn't be built. This functionality could let the user try several available build plates and see whether any will work.
->
-> \* If you're animating a build sequence, you only need to generate a hydrogen topology for every frame rendered in the video.
 
 ```swift
 protocol Basis
@@ -287,8 +287,20 @@ extension Topology {
 
 // Shorthand for the function signature.
 typealias MatchType = (
-  input: Entity, candidate: Entity
+  input: Entity, 
+  candidate: Entity
 ) -> Bool
+
+// Example of usage.
+let topology = Topology(...)
+let matches1 = topology.match(entities)
+let matches2 = topology.match(entities) { input, candidate in
+  // Return the closest atom whose element is hydrogen.
+  if condition(candidate) {
+    return true
+  }
+  return false
+}
 ```
 
 Reports the closest entity in the array using an $O(n)$ algorithm. A closure may be entered to choose only the closest entity meeting a specific condition. For example, one may wish to screen nearby hydrogens for replacing with a different atom when connecting two surfaces. The match operation will return `nil` for an array index, if no match was found in a 0.5 nm radius.

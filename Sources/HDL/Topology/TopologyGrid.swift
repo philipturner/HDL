@@ -34,7 +34,7 @@ struct TopologyGrid {
   var dimensions: SIMD3<Int32>
   var cells: [TopologyCell] = []
   
-  init(entities: [Entity]) {
+  init(entities: [Entity], mappedLocations: inout [SIMD2<UInt32>]) {
     if entities.count == 0 {
       origin = .zero
       dimensions = .zero
@@ -58,18 +58,24 @@ struct TopologyGrid {
     let cellCount = Int32(dimensions[0] * dimensions[1] * dimensions[2])
     cells = Array(repeating: TopologyCell(), count: Int(cellCount))
     
-    for entity in entities {
+    mappedLocations = Array(repeating: [.max, .max], count: entities.count)
+    for atomID in entities.indices {
+      let entity = entities[atomID]
       var position = entity.position
       position /= 0.5
       position.round(.down)
       let originDelta = SIMD3<Int32>(position) &- self.origin
-      let address = self.createCellID(originDelta: originDelta)
+      let cellID = self.createCellID(originDelta: originDelta)
       
-      if cells[address].entities == nil {
-        cells[address].entities = [entity]
+      var mappedAtomID: Int = 0
+      if cells[cellID].entities == nil {
+        cells[cellID].entities = [entity]
       } else {
-        cells[address].entities!.append(entity)
+        mappedAtomID = cells[cellID].entities!.count
+        cells[cellID].entities!.append(entity)
       }
+      let location = SIMD2<Int>(cellID, mappedAtomID)
+      mappedLocations[atomID] = SIMD2(truncatingIfNeeded: location)
     }
   }
   

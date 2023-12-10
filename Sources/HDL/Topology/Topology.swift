@@ -8,14 +8,14 @@
 public struct Topology {
   var grid: TopologyGrid
   
-  // Undocumented initializer to more ergonomically initialize a topology
-  // without any filters.
   public init(_ entities: [Entity]) {
     self.init(entities) { }
   }
   
   public init(_ entities: [Entity], _ closure: () -> Void) {
-    self.grid = TopologyGrid(entities: entities)
+    var mappedLocations: [SIMD2<UInt32>] = []
+    self.grid = TopologyGrid(
+      entities: entities, mappedLocations: &mappedLocations)
     closure()
   }
 }

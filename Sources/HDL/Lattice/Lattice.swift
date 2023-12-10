@@ -6,8 +6,8 @@
 //
 
 public struct Lattice<T: Basis> {
-  private var stack: LatticeStack
-  private var _entities: [Entity]
+  var stack: LatticeStack
+  var _entities: [Entity]
   
   public var entities: [Entity] { _entities }
   

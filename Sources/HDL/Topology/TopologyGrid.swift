@@ -5,16 +5,87 @@
 //  Created by Philip Turner on 12/2/23.
 //
 
-struct TopologyGrid {
-  
+// Every match operation should internally use SIMD2<UInt32> addresses. The
+// first component is the cell, while the second is the atom within the cell.
+// Then, use the Morton order maps?
+//
+// Task 1:
+//
+// Sort both the old and new atoms into topology grids. Reorder the new atoms
+// into vectors of 8, then traverse the grid matching voxel-by-voxel. Store the
+// distances, which are unpacked and sorted serially after the search. Finally,
+// call the closure on the atoms in descending order of distance.
+//
+// Task 2:
+//
+// When the initializer completes, rearrange each cell in-place in Morton order.
+// Then, perform a parallel prefix sum on the cells traversed in Morton order.
+// This can be recycled to efficiently compact the list when removing atoms.
+
+struct TopologyCell {
+  var entities: [Entity]?
+  var prefixSumLinear: UInt32 = .max
+  var prefixSumMorton: UInt32 = .max
 }
 
-// This old code is a useful reference for Morton reordering. The grid
-// should be recycled for a subsequent bond topology search of anything within
-// 1 nanometer. This scalarized code has lower CPU performance, but potentially
-// is not a bottleneck, given the cost of generating force field parameters.
+struct TopologyGrid {
+  // Origin and dimensions are in discrete multiples of 0.5 nm.
+  var origin: SIMD3<Int32>
+  var dimensions: SIMD3<Int32>
+  var cells: [TopologyCell] = []
+  
+  init(entities: [Entity]) {
+    if entities.count == 0 {
+      origin = .zero
+      dimensions = .zero
+    } else {
+      var minimum: SIMD3<Float> = .init(repeating: .greatestFiniteMagnitude)
+      var maximum: SIMD3<Float> = .init(repeating: -.greatestFiniteMagnitude)
+      for entity in entities {
+        let atom = entity.position
+        minimum.replace(with: atom, where: atom .< minimum)
+        maximum.replace(with: atom, where: atom .> maximum)
+      }
+      minimum /= 0.5
+      maximum /= 0.5
+      minimum.round(.down)
+      maximum.round(.up)
+      origin = SIMD3<Int32>(minimum)
+      dimensions = SIMD3<Int32>(maximum - minimum)
+    }
+    
+    // Use checking arithmetic to ensure the multiplication doesn't overflow.
+    let cellCount = Int32(dimensions[0] * dimensions[1] * dimensions[2])
+    cells = Array(repeating: TopologyCell(), count: Int(cellCount))
+    
+    for entity in entities {
+      var position = entity.position
+      position /= 0.5
+      position.round(.down)
+      let address = self.address(SIMD3<Int32>(position))
+      
+      if cells[address].entities == nil {
+        cells[address].entities = [entity]
+      } else {
+        cells[address].entities!.append(entity)
+      }
+    }
+  }
+  
+  @inline(__always)
+  func address(_ coordinatesInt: SIMD3<Int32>) -> Int {
+    var coords = coordinatesInt &+ origin
+    coords.replace(with: SIMD3.zero, where: coords .< 0)
+    coords.replace(with: dimensions &- 1, where: coords .>= dimensions)
+    
+    let x = coords.x
+    let y = coords.y &* dimensions[0]
+    let z = coords.z &* dimensions[0] &* dimensions[1]
+    return Int(x &+ y &+ z)
+  }
+}
 
-#if false
+#if false // This old code is a useful reference for Morton reordering.
 
 /// Rounds an integer up to the nearest power of 2.
 fileprivate func roundUpToPowerOf2(_ input: Int) -> Int {

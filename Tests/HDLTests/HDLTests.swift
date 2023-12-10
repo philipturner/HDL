@@ -1,5 +1,5 @@
 import XCTest
-import HDL
+@testable import HDL
 
 final class HDLTests: XCTestCase {
   func testAdamantane() throws {
@@ -82,5 +82,24 @@ final class HDLTests: XCTestCase {
       // Ensure the gold atoms are snapped to a multiple of 0.5 cells.
       XCTAssertTrue(all(difference .< 1e-3))
     }
+  }
+  
+  func testTopologyInit() {
+    let lattice = Lattice<Cubic> { h, k, l in
+      Bounds { 4 * h + 4 * k + 4 * l }
+      Material { .elemental(.carbon) }
+    }
+    
+    let topology1 = Topology(lattice.entities)
+    XCTAssertEqual(topology1.grid.origin, SIMD3(0, 0, 0))
+    XCTAssertEqual(topology1.grid.dimensions, SIMD3(3, 3, 3))
+    
+    let topology2 = Topology(lattice.entities.map {
+      var copy = $0
+      copy.position -= 0.5
+      return copy
+    })
+    XCTAssertEqual(topology2.grid.origin, SIMD3(-1, -1, -1))
+    XCTAssertEqual(topology2.grid.dimensions, SIMD3(3, 3, 3))
   }
 }

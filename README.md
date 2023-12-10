@@ -146,8 +146,6 @@ A sequence of filters for cleaning up geometry.
 2. Primary carbons (methyl and trifluoromethyl groups) are removed.
 3. All free radicals are passivated with hydrogen, except those with remaining passivator collisions.
 
-> TODO: For (1), should connected atoms be displaced to shorten the bond? The passivator detection algorithm should be robust enough to handle slight displacements.
-
 ```swift
 Filter.reconstructCubic100(SIMD3<Float>): FilterType
 
@@ -261,7 +259,7 @@ Specifies the atom types to fill the lattice with, and the lattice constant. Thi
 
 The following APIs are available for `Topology`. They are not used like DSL keywords, because they must be called after the `Topology` has initialized. Therefore, they are instance methods or type methods. The primary purpose of DSL syntax is to encapsulate geometry compilation. After a `Lattice` or `Topology` is initialized, the only geometry modifications are manual modifications external to the compiler.
 
-The only mutating function is purely subtractive, to preserve Morton order. The selection of mutating APIs was chosen carefully to minimize the amount of complexity in state changes.
+The only mutating function is purely subtractive, to preserve Morton order. The selection of mutating APIs was chosen carefully to minimize the complexity of state changes.
 
 ```swift
 Topology.atomicNumbers: [UInt8] { get }
@@ -293,7 +291,7 @@ typealias MatchType = (
 ) -> Bool
 ```
 
-Reports the closest entity in the array using an $O(n)$ algorithm. A closure may be entered to choose only the closest entity meeting a specific condition. For example, one may wish to screen nearby hydrogens for replacing with a different atom when connecting two surfaces. The match operation will return `nil` for an array index, if no match was found in a 1 nm radius.
+Reports the closest entity in the array using an $O(n)$ algorithm. A closure may be entered to choose only the closest entity meeting a specific condition. For example, one may wish to screen nearby hydrogens for replacing with a different atom when connecting two surfaces. The match operation will return `nil` for an array index, if no match was found in a 0.5 nm radius.
 
 ```swift
 extension Topology {

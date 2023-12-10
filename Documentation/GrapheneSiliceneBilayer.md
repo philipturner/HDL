@@ -225,7 +225,7 @@ do {
 }
 
 for atomID in silicons.indices {
-  // Elevant the silicon atom by 0.33 nm in the Z direction.
+  // Elevate the silicon atom by 0.33 nm in the Z direction.
   silicons[atomID].position.z += 3.3 / 10
   
   // Rotate the silicon atom by 10.9° about the origin.

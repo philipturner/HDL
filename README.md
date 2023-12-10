@@ -5,7 +5,6 @@ Domain-specific language for molecular nanotechnology. This repository includes 
 Table of Contents
 - [Overview](#overview)
     - [Objects](#objects)
-    - [Scopes](#scopes)
 - [Operations](#operations)
     - [Filter](#filter)
     - [Lattice](#lattice)
@@ -15,11 +14,7 @@ Table of Contents
 
 ## Overview
 
-TODO: Provide a general explanation.
-
-The tutorial is located [here](./Documentation/GrapheneSiliceneBilayer.md).
-
-### Objects
+For an introduction, visit the [tutorial](./Documentation/GrapheneSiliceneBilayer.md).
 
 ```swift
 enum Element { ... }
@@ -62,12 +57,7 @@ Object encapsulating crystal plane algebra.
 Creates a lattice of crystal unit cells to edit. Coordinates are represented in numbers of crystal unit cells. The coordinate system may be mapped to a non-orthonormal coordinate system internally. Keep this in mind when processing `SIMD3<Float>` vectors. For example, avoid normalizing any vectors.
 
 ```swift
-// Specify filters, if any, in the trailing closure.
-Topology([Entity]) { 
-  ...
-}
-
-// Shorthand for an initializer with no filters.
+// Initialize a topology with the specified entities.
 Topology([Entity])
 
 // Property to retrieve the geometry.
@@ -78,43 +68,30 @@ Object for relating atoms to local neighbors.
 
 Creates a topology of atoms with sigma bonds connecting them. Free radicals are not yet passivated, but overlap between potential passivators is detected. Atoms are sorted in Morton order to maximize simulation efficiency.
 
-The bond generation for `Topology` uses an algorithm suggested by Eric Drexler in private communication. It is not source code derived from or sponsored by the MSEP project. This note is only to give proper credit to the algorithm's inventor.
-
-### Scopes
-
-```swift
-Concave { }
-```
-
-Scope where every plane's "one" volume merges through AND in [disjunctive normal form](https://en.wikipedia.org/wiki/Disjunctive_normal_form). Upon exiting this scope, the added planes remain. This must be called inside a `Volume`.
-
-```swift
-Convex { }
-```
-
-Scope where every plane's "one" volume merges through OR in [disjunctive normal form](https://en.wikipedia.org/wiki/Disjunctive_normal_form). Upon exiting this scope, the added planes remain. This must be called inside a `Volume`.
-
-```swift
-Volume { }
-```
-
-Encapsulates a set of planes, so that everything inside the scope is removed from the stack upon exiting. This must be called inside `Lattice` and may be called inside another `Volume`.
-
 ## Operations
 
 ### Filter
 
-The following documentation describes `Filter`, which may only be called inside a `Topology`.
+The following documentation describes filtering operations on a topology.
+
+> TODO: Simplify the filtering idea even further, and eliminate it from the public API. Instead, provide more powerful functions for transforming the low-level geometry. Change the "standard filters" to instance members on a `Topology`.
 
 ```swift
-Filter(FilterType)
-Filter { atom, neighbors in ... }
+extension Topology {
+  func filter(FilterType) { ... }
+  
+  // Shorthand for the function signature.
+  typealias FilterType = (
+    atom: inout Entity, 
+    neighbors: inout [Entity]
+  ) -> Void
+}
 
-// Shorthand for the function signature.
-typealias FilterType = (
-  atom: inout Entity, 
-  neighbors: inout [Entity]
-) -> Void
+// Example of usage.
+var topology = Topology(...)
+topology.filter { atoms, neighbors in
+  ...
+}
 ```
 
 Modify the topology using a custom filter. Three classes of filters are permitted:
@@ -134,15 +111,14 @@ After passivation, the neighbor list must equal the valence count. The valence s
 The atom's position can be adjusted during the filter. New atoms are copied into a separate list while the closure is called. The adjustment will not affect the value of existing neighbors during the function call. This functionality could be used to adjust carbon atom positions when reconstructing diamond (100) surfaces.
 
 ```swift
-Filter.connectSharpCorners: FilterType
-Filter.removePrimaryAtoms: FilterType
-Filter.hydrogenPassivate: FilterType
+Topology.connectSharpCorners: FilterType
+Topology.removePrimaryAtoms: FilterType
+Topology.hydrogenPassivate: FilterType
 
-Topology(...) {
-  Filter(Filter.connectSharpCorners)
-  Filter(Filter.removePrimaryAtoms)
-  Filter(Filter.hydrogenPassivate)
-}
+var topology = Topology(...)
+topology.filter(Topology.connectSharpCorners)
+topology.filter(Topology.removePrimaryAtoms)
+topology.filter(Topology.hydrogenPassivate)
 ```
 
 A sequence of filters for cleaning up geometry.
@@ -150,29 +126,41 @@ A sequence of filters for cleaning up geometry.
 2. Primary carbons (methyl and trifluoromethyl groups) are removed.
 3. All free radicals are passivated with hydrogen, except those with remaining passivator collisions.
 
+> TODO: When the functional form of the filters is changed, make a `clean()` function that calls all three filters above. 
+>
+> TODO: Make Morton reordering a "filter" as well, drastically simplifying some of the code for state changes. Most transformations likely preserve Morton order. Add `mortonReorder()` as a fourth sub-function exposed to the public API.
+
+<!--
+
+TODO: When this is deleted, make it very obvious where it was deleted in the Git commit history. That way, you can reference it later. Delete it in the commit after this one.
+
+The user should be using APIs like replacing with "bond entities" to perform (100) reconstruction, or maybe even reconstruction of other surfaces. This is not something we need to proactively invest time supporting in the compiler.
+
 ```swift
-Filter.reconstructCubic100(SIMD3<Float>): FilterType
+Topology.reconstructCubic100(SIMD3<Float>): FilterType
 
 // The simplest way to call the filter.
 let direction = SIMD3<Float>(1, 1, 1)
-Filter(Filter.reconstructCubic100(x))
+topology.filter(Topology.reconstructCubic100(x))
 
 // You can exclude this filter from certain atoms.
 // For example, you may want to reconstruct bonds in
 // a different direction for different faces of a
 // crystolecule.
-Filter { atom, neighbors in
+topology.filter { atom, neighbors in
   let direction = SIMD3<Float>(1, 1, 1)
   guard condition(atom, neighbors) else {
     return
   }
-  Filter.reconstructCubic100(direction)(atoms, neighbors)
+  Topology.reconstructCubic100(direction)(atoms, neighbors)
 }
 ```
 
 A filter for cleaning up diamond (100) surfaces. Sigma bonds are generated approximately parallel to the specified direction. Surface atoms are displaced to shorten the bond. Passivating hydrogens are created at an uneven angle. This filter may fail to reconstruct bonds in certain cases.
 
  An atom located roughly at (0, 0, 0) will form a bond pointing in the specified direction. This fact can be used to change the parity of which atoms are connected. Flip the sign of the direction to alternate which atoms are connected.
+ 
+ -->
 
 ### Lattice
 
@@ -257,9 +245,7 @@ Specifies the atom types to fill the lattice with, and the lattice constant. Thi
 
 ### Topology
 
-The following APIs are available for `Topology`. They are not used like DSL keywords, because they must be called after the `Topology` has initialized. Therefore, they are instance methods or type methods. The primary purpose of DSL syntax is to encapsulate geometry compilation. After a `Lattice` or `Topology` is initialized, the only geometry modifications are manual modifications external to the compiler.
-
-The only mutating function is purely subtractive, to preserve Morton order. The selection of mutating APIs was chosen carefully to minimize the complexity of state changes.
+The following APIs are available for `Topology`.
 
 ```swift
 Topology.atomicNumbers: [UInt8] { get }
@@ -283,13 +269,13 @@ A map from atoms indices of neighboring atoms and covalent bonds. This can be us
 extension Topology {
   func match(_ input: [Entity]) -> [UInt32?]
   func match(_ input: [Entity], _ closure: MatchType) -> [UInt32?]
+  
+  // Shorthand for the function signature.
+  typealias MatchType = (
+    input: Entity, 
+    candidate: Entity
+  ) -> Bool
 }
-
-// Shorthand for the function signature.
-typealias MatchType = (
-  input: Entity, 
-  candidate: Entity
-) -> Bool
 
 // Example of usage.
 let topology = Topology(...)
@@ -324,6 +310,18 @@ Atom indices are always specified as `UInt32`. This data type reflects the inten
 The following keywords may be called inside a `Volume`.
 
 ```swift
+Concave { }
+```
+
+Scope where every plane's "one" volume merges through AND in [disjunctive normal form](https://en.wikipedia.org/wiki/Disjunctive_normal_form). Upon exiting this scope, the added planes remain. This must be called inside a `Volume`.
+
+```swift
+Convex { }
+```
+
+Scope where every plane's "one" volume merges through OR in [disjunctive normal form](https://en.wikipedia.org/wiki/Disjunctive_normal_form). Upon exiting this scope, the added planes remain. This must be called inside a `Volume`.
+
+```swift
 Origin { SIMD3<Float> }
 ```
 
@@ -353,3 +351,9 @@ Replace { EntityType }
 Replace all entities in the selected volume with a new entity.
 
 To delete atoms, use `Replace { .empty }`. Removed atoms cannot be restored by a subsequent `Replace`.
+
+```swift
+Volume { }
+```
+
+Encapsulates a set of planes, so that everything inside the scope is removed from the stack upon exiting. This must be called inside `Lattice` and may be called inside another `Volume`.

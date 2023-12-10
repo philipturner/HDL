@@ -62,7 +62,8 @@ struct TopologyGrid {
       var position = entity.position
       position /= 0.5
       position.round(.down)
-      let address = self.address(SIMD3<Int32>(position))
+      let originDelta = SIMD3<Int32>(position) &- self.origin
+      let address = self.createCellID(originDelta: originDelta)
       
       if cells[address].entities == nil {
         cells[address].entities = [entity]
@@ -73,8 +74,8 @@ struct TopologyGrid {
   }
   
   @inline(__always)
-  func address(_ coordinatesInt: SIMD3<Int32>) -> Int {
-    var coords = coordinatesInt &+ origin
+  func createCellID(originDelta: SIMD3<Int32>) -> Int {
+    var coords = originDelta
     coords.replace(with: SIMD3.zero, where: coords .< 0)
     coords.replace(with: dimensions &- 1, where: coords .>= dimensions)
     

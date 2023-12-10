@@ -25,13 +25,6 @@ struct TopologyValue {
   var distance: Float { storage.z }
 }
 
-struct TopologyKey {
-  var x: SIMD8<Float>
-  var y: SIMD8<Float>
-  var z: SIMD8<Float>
-  var origin: SIMD3<Int32>
-}
-
 // A data structure to allocate once and recycle every outer loop iteration.
 //
 // Don't conditionally check whether each candidate is within range during the
@@ -58,6 +51,7 @@ struct TopologyValues {
     array7.reserveCapacity(1024)
   }
   
+  @inline(__always)
   mutating func append(cell: Int, offset: Int, distances: SIMD8<Float>) {
     let cell32 = UInt32(truncatingIfNeeded: cell)
     let offset32 = UInt32(truncatingIfNeeded: offset)
@@ -139,5 +133,79 @@ struct TopologyValues {
 
 // MARK: - Traversal
 
-// TODO: Write a function that traverses a grid, given eight keys and an
-// 'inout' values object.
+extension TopologyGrid {
+  func search(
+    origin: SIMD3<Int32>,
+    keys: ArraySlice<Entity>,
+    values: inout TopologyValues
+  ) {
+    // Set up the values.
+    values.clear()
+    
+    // Set up the keys.
+    guard keys.count >= 0 else {
+      fatalError("No method for handling the edge case where keys = 0.")
+    }
+    guard keys.count <= 8 else {
+      fatalError("Too many keys.")
+    }
+    var x: SIMD8<Float> = .init(repeating: .nan)
+    var y: SIMD8<Float> = .init(repeating: .nan)
+    var z: SIMD8<Float> = .init(repeating: .nan)
+    for keyID in keys.indices {
+      let key = keys[keyID]
+      x[keyID] = key.position.x
+      y[keyID] = key.position.y
+      z[keyID] = key.position.z
+    }
+    let minimum = SIMD3(x.min(), y.min(), z.min())
+    let maximum = SIMD3(x.max(), y.max(), z.max())
+    guard all(maximum - minimum .< 0.5 + 1e-3) else {
+      fatalError("Points were not confined within 0.5 nm.")
+    }
+    let originDelta = (minimum / 0.5).rounded(.down) - SIMD3<Float>(origin)
+    guard all(originDelta * originDelta .< 1e-3 * 1e-3) else {
+      fatalError("Points did not match origin.")
+    }
+    
+    // Iterate over all cells within the search radius.
+    for xDelta in Int32(-1)...1 {
+      for yDelta in Int32(-1)...1 {
+        for zDelta in Int32(-1)...1 {
+          // TODO: Profile the overhead of traversal against the setup code
+          // surrounding it, such as array sorting. Determine whether the total
+          // overhead of a reasonable size for 'match' is enough to parallelize
+          // over multiple CPU cores.
+          loop(SIMD3(xDelta, yDelta, zDelta))
+        }
+      }
+    }
+    @inline(__always)
+    func loop(_ delta: SIMD3<Int32>) {
+      // Return early if out of bounds.
+      let originDelta = delta &+ (origin &- self.origin)
+      guard all((originDelta .>= 0) .& (originDelta .< dimensions)) else {
+        return
+      }
+      
+      let cellID = self.createCellID(originDelta: originDelta)
+      let cell = self.cells[cellID]
+      guard let entities = cell.entities else {
+        return
+      }
+      
+      for atomID in entities.indices {
+        let entity = entities[atomID]
+        var deltaX = entity.storage.x - x
+        var deltaY = entity.storage.y - y
+        var deltaZ = entity.storage.z - z
+        deltaX *= deltaX
+        deltaY *= deltaY
+        deltaZ *= deltaZ
+        
+        let distance = (deltaX + deltaY + deltaZ).squareRoot()
+        values.append(cell: cellID, offset: atomID, distances: distance)
+      }
+    }
+  }
+}

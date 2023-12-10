@@ -94,7 +94,7 @@ print(exportToXYZ(carbonLattice.entities))
 
 Lonsdaleite and graphene are similar, with a hexagonal arrangement of
 atoms. However, the layout of atoms is not exactly the same. Graphene
-is 2D, while lonsdaleite is 3D. The side of the hexagons is also a little
+is 2D, while lonsdaleite is 3D. The size of the hexagons is also a little
 different.
 
 In this code segment, you will combine a custom lattice constant from the

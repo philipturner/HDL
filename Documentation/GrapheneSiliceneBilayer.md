@@ -22,8 +22,13 @@ following in `main.swift`. The code should compile without errors.
 ```swift
 import HDL
 
-func exportToXYZ(_ entities: [Entity]) -> String {
+func exportToXYZ(_ entities: [Entity], comment: String = "") -> String {
   var output: String = ""
+  output += String(describing: entities.count)
+  output += "\n"
+  output += comment
+  output += "\n"
+  
   for entity in entities {
     guard case .atom(let element) = entity.type else {
       fatalError("Cannot export entities other than atoms.")
@@ -31,8 +36,8 @@ func exportToXYZ(_ entities: [Entity]) -> String {
     var elementSymbol: String
     switch element {
     case .hydrogen: elementSymbol = "H "
-    case .carbon: elementSymbol = "C "
-    case .silicon: elementSymbol = "Si"
+    case .carbon:   elementSymbol = "C "
+    case .silicon:  elementSymbol = "Si"
     default: fatalError("Unrecognized element symbol: \(element)")
     }
     output += elementSymbol
@@ -87,9 +92,7 @@ let carbonLattice = Lattice<Hexagonal> { h, k, l in
     Replace { .empty }
   }
 }
-print("Step 1")
-print()
-print(exportToXYZ(carbonLattice.entities))
+print(exportToXYZ(carbonLattice.entities, comment: "Step 1"))
 ```
 
 Lonsdaleite and graphene are similar, with a hexagonal arrangement of
@@ -128,9 +131,7 @@ for atomID in carbons.indices {
   carbons[atomID].position.x *= grapheneHexagonScale
   carbons[atomID].position.y *= grapheneHexagonScale
 }
-print("Step 2")
-print()
-print(exportToXYZ(carbons))
+print(exportToXYZ(carbons, comment: "Step 2"))
 ```
 
 ## Create Silicene Layer
@@ -153,9 +154,7 @@ let siliconLattice = Lattice<Hexagonal> { h, k, l in
     Replace { .empty }
   }
 }
-print("Step 3")
-print()
-print(exportToXYZ(siliconLattice.entities))
+print(exportToXYZ(siliconLattice.entities, comment: "Step 3"))
 ```
 
 Change the silicene atoms to match the lattice spacings from the
@@ -189,9 +188,7 @@ for atomID in silicons.indices {
   silicons[atomID].position.x *= siliceneHexagonScale
   silicons[atomID].position.y *= siliceneHexagonScale
 }
-print("Step 4")
-print()
-print(exportToXYZ(silicons))
+print(exportToXYZ(silicons, comment: "Step 4"))
 ```
 
 ## Create Bilayer
@@ -231,7 +228,5 @@ for atomID in silicons.indices {
   // Rotate the silicon atom by 10.9° about the origin.
   silicons[atomID].position = rotation.act(on: silicons[atomID].position)
 }
-print("Step 5")
-print()
-print(exportToXYZ(carbons + silicons))
+print(exportToXYZ(carbons + silicons, comment: "Step 5"))
 ```

@@ -17,6 +17,7 @@ struct CubicCell {
     1 << 4, 1 << 5, 1 << 6, 1 << 7)
   
   // Binary mask corresponding to the plane's "one volume" and "zero volume".
+  @inline(__always)
   static func intersect(
     origin: SIMD3<Float>,
     normal: SIMD3<Float>
@@ -53,6 +54,8 @@ struct CubicMask: LatticeMask {
       return
     }
     
+    #if false
+    // Slower version retained as a backup, in case the faster version has bugs.
     for z in 0..<dimensions.z {
       for y in 0..<dimensions.y {
         let baseAddress = (z &* dimensions.y &+ y) &* dimensions.x
@@ -66,6 +69,121 @@ struct CubicMask: LatticeMask {
         }
       }
     }
+    #else
+    mask.withUnsafeMutableBufferPointer { buffer in
+      let opaque = OpaquePointer(buffer.baseAddress.unsafelyUnwrapped)
+      let mask8 = UnsafeMutablePointer<UInt8>(opaque)
+      let mask16 = UnsafeMutablePointer<UInt16>(opaque)
+      let mask32 = UnsafeMutablePointer<UInt32>(opaque)
+      let dims = dimensions
+      
+      @inline(__always)
+      func intersect1(sector: SIMD3<Int32>) {
+        let floatX = Float(sector.x)
+        for z in sector.z..<min(dims.z, sector.z &+ 2) {
+          for y in sector.y..<min(dims.y, sector.y &+ 2) {
+            let baseAddress = (z &* dims.y &+ y) &* dims.x &+ sector.x
+            do {
+              let lowerCorner = SIMD3<Float>(floatX + 0, Float(y), Float(z))
+              let cellMask = CubicCell.intersect(
+                origin: origin - lowerCorner, normal: normal)
+              mask8[Int(baseAddress &+ 0)] = cellMask
+            }
+            do {
+              let lowerCorner = SIMD3<Float>(floatX + 1, Float(y), Float(z))
+              let cellMask = CubicCell.intersect(
+                origin: origin - lowerCorner, normal: normal)
+              mask8[Int(baseAddress &+ 1)] = cellMask
+            }
+          }
+        }
+      }
+      
+      @inline(__always)
+      func intersect2(sector: SIMD3<Int32>) {
+        var loopBounds = dimensions &- sector
+        loopBounds.replace(with: 2, where: loopBounds .> 2)
+        for subSectorZ in 0..<Int32(loopBounds.z) {
+          for subSectorY in 0..<Int32(loopBounds.y) {
+            for subSectorX in 0..<Int32(loopBounds.x) {
+              let sector2 = sector &+ SIMD3(
+                subSectorX, subSectorY, subSectorZ) &* 2
+              
+              let permX: SIMD8<UInt8> = .init(0, 0, 0, 0, 2, 2, 2, 2)
+              let permY: SIMD8<UInt8> = .init(0, 0, 2, 2, 0, 0, 2, 2)
+              let permZ: SIMD8<UInt8> = .init(0, 2, 0, 2, 0, 2, 0, 2)
+              var trialX = SIMD8(repeating: Float(sector2.x) - origin.x)
+              var trialY = SIMD8(repeating: Float(sector2.y) - origin.y)
+              var trialZ = SIMD8(repeating: Float(sector2.z) - origin.z)
+              trialX += SIMD8<Float>(permX)
+              trialY += SIMD8<Float>(permY)
+              trialZ += SIMD8<Float>(permZ)
+              
+              var dotProduct = trialX * normal.x
+              dotProduct += trialY * normal.y
+              dotProduct += trialZ * normal.z
+              let allNegative = all(dotProduct .< 0)
+              let allPositive = all(dotProduct .> 0)
+              
+              if allPositive {
+                // already initialized to 1111_1111
+              } else if allNegative {
+                for z in sector2.z..<min(dims.z, sector2.z &+ 2) {
+                  for y in sector2.y..<min(dims.y, sector2.y &+ 2) {
+                    var address = (z &* dims.y &+ y)
+                    address = address &* (dimensions.x / 2) &+ (sector2.x / 2)
+                    mask16[Int(address)] = .zero
+                  }
+                }
+              } else {
+                intersect1(sector: sector2)
+              }
+            }
+          }
+        }
+      }
+      
+      let sectorsX = (dimensions.x &+ 3) / 4
+      let sectorsY = (dimensions.y &+ 3) / 4
+      let sectorsZ = (dimensions.z &+ 3) / 4
+      for sectorZ in 0..<sectorsZ {
+        for sectorY in 0..<sectorsY {
+          for sectorX in 0..<sectorsX {
+            let permX: SIMD8<UInt8> = .init(0, 0, 0, 0, 4, 4, 4, 4)
+            let permY: SIMD8<UInt8> = .init(0, 0, 4, 4, 0, 0, 4, 4)
+            let permZ: SIMD8<UInt8> = .init(0, 4, 0, 4, 0, 4, 0, 4)
+            var trialX = SIMD8(repeating: Float(sectorX) * 4 - origin.x)
+            var trialY = SIMD8(repeating: Float(sectorY) * 4 - origin.y)
+            var trialZ = SIMD8(repeating: Float(sectorZ) * 4 - origin.z)
+            trialX += SIMD8<Float>(permX)
+            trialY += SIMD8<Float>(permY)
+            trialZ += SIMD8<Float>(permZ)
+            
+            var dotProduct = trialX * normal.x
+            dotProduct += trialY * normal.y
+            dotProduct += trialZ * normal.z
+            let allNegative = all(dotProduct .< 0)
+            let allPositive = all(dotProduct .> 0)
+            
+            let sector = SIMD3(sectorX, sectorY, sectorZ) &* 4
+            if allPositive {
+              // already initialized to 1111_1111
+            } else if allNegative {
+              for z in sector.z..<min(dims.z, sector.z &+ 4) {
+                for y in sector.y..<min(dims.y, sector.y &+ 4) {
+                  var address = z &* dims.y &+ y
+                  address = address &* (dimensions.x / 4) &+ sectorX
+                  mask32[Int(address)] = .zero
+                }
+              }
+            } else {
+              intersect2(sector: sector)
+            }
+          }
+        }
+      }
+    }
+    #endif
   }
   
   static func &= (lhs: inout Self, rhs: Self) {
@@ -115,6 +233,7 @@ struct CubicGrid: LatticeGrid {
     // present in the next cell.
     dimensions = SIMD3<Int32>((bounds + 0.001).rounded(.up))
     dimensions.replace(with: SIMD3.zero, where: dimensions .< 0)
+    dimensions.x = (dimensions.x + 3) / 4 * 4
     entityTypes = Array(repeating: repeatingUnit, count: Int(
       dimensions.x * dimensions.y * dimensions.z))
     
@@ -180,11 +299,10 @@ struct CubicGrid: LatticeGrid {
           cellID = cellID * dimensions.x + x
           
           let cell = entityTypes[Int(cellID)]
-          for lane in 0..<8 {
-            guard cell[lane] != 0 else {
-              continue
-            }
-            
+          if all(cell .== .zero) {
+            continue
+          }
+          for lane in 0..<8 where cell[lane] != 0 {
             let x = CubicCell.x0[lane] / 4
             let y = CubicCell.y0[lane] / 4
             let z = CubicCell.z0[lane] / 4

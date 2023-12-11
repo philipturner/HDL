@@ -89,7 +89,9 @@ final class PerformanceTests: XCTestCase {
     print("- replace:   \(fmt(replaceStart, replaceEnd))")
     
     // Before optimizations: ~0.318 seconds
-    // After optimizations: ~?.??? seconds
+    // After optimization 1: ~0.066 seconds
+    // After optimization 2: ~0.059 seconds
+    // 5.4x speedup
   }
   
   func testSiliconProbe() throws {
@@ -183,7 +185,9 @@ final class PerformanceTests: XCTestCase {
     print("- replace:   \(fmt(replaceStart, replaceEnd))")
     
     // Before optimizations: ~0.300 seconds
-    // After optimizations: ~?.??? seconds
+    // After optimization 1: ~0.047 seconds
+    // After optimization 2: ~0.031 seconds
+    // 9.7x speedup
   }
 #endif
 }

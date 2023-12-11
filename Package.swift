@@ -11,6 +11,9 @@ let package = Package(
             name: "HDL",
             targets: ["HDL"]),
     ],
+    dependencies: [
+      .package(url: "https://github.com/philipturner/swift-numerics", branch: "Quaternions"),
+    ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
@@ -18,6 +21,9 @@ let package = Package(
             name: "HDL"),
         .testTarget(
             name: "HDLTests",
-            dependencies: ["HDL"]),
+            dependencies: [
+              "HDL",
+              .product(name: "Numerics", package: "swift-numerics"),
+            ]),
     ]
 )

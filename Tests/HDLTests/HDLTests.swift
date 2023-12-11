@@ -62,12 +62,24 @@ final class HDLTests: XCTestCase {
   
   func testGold() throws {
     let carbonLattice = Lattice<Cubic> { h, k, l in
-      Bounds { 4 * h + 4 * k + 4 * l }
+      Bounds { 4 * (h + k + l) }
       Material { .elemental(.carbon) }
+      
+      Volume {
+        Origin { 2 * (h + k + l) }
+        Plane { -(h + k + l) }
+        Replace { .empty }
+      }
     }
     let goldLattice = Lattice<Cubic> { h, k, l in
-      Bounds { 4 * h + 4 * k + 4 * l }
+      Bounds { 4 * (h + k + l) }
       Material { .elemental(.gold) }
+      
+      Volume {
+        Origin { 2 * (h + k + l) }
+        Plane { -(h + k + l) }
+        Replace { .empty }
+      }
     }
     XCTAssertGreaterThanOrEqual(
       goldLattice.entities.count, carbonLattice.entities.count / 2)
@@ -88,6 +100,52 @@ final class HDLTests: XCTestCase {
     }
   }
   
+  func testPlane111() {
+    var parameters: [SIMD3<Int>] = [
+      SIMD3(3, 613, 1018),
+      SIMD3(4, 1337, 2313),
+      SIMD3(5, 2481, 4406),
+    ]
+#if !DEBUG
+    parameters += [
+      SIMD3(6, 4141, 7489),
+      SIMD3(7, 6413, 11754),
+      SIMD3(8, 9393, 17393),
+      SIMD3(9, 13177, 24598),
+      SIMD3(10, 17861, 33561),
+      SIMD3(11, 23541, 44474),
+    ]
+#endif
+    
+    for parameter in parameters {
+      let scale = Float(parameter[0])
+      let carbonLattice = Lattice<Cubic> { h, k, l in
+        Bounds { scale * 2 * (h + k + l) }
+        Material { .elemental(.carbon) }
+        
+        Volume {
+          Origin { scale * (h + k + l) }
+          Plane { -(h + k + l) }
+          Replace { .empty }
+        }
+      }
+#if !DEBUG
+      let goldLattice = Lattice<Cubic> { h, k, l in
+        Bounds { scale * 2 * (h + k + l) }
+        Material { .elemental(.gold) }
+        
+        Volume {
+          Origin { scale * (h + k + l) }
+          Plane { -(h + k + l) }
+          Replace { .empty }
+        }
+      }
+      XCTAssertEqual(goldLattice.entities.count, parameter[1])
+#endif
+      XCTAssertEqual(carbonLattice.entities.count, parameter[2])
+    }
+  }
+  
   func testTopologyInit() {
     let lattice = Lattice<Cubic> { h, k, l in
       Bounds { 4 * h + 4 * k + 4 * l }
@@ -95,19 +153,19 @@ final class HDLTests: XCTestCase {
     }
     
     let topology1 = Topology(lattice.entities)
-    #if DEBUG
+#if DEBUG
     XCTAssertEqual(topology1.grid.origin, SIMD3(0, 0, 0))
     XCTAssertEqual(topology1.grid.dimensions, SIMD3(3, 3, 3))
-    #endif
+#endif
     
     let topology2 = Topology(lattice.entities.map {
       var copy = $0
       copy.position -= 0.5
       return copy
     })
-    #if DEBUG
+#if DEBUG
     XCTAssertEqual(topology2.grid.origin, SIMD3(-1, -1, -1))
     XCTAssertEqual(topology2.grid.dimensions, SIMD3(3, 3, 3))
-    #endif
+#endif
   }
 }

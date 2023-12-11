@@ -221,6 +221,11 @@ struct CubicGrid: LatticeGrid {
     case .elemental(let element):
       let scalar = Int8(clamping: element.rawValue)
       repeatingUnit = SIMD8(repeating: scalar)
+      if element.rawValue == 79 {
+        // Change gold to face-centered cubic by deleting some atoms in the
+        // diamond cubic unit cell.
+        repeatingUnit = SIMD8(79, 0, 79, 0, 79, 0, 79, 0)
+      }
     case .checkerboard(let a, let b):
       let scalarA = Int8(clamping: a.rawValue)
       let scalarB = Int8(clamping: b.rawValue)
@@ -248,26 +253,6 @@ struct CubicGrid: LatticeGrid {
       SIMD3<Float>(0, 0, -1),
       SIMD3<Float>(0, 0, 1),
     ])
-    
-    // Change gold to face-centered cubic by deleting some atoms in the diamond
-    // cubic unit cell.
-    if case .elemental(.gold) = materialType {
-      makeFaceCenteredCubic()
-    }
-  }
-  
-  mutating func makeFaceCenteredCubic() {
-    let newValue = SIMD8<Int8>(repeating: .zero)
-    
-    for cellID in entityTypes.indices {
-      let compressed: UInt8 = 0b1010_1010
-      let flags = CubicCell.flags & compressed
-      
-      var codes = entityTypes[cellID]
-      let select = codes .!= 0
-      codes.replace(with: newValue, where: flags .> 0 .& select)
-      entityTypes[cellID] = codes
-    }
   }
   
   mutating func replace(with other: Int8, where mask: CubicMask) {

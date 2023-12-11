@@ -91,7 +91,8 @@ final class PerformanceTests: XCTestCase {
     // Before optimizations: ~0.318 seconds
     // After optimization 1: ~0.066 seconds
     // After optimization 2: ~0.059 seconds
-    // 5.4x speedup
+    // After optimization 3: ~0.047 seconds
+    // 6.8x speedup
   }
   
   func testSiliconProbe() throws {

@@ -101,7 +101,7 @@ struct CubicMask: LatticeMask {
       
       @inline(__always)
       func intersect2(sector: SIMD3<Int32>) {
-        var loopBounds = dimensions &- sector
+        var loopBounds = (dimensions &- sector &+ 1) / 2
         loopBounds.replace(with: 2, where: loopBounds .> 2)
         for subSectorZ in 0..<Int32(loopBounds.z) {
           for subSectorY in 0..<Int32(loopBounds.y) {
@@ -109,15 +109,15 @@ struct CubicMask: LatticeMask {
               let sector2 = sector &+ SIMD3(
                 subSectorX, subSectorY, subSectorZ) &* 2
               
-              let permX: SIMD8<UInt8> = .init(0, 0, 0, 0, 2, 2, 2, 2)
-              let permY: SIMD8<UInt8> = .init(0, 0, 2, 2, 0, 0, 2, 2)
-              let permZ: SIMD8<UInt8> = .init(0, 2, 0, 2, 0, 2, 0, 2)
+              let permX: SIMD8<UInt8> = .init(0, 0, 0, 0, 1, 1, 1, 1)
+              let permY: SIMD8<UInt8> = .init(0, 0, 1, 1, 0, 0, 1, 1)
+              let permZ: SIMD8<UInt8> = .init(0, 1, 0, 1, 0, 1, 0, 1)
               var trialX = SIMD8(repeating: Float(sector2.x) - origin.x)
               var trialY = SIMD8(repeating: Float(sector2.y) - origin.y)
               var trialZ = SIMD8(repeating: Float(sector2.z) - origin.z)
-              trialX += SIMD8<Float>(permX)
-              trialY += SIMD8<Float>(permY)
-              trialZ += SIMD8<Float>(permZ)
+              trialX += SIMD8<Float>(permX) * 2
+              trialY += SIMD8<Float>(permY) * 2
+              trialZ += SIMD8<Float>(permZ) * 2
               
               var dotProduct = trialX * normal.x
               dotProduct += trialY * normal.y
@@ -143,21 +143,65 @@ struct CubicMask: LatticeMask {
         }
       }
       
-      let sectorsX = (dimensions.x &+ 3) / 4
-      let sectorsY = (dimensions.y &+ 3) / 4
-      let sectorsZ = (dimensions.z &+ 3) / 4
+      @inline(__always)
+      func intersect4(sector: SIMD3<Int32>) {
+        var loopBounds = (dimensions &- sector &+ 3) / 4
+        loopBounds.replace(with: 2, where: loopBounds .> 2)
+        for subSectorZ in 0..<Int32(loopBounds.z) {
+          for subSectorY in 0..<Int32(loopBounds.y) {
+            for subSectorX in 0..<Int32(loopBounds.x) {
+              let sector2 = sector &+ SIMD3(
+                subSectorX, subSectorY, subSectorZ) &* 4
+              
+              let permX: SIMD8<UInt8> = .init(0, 0, 0, 0, 1, 1, 1, 1)
+              let permY: SIMD8<UInt8> = .init(0, 0, 1, 1, 0, 0, 1, 1)
+              let permZ: SIMD8<UInt8> = .init(0, 1, 0, 1, 0, 1, 0, 1)
+              var trialX = SIMD8(repeating: Float(sector2.x) - origin.x)
+              var trialY = SIMD8(repeating: Float(sector2.y) - origin.y)
+              var trialZ = SIMD8(repeating: Float(sector2.z) - origin.z)
+              trialX += SIMD8<Float>(permX) * 4
+              trialY += SIMD8<Float>(permY) * 4
+              trialZ += SIMD8<Float>(permZ) * 4
+              
+              var dotProduct = trialX * normal.x
+              dotProduct += trialY * normal.y
+              dotProduct += trialZ * normal.z
+              let allNegative = all(dotProduct .< 0)
+              let allPositive = all(dotProduct .> 0)
+              
+              if allPositive {
+                // already initialized to 1111_1111
+              } else if allNegative {
+                for z in sector2.z..<min(dims.z, sector2.z &+ 4) {
+                  for y in sector2.y..<min(dims.y, sector2.y &+ 4) {
+                    var address = z &* dims.y &+ y
+                    address = address &* (dims.x / 4) &+ (sector2.x / 4)
+                    mask32[Int(address)] = .zero
+                  }
+                }
+              } else {
+                intersect2(sector: sector2)
+              }
+            }
+          }
+        }
+      }
+      
+      let sectorsX = (dimensions.x &+ 7) / 8
+      let sectorsY = (dimensions.y &+ 7) / 8
+      let sectorsZ = (dimensions.z &+ 7) / 8
       for sectorZ in 0..<sectorsZ {
         for sectorY in 0..<sectorsY {
           for sectorX in 0..<sectorsX {
-            let permX: SIMD8<UInt8> = .init(0, 0, 0, 0, 4, 4, 4, 4)
-            let permY: SIMD8<UInt8> = .init(0, 0, 4, 4, 0, 0, 4, 4)
-            let permZ: SIMD8<UInt8> = .init(0, 4, 0, 4, 0, 4, 0, 4)
-            var trialX = SIMD8(repeating: Float(sectorX) * 4 - origin.x)
-            var trialY = SIMD8(repeating: Float(sectorY) * 4 - origin.y)
-            var trialZ = SIMD8(repeating: Float(sectorZ) * 4 - origin.z)
-            trialX += SIMD8<Float>(permX)
-            trialY += SIMD8<Float>(permY)
-            trialZ += SIMD8<Float>(permZ)
+            let permX: SIMD8<UInt8> = .init(0, 0, 0, 0, 1, 1, 1, 1)
+            let permY: SIMD8<UInt8> = .init(0, 0, 1, 1, 0, 0, 1, 1)
+            let permZ: SIMD8<UInt8> = .init(0, 1, 0, 1, 0, 1, 0, 1)
+            var trialX = SIMD8(repeating: Float(sectorX) * 8 - origin.x)
+            var trialY = SIMD8(repeating: Float(sectorY) * 8 - origin.y)
+            var trialZ = SIMD8(repeating: Float(sectorZ) * 8 - origin.z)
+            trialX += SIMD8<Float>(permX) * 8
+            trialY += SIMD8<Float>(permY) * 8
+            trialZ += SIMD8<Float>(permZ) * 8
             
             var dotProduct = trialX * normal.x
             dotProduct += trialY * normal.y
@@ -165,19 +209,23 @@ struct CubicMask: LatticeMask {
             let allNegative = all(dotProduct .< 0)
             let allPositive = all(dotProduct .> 0)
             
-            let sector = SIMD3(sectorX, sectorY, sectorZ) &* 4
+            let sector = SIMD3(sectorX, sectorY, sectorZ) &* 8
             if allPositive {
               // already initialized to 1111_1111
             } else if allNegative {
-              for z in sector.z..<min(dims.z, sector.z &+ 4) {
-                for y in sector.y..<min(dims.y, sector.y &+ 4) {
-                  var address = z &* dims.y &+ y
-                  address = address &* (dimensions.x / 4) &+ sectorX
-                  mask32[Int(address)] = .zero
+              let xFirst = sector.x / 4
+              let xSecond = min(dims.x &- 4, sector.x &+ 4) / 4
+              for z in sector.z..<min(dims.z, sector.z &+ 8) {
+                for y in sector.y..<min(dims.y, sector.y &+ 8) {
+                  let base = z &* dims.y &+ y
+                  let address1 = base &* (dims.x / 4) &+ xFirst
+                  let address2 = base &* (dims.x / 4) &+ xSecond
+                  mask32[Int(address1)] = .zero
+                  mask32[Int(address2)] = .zero
                 }
               }
             } else {
-              intersect2(sector: sector)
+              intersect4(sector: sector)
             }
           }
         }
@@ -258,14 +306,32 @@ struct CubicGrid: LatticeGrid {
   mutating func replace(with other: Int8, where mask: CubicMask) {
     let newValue = SIMD8(repeating: other)
     
-    for cellID in entityTypes.indices {
-      let compressed = mask.mask[cellID]
-      let flags = CubicCell.flags & compressed
+    mask.mask.withUnsafeBufferPointer { buffer in
+      let opaque = OpaquePointer(buffer.baseAddress.unsafelyUnwrapped)
+      let mask8 = UnsafeMutablePointer<UInt8>(opaque)
+      let mask32 = UnsafeMutablePointer<UInt32>(opaque)
       
-      var codes = entityTypes[cellID]
-      let select = codes .!= 0
-      codes.replace(with: newValue, where: flags .> 0 .& select)
-      entityTypes[cellID] = codes
+      for groupID in 0..<entityTypes.count / 4 {
+        let value32 = mask32[groupID]
+        if value32 == .zero {
+          continue
+        } else if value32 == .max && other == .zero {
+          for lane in 0..<4 {
+            entityTypes[groupID &* 4 &+ lane] = newValue
+          }
+        } else {
+          for lane in 0..<4 {
+            let cellID = groupID &* 4 &+ lane
+            let compressed = mask8[cellID]
+            let flags = CubicCell.flags & compressed
+            
+            var codes = entityTypes[cellID]
+            let select = codes .!= 0
+            codes.replace(with: newValue, where: flags .> 0 .& select)
+            entityTypes[cellID] = codes
+          }
+        }
+      }
     }
   }
   

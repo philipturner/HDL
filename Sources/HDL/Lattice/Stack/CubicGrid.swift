@@ -5,6 +5,8 @@
 //  Created by Philip Turner on 10/22/23.
 //
 
+import Dispatch
+
 struct CubicCell {
   // Multiply the plane's origin by [4, 4, 4].
   // Span: [0 -> h], [0 -> k], [0 -> l]
@@ -187,6 +189,7 @@ struct CubicMask: LatticeMask {
         }
       }
       
+      #if false
       let sectorsX = (dimensions.x &+ 7) / 8
       let sectorsY = (dimensions.y &+ 7) / 8
       let sectorsZ = (dimensions.z &+ 7) / 8
@@ -230,6 +233,83 @@ struct CubicMask: LatticeMask {
           }
         }
       }
+      #else
+      
+      let largeBlockSize: Int32 = 32
+      let boundsBlock = (dimensions &+ largeBlockSize &- 1) / largeBlockSize
+      
+      @inline(never)
+      func execute(block: SIMD3<Int32>) {
+        let start = block &* (largeBlockSize / 8)
+        var end = (block &+ 1) &* (largeBlockSize / 8)
+        let bounds8 = (dimensions &+ 7) / 8
+        end.replace(with: bounds8, where: bounds8 .< end)
+        
+        for sectorZ in start.z..<end.z {
+          for sectorY in start.y..<end.y {
+            for sectorX in start.x..<end.x {
+              let permX: SIMD8<UInt8> = .init(0, 0, 0, 0, 1, 1, 1, 1)
+              let permY: SIMD8<UInt8> = .init(0, 0, 1, 1, 0, 0, 1, 1)
+              let permZ: SIMD8<UInt8> = .init(0, 1, 0, 1, 0, 1, 0, 1)
+              var trialX = SIMD8(repeating: Float(sectorX) * 8 - origin.x)
+              var trialY = SIMD8(repeating: Float(sectorY) * 8 - origin.y)
+              var trialZ = SIMD8(repeating: Float(sectorZ) * 8 - origin.z)
+              trialX += SIMD8<Float>(permX) * 8
+              trialY += SIMD8<Float>(permY) * 8
+              trialZ += SIMD8<Float>(permZ) * 8
+              
+              var dotProduct = trialX * normal.x
+              dotProduct += trialY * normal.y
+              dotProduct += trialZ * normal.z
+              let allNegative = all(dotProduct .< 0)
+              let allPositive = all(dotProduct .> 0)
+              
+              let sector = SIMD3(sectorX, sectorY, sectorZ) &* 8
+              if allPositive {
+                // already initialized to 1111_1111
+              } else if allNegative {
+                let xFirst = sector.x / 4
+                let xSecond = min(dims.x &- 4, sector.x &+ 4) / 4
+                for z in sector.z..<min(dims.z, sector.z &+ 8) {
+                  for y in sector.y..<min(dims.y, sector.y &+ 8) {
+                    let base = z &* dims.y &+ y
+                    let address1 = base &* (dims.x / 4) &+ xFirst
+                    let address2 = base &* (dims.x / 4) &+ xSecond
+                    mask32[Int(address1)] = .zero
+                    mask32[Int(address2)] = .zero
+                  }
+                }
+              } else {
+                intersect4(sector: sector)
+              }
+            }
+          }
+        }
+      }
+      
+      let start: SIMD3<Int32> = .zero
+      let end = boundsBlock
+      var tasks: [SIMD3<Int32>] = []
+      for sectorZ in start.z..<end.z {
+        for sectorY in start.y..<end.y {
+          for sectorX in start.x..<end.x {
+            tasks.append(SIMD3(sectorX, sectorY, sectorZ))
+          }
+        }
+      }
+      
+      if tasks.count < 4 {
+        // Fall back to this if the multithreaded version is slow on a
+        // particular platform (e.g. Windows).
+        for task in tasks {
+          execute(block: task)
+        }
+      } else {
+        DispatchQueue.concurrentPerform(iterations: tasks.count) { z in
+          execute(block: tasks[z])
+        }
+      }
+      #endif
     }
     #endif
   }

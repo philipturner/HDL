@@ -102,6 +102,8 @@ struct HexagonalMask: LatticeMask {
       return
     }
     
+    // Hexagonal masks are not hyper-optimized like cubic masks. There hasn't
+    // yet been a use case that requires such optimization.
     for z in 0..<dimensions.z {
       // Note that the 'y' coordinate here starts at zero, while the actual
       // floating-point value should start at -0.5.

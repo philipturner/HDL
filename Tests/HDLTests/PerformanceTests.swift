@@ -93,7 +93,8 @@ final class PerformanceTests: XCTestCase {
     // After optimization 2: ~0.059 seconds
     // After optimization 3: ~0.044 seconds
     // After optimization 5: ~0.017 seconds
-    // 18.7x speedup
+    // After optimization 6: ~0.009 seconds
+    // 35.3x speedup
   }
   
   func testSiliconProbe() throws {
@@ -190,7 +191,8 @@ final class PerformanceTests: XCTestCase {
     // After optimization 1: ~0.047 seconds
     // After optimization 3: ~0.031 seconds
     // After optimization 5: ~0.024 seconds
-    // 12.5x speedup
+    // After optimization 6: ~0.012 seconds
+    // 25.0x speedup
   }
   
   func testGoldSurface2() throws {
@@ -244,7 +246,8 @@ final class PerformanceTests: XCTestCase {
     // After optimization 3: 0.862 seconds
     // After optimization 4: 0.822 seconds
     // After optimization 5: 0.148 seconds
-    // 30.2x speedup
+    // After optimization 6: 0.093 seconds
+    // 48.1x speedup
   }
   
   func testSiliconProbe2() throws {
@@ -430,7 +433,8 @@ final class PerformanceTests: XCTestCase {
     // After optimization 3: ~0.525 seconds
     // After optimization 4: ~0.452 seconds
     // After optimization 5: ~0.426 seconds
-    // 21.4x speedup
+    // After optimization 6: ~0.160 seconds
+    // 57.0x speedup
   }
 #endif
 }

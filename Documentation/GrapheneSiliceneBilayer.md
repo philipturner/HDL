@@ -63,7 +63,7 @@ be used with a molecular mechanics simulator.
 ## Create Graphene Layer
 
 Start by creating a 3D sheet of hexagonal diamond. It spans 4 unit cells
-in the `k` direction and 3 unit cells in the `h + 2 * k` direction. The
+in the `h` direction and 3 unit cells in the `h + 2 * k` direction. The
 most important dimension is `l`, which controls the depth. Since graphene
 is atomically thin, we want the smallest possible value for `l`. This
 value is 1 unit cell.

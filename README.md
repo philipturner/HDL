@@ -4,7 +4,6 @@ Domain-specific language for molecular nanotechnology. This repository includes 
 
 Table of Contents
 - [Overview](#overview)
-    - [Objects](#objects)
 - [Operations](#operations)
     - [Filter](#filter)
     - [Lattice](#lattice)
@@ -67,6 +66,8 @@ Topology.entities
 Object for relating atoms to local neighbors.
 
 Creates a topology of atoms with sigma bonds connecting them. Free radicals are not yet passivated, but overlap between potential passivators is detected. Atoms are sorted in Morton order to maximize simulation efficiency.
+
+> TODO: Output the bond topology in a deterministic order. Use Morton order to also output atoms in a deterministic order based on spatial position. If multiple atoms fall within the same bucket, subdivide indefinitely or interlace the bits of the number representing their position. Interlacing bits may be a much simpler method to output correctly sorted atoms, instead of traversing the grid in a complex order.
 
 ## Operations
 

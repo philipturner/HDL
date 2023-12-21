@@ -11,6 +11,9 @@ public typealias MatchType = (
 ) -> Bool
 
 extension Topology {
+  // TODO: Match should take a radius for variable compute cost, with a default
+  // of 0.5 nm. Therefore, grid cells are 0.25 nm by default for Match, but cell
+  // size can vary. Cell size = max(0.25, radius / 2).
   public func match(
     _ input: [Entity]
   ) -> [UInt32?] {

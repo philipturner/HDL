@@ -5,7 +5,7 @@
 //  Created by Philip Turner on 10/22/23.
 //
 
-/// The elements supported by MM4.
+/// The elements supported by the compiler.
 public enum Element: UInt8, CustomStringConvertible {
   case hydrogen = 1
   case carbon = 6
@@ -37,4 +37,22 @@ public enum Element: UInt8, CustomStringConvertible {
     case .gold: return ".gold"
     }
   }
+  
+  // Private API for approximating covalent bond length.
+  static let covalentRadii: [Float] = {
+    // Source: https://periodictable.com/Properties/A/CovalentRadius.v.log.html
+    var output = [Float](repeating: -1, count: 127)
+    output[0] = 0 / 1000
+    output[1] = 31 / 1000
+    output[6] = 76 / 1000
+    output[7] = 71 / 1000
+    output[8] = 66 / 1000
+    output[9] = 57 / 1000
+    output[14] = 111 / 1000
+    output[15] = 107 / 1000
+    output[16] = 105 / 1000
+    output[32] = 120 / 1000
+    output[79] = 136 / 1000
+    return output
+  }()
 }

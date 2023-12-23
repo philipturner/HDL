@@ -9,7 +9,6 @@ import Foundation
 
 public enum EntityType: RawRepresentable {
   case atom(Element)
-  case bond(Bond)
   case empty
   
   @inlinable
@@ -20,8 +19,6 @@ public enum EntityType: RawRepresentable {
         fatalError("Invalid raw value.")
       }
       self = .atom(element)
-    } else if rawValue < 0 {
-      self = .bond(Bond(rawValue: -rawValue))
     } else {
       // NaN or zero
       self = .empty
@@ -47,35 +44,21 @@ public enum EntityType: RawRepresentable {
     switch self {
     case .atom(let atomicNumber):
       return Float(atomicNumber.rawValue)
-    case .bond(let bondOrder):
-      return Float(-bondOrder.rawValue)
     case .empty:
       return 0
     }
   }
   
-  /// Map known bond order fractions to an enumerated set of negative integer
-  /// codes.
   var compactRepresentation: Int8 {
     switch self {
     case .atom(let atomicNumber):
       return Int8(clamping: atomicNumber.rawValue)
-    case .bond(let bondOrder):
-      let rawValue = bondOrder.rawValue
-      if let integerValue = Int8(exactly: rawValue),
-         rawValue >= 1 && rawValue <= 3 {
-        return integerValue
-      } else {
-        // No fractional bond orders are recognized yet.
-        return 0
-      }
     case .empty:
       return 0
     }
   }
 }
 
-/// Either an atom or a connector.
 public struct Entity {
   public var storage: SIMD4<Float>
   
@@ -86,6 +69,16 @@ public struct Entity {
     }
     set {
       storage = SIMD4(newValue, storage.w)
+    }
+  }
+  
+  @inlinable @inline(__always)
+  public var atomicNumber: UInt8 {
+    get {
+      UInt8(storage.w)
+    }
+    set {
+      storage.w = Float(newValue)
     }
   }
   

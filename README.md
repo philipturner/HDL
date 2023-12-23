@@ -5,7 +5,6 @@ Domain-specific language for molecular nanotechnology. This repository includes 
 Table of Contents
 - [Overview](#overview)
 - [Operations](#operations)
-    - [Filter](#filter)
     - [Lattice](#lattice)
     - [Topology](#topology)
     - [Volume](#volume)
@@ -16,15 +15,21 @@ Table of Contents
 For an introduction, visit the [tutorial](./Documentation/GrapheneSiliceneBilayer.md).
 
 ```swift
-enum Element { ... }
-
-enum Bond {
-  case sigma
+enum Element: UInt8 {
+  case hydrogen = 1
+  case carbon = 6
+  case nitrogen = 7
+  case oxygen = 8
+  case fluorine = 9
+  case silicon = 14
+  case phosphorus = 15
+  case sulfur = 16
+  case germanium = 32
+  case gold = 79
 }
 
 enum EntityType {
   case atom(Element)
-  case bond(Bond)
   case empty
 }
 
@@ -36,9 +41,7 @@ struct Entity {
 
 `Entity` is a data structure that stores atoms and bond connectors. The position occupies 12 bytes and the entity type occupies 4 bytes. This format aligns the entity to a 16-byte vector word, improving compilation speed.
 
-`EntityType` can extract information about the type, such as atomic number or bond order. Atomic numbers can be any element from the [MM4 force field](https://github.com/philipturner/MM4) (H, C, N, O, F, Si, P, S, and Ge). Zero for the type's raw value indicates `.empty`.
-
-Gold atoms are also supported. They will generate a face-centered cubic `Lattice` but can't form covalent bonds in `Topology`. Any bonds forbidden by MM4, such as Au-S, Si-S, and H-S, will not be formed. For example, in a custom `Filter`, hydrogens will never be presented as neighbors to a sulfur. If you add new hydrogens to the sulfur's neighbor list, there will be an error.
+`EntityType` stores the atomic number of an atom, or zero for `.empty`. Atomic numbers can be any element from the [MM4 force field](https://github.com/philipturner/MM4) (H, C, N, O, F, Si, P, S, and Ge). Gold (Au) is also permitted.
 
 ```swift
 // Specify lattice edits, if any, in the trailing closure.
@@ -63,105 +66,17 @@ Topology([Entity])
 Topology.entities
 ```
 
-Object for relating atoms to local neighbors.
-
-Creates a topology of atoms with sigma bonds connecting them. Free radicals are not yet passivated, but overlap between potential passivators is detected. Atoms are sorted in Morton order to maximize simulation efficiency.
-
-> TODO: Output the bond topology in a deterministic order. Use Morton order to also output atoms in a deterministic order based on spatial position. If multiple atoms fall within the same bucket, subdivide indefinitely or interlace the bits of the number representing their position. Interlacing bits may be a much simpler method to output correctly sorted atoms, instead of traversing the grid in a complex order.
-
-## Operations
-
-### Filter
-
-The following documentation describes filtering operations on a topology.
-
-> TODO: Simplify the filtering idea even further, and eliminate it from the public API. Instead, provide more powerful functions for transforming the low-level geometry. Change the "standard filters" to instance members on a `Topology`.
-
-```swift
-extension Topology {
-  func filter(FilterType) { ... }
-  
-  // Shorthand for the function signature.
-  typealias FilterType = (
-    atom: inout Entity, 
-    neighbors: inout [Entity]
-  ) -> Void
-}
-
-// Example of usage.
-var topology = Topology(...)
-topology.filter { atoms, neighbors in
-  ...
-}
-```
-
-Modify the topology using a custom filter. Three classes of filters are permitted:
-- `add bonds` - change the entity type of empty neighbors to `.bond(.sigma)`.
-- `remove atom` - change the entity type of `atom` to `.empty`.
-- `passivate` - append atoms to the neighbors, keeping existing atoms intact.
-
-After passivation, the neighbor list must equal the valence count. The valence shell includes only sp<sup>3</sup>-hybridized orbitals. In addition, added passivators must all have the same element. The following atom and passivator combinations are permitted:
-
-| Atom      | Passivator | Valence |
-| --------- | ---------- | ------- |
-| carbon    | hydrogen   | 4       |
-| carbon    | fluorine   | 4       |
-| silicon   | hydrogen   | 4       |
-| germanium | hydrogen   | 4       |
-
-The atom's position can be adjusted during the filter. New atoms are copied into a separate list while the closure is called. The adjustment will not affect the value of existing neighbors during the function call. This functionality could be used to adjust carbon atom positions when reconstructing diamond (100) surfaces.
-
-```swift
-Topology.connectSharpCorners: FilterType
-Topology.removePrimaryAtoms: FilterType
-Topology.hydrogenPassivate: FilterType
-
-var topology = Topology(...)
-topology.filter(Topology.connectSharpCorners)
-topology.filter(Topology.removePrimaryAtoms)
-topology.filter(Topology.hydrogenPassivate)
-```
-
-A sequence of filters for cleaning up geometry.
-1. Colliding passivators are replaced with sigma bonds, if both atoms have a single collision.
-2. Primary carbons (methyl and trifluoromethyl groups) are removed.
-3. All free radicals are passivated with hydrogen, except those with remaining passivator collisions.
-
-> TODO: When the functional form of the filters is changed, make a `clean()` function that calls all three filters above. 
->
-> TODO: Make Morton reordering a "filter" as well, drastically simplifying some of the code for state changes. Most transformations likely preserve Morton order. Add `mortonReorder()` as a fourth sub-function exposed to the public API.
+Encapsulates low-level operations during bond topology formation. These include $O(n)$ neighbor searching, insertion/removal of atoms/bonds, and Morton reordering.
 
 <!--
 
-TODO: When this is deleted, make it very obvious where it was deleted in the Git commit history. That way, you can reference it later. Delete it in the commit after this one.
+> TODO: Output the bond topology in a deterministic order. Use Morton order to also output atoms in a deterministic order based on spatial position. If multiple atoms fall within the same bucket, subdivide indefinitely or interlace the bits of the number representing their position. Interlacing bits may be a much simpler method to output correctly sorted atoms, instead of traversing the grid in a complex order.
 
-The user should be using APIs like replacing with "bond entities" to perform (100) reconstruction, or maybe even reconstruction of other surfaces. This is not something we need to proactively invest time supporting in the compiler.
+> TODO: Morton reordering should return a map of old -> new atoms.
 
-```swift
-Topology.reconstructCubic100(SIMD3<Float>): FilterType
+-->
 
-// The simplest way to call the filter.
-let direction = SIMD3<Float>(1, 1, 1)
-topology.filter(Topology.reconstructCubic100(x))
-
-// You can exclude this filter from certain atoms.
-// For example, you may want to reconstruct bonds in
-// a different direction for different faces of a
-// crystolecule.
-topology.filter { atom, neighbors in
-  let direction = SIMD3<Float>(1, 1, 1)
-  guard condition(atom, neighbors) else {
-    return
-  }
-  Topology.reconstructCubic100(direction)(atoms, neighbors)
-}
-```
-
-A filter for cleaning up diamond (100) surfaces. Sigma bonds are generated approximately parallel to the specified direction. Surface atoms are displaced to shorten the bond. Passivating hydrogens are created at an uneven angle. This filter may fail to reconstruct bonds in certain cases.
-
- An atom located roughly at (0, 0, 0) will form a bond pointing in the specified direction. This fact can be used to change the parity of which atoms are connected. Flip the sign of the direction to alternate which atoms are connected.
- 
- -->
+## Operations
 
 ### Lattice
 
@@ -249,62 +164,54 @@ Specifies the atom types to fill the lattice with, and the lattice constant. Thi
 The following APIs are available for `Topology`.
 
 ```swift
-Topology.atomicNumbers: [UInt8] { get }
-Topology.bonds: [SIMD2<UInt32>] { get }
-Topology.entities: [Entity] { get }
-Topology.positions: [SIMD3<Float>] { get }
+var bonds: [SIMD2<UInt32>] { get }
+var entities: [Entity] { get }
+
+func createAtomicNumbers() -> [UInt8]
+func createPositions() -> [SIMD3<Float>]
 ```
 
-The compiled topology is provided through a set of properties. These properties can be entered directly into `MM4ParametersDescriptor` or `MM4RigidBodyDescriptor`. If an entity exists where passivators collide, its atomic number is `0`.
+The compiled topology is provided through a set of properties. These properties can be entered directly into `MM4ParametersDescriptor` or `MM4RigidBodyDescriptor`.
 
 ```swift
-Topology.atomsToAtomsMap: [SIMD4<UInt32>]
-Topology.atomsToBondsMap: [SIMD4<UInt32>]
+func createAtomsMap() -> [[UInt32]]
+func createBondsMap() -> [[UInt32]]
 ```
 
-A map from atoms indices of neighboring atoms and covalent bonds. This can be used to quickly search for hydrogen neighbors and delete them before generating a new Topology object.
-
-> WARNING: Invalid bonds are marked with `UInt32.max`. Always check that a bond index is within the bounds of `Topology.bonds`.
+Maps that point from atoms to adjacent covalent bonds and neighboring atoms.
 
 ```swift
-extension Topology {
-  func match(_ input: [Entity]) -> [UInt32?]
-  func match(_ input: [Entity], _ closure: MatchType) -> [UInt32?]
-  
-  // Shorthand for the function signature.
-  typealias MatchType = (
-    input: Entity, 
-    candidate: Entity
-  ) -> Bool
-}
+func match(_ input: [Entity], covalentBondScale: Float = 1.5) -> [[UInt32]]
 
 // Example of usage.
 let topology = Topology(...)
-let matches1 = topology.match(entities)
-let matches2 = topology.match(entities) { input, candidate in
-  // Return the closest atom whose element is hydrogen.
-  if condition(candidate) {
-    return true
-  }
-  return false
-}
+let closeMatches = topology.match(entities)
+let farMatches = topology.match(entities, covalentBondScale: 2)
 ```
 
-Reports the closest entity in the array using an $O(n)$ algorithm. A closure may be entered to choose only the closest entity meeting a specific condition. For example, one may wish to screen nearby hydrogens for replacing with a different atom when connecting two surfaces. The match operation will return `nil` for an array index, if no match was found in a 0.5 nm radius.
+Reports nearby atoms using an $O(n)$ algorithm.
+
+`covalentBondScale` equals the maximum distance for a neighbor, in multiples of typical covalent bond length. Bond length is determined by summing the covalent radii. The pairwise sum does not always equal the bond length from `MM4ForceField`; add some tolerance for such error. The default value of 1.5 provides enough tolerance for 50% error in approximated bond length.
 
 ```swift
-extension Topology {
-  mutating func remove(_ indices: [UInt32])
-}
+mutating func insertAtoms(_ entities: [Entity])
+mutating func insertBonds(_ bonds: [SIMD2<UInt32>])
 ```
 
-Remove atoms at the specified indices. This function adjusts `bonds` to reflect the new atom indices.
+Add new atoms/bonds to the topology.
 
-Atom indices are always specified as `UInt32`. This data type reflects the intentional limit on maximum atom count, and the storage format of the bonds.
+```swift
+mutating func removeAtoms(_ indices: [UInt32])
+mutating func removeBonds(_ indices: [UInt32])
+```
 
-> TODO: Adjust `bonds`, `atomsToAtomsMap`, and `atomsToBondsMap`.
->
-> TODO: Compact the grid in-place, ensuring `match` behaves correctly. Search for the grid location where each removed atom is, assert the atom is present, and remove from the cell's backing array. This may be less efficient than mark-and-sweep, but is simpler and the overhead is constant.
+Removes atoms/bonds at the specified indices. For `removeAtoms`, bonds connected to the removed atoms are also removed.
+
+```swift
+mutating func sort()
+```
+
+Sorts atoms in Morton order, then sorts bonds in ascending order based on atom indices.
 
 ### Volume
 

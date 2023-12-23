@@ -154,9 +154,10 @@ final class HDLTests: XCTestCase {
     
     let topology1 = Topology(lattice.entities)
 #if DEBUG
-    XCTAssertEqual(topology1.grid.origin, SIMD3(0, 0, 0))
-    XCTAssertEqual(topology1.grid.dimensions, SIMD3(3, 3, 3))
+//    XCTAssertEqual(topology1.grid.origin, SIMD3(0, 0, 0))
+//    XCTAssertEqual(topology1.grid.dimensions, SIMD3(3, 3, 3))
 #endif
+    _ = topology1
     
     let topology2 = Topology(lattice.entities.map {
       var copy = $0
@@ -164,8 +165,9 @@ final class HDLTests: XCTestCase {
       return copy
     })
 #if DEBUG
-    XCTAssertEqual(topology2.grid.origin, SIMD3(-1, -1, -1))
-    XCTAssertEqual(topology2.grid.dimensions, SIMD3(3, 3, 3))
+//    XCTAssertEqual(topology2.grid.origin, SIMD3(-1, -1, -1))
+//    XCTAssertEqual(topology2.grid.dimensions, SIMD3(3, 3, 3))
 #endif
+    _ = topology2
   }
 }

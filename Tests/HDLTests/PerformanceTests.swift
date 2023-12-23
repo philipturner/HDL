@@ -24,6 +24,8 @@ private func fmt(_ start: Double, _ end: Double) -> String {
 }
 
 final class PerformanceTests: XCTestCase {
+  static let printPerformanceSummary = false
+  
 #if !DEBUG
   func testGoldSurface() throws {
     let overallStart = cross_platform_media_time()
@@ -82,11 +84,13 @@ final class PerformanceTests: XCTestCase {
     XCTAssertEqual(lattice.entities.count, 57601)
     
     let overallEnd = cross_platform_media_time()
-    print("gold surface:")
-    print("- overall:   \(fmt(overallStart, overallEnd))")
-    print("- grid init: \(fmt(gridInitStart, gridInitEnd))")
-    print("- intersect: \(fmt(intersectStart, intersectEnd))")
-    print("- replace:   \(fmt(replaceStart, replaceEnd))")
+    if Self.printPerformanceSummary {
+      print("gold surface:")
+      print("- overall:   \(fmt(overallStart, overallEnd))")
+      print("- grid init: \(fmt(gridInitStart, gridInitEnd))")
+      print("- intersect: \(fmt(intersectStart, intersectEnd))")
+      print("- replace:   \(fmt(replaceStart, replaceEnd))")
+    }
     
     // Before optimizations: ~0.318 seconds
     // After optimization 1: ~0.066 seconds
@@ -181,11 +185,13 @@ final class PerformanceTests: XCTestCase {
     XCTAssertEqual(lattice.entities.count, 81142)
     
     let overallEnd = cross_platform_media_time()
-    print("silicon probe:")
-    print("- overall:   \(fmt(overallStart, overallEnd))")
-    print("- grid init: \(fmt(gridInitStart, gridInitEnd))")
-    print("- intersect: \(fmt(intersectStart, intersectEnd))")
-    print("- replace:   \(fmt(replaceStart, replaceEnd))")
+    if Self.printPerformanceSummary {
+      print("silicon probe:")
+      print("- overall:   \(fmt(overallStart, overallEnd))")
+      print("- grid init: \(fmt(gridInitStart, gridInitEnd))")
+      print("- intersect: \(fmt(intersectStart, intersectEnd))")
+      print("- replace:   \(fmt(replaceStart, replaceEnd))")
+    }
     
     // Before optimizations: ~0.300 seconds
     // After optimization 1: ~0.047 seconds
@@ -236,11 +242,13 @@ final class PerformanceTests: XCTestCase {
     XCTAssertEqual(lattice.entities.count, 173517)
     
     let overallEnd = cross_platform_media_time()
-    print("gold surface 2:")
-    print("- overall:   \(fmt(overallStart, overallEnd))")
-    print("- grid init: \(fmt(gridInitStart, gridInitEnd))")
-    print("- intersect: \(fmt(intersectStart, intersectEnd))")
-    print("- replace:   \(fmt(replaceStart, replaceEnd))")
+    if Self.printPerformanceSummary {
+      print("gold surface 2:")
+      print("- overall:   \(fmt(overallStart, overallEnd))")
+      print("- grid init: \(fmt(gridInitStart, gridInitEnd))")
+      print("- intersect: \(fmt(intersectStart, intersectEnd))")
+      print("- replace:   \(fmt(replaceStart, replaceEnd))")
+    }
     
     // Before optimizations: 4.474 seconds
     // After optimization 3: 0.862 seconds
@@ -423,11 +431,13 @@ final class PerformanceTests: XCTestCase {
     let overallEnd = cross_platform_media_time()
     intersectEnd += intersectEnd2 - intersectStart2
     replaceEnd += replaceEnd2 - replaceStart2
-    print("silicon probe 2:")
-    print("- overall:   \(fmt(overallStart, overallEnd))")
-    print("- grid init: \(fmt(gridInitStart, gridInitEnd))")
-    print("- intersect: \(fmt(intersectStart, intersectEnd))")
-    print("- replace:   \(fmt(replaceStart, replaceEnd))")
+    if Self.printPerformanceSummary {
+      print("silicon probe 2:")
+      print("- overall:   \(fmt(overallStart, overallEnd))")
+      print("- grid init: \(fmt(gridInitStart, gridInitEnd))")
+      print("- intersect: \(fmt(intersectStart, intersectEnd))")
+      print("- replace:   \(fmt(replaceStart, replaceEnd))")
+    }
     
     // Before optimizations: ~9.121 seconds
     // After optimization 3: ~0.525 seconds

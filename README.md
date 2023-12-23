@@ -181,7 +181,20 @@ func createBondsMap() -> [[UInt32]]
 Maps that point from atoms to adjacent covalent bonds and neighboring atoms.
 
 ```swift
-func match(_ input: [Entity], covalentBondScale: Float = 1.5) -> [[UInt32]]
+extension Topology {
+  enum MatchAlgorithm {
+    // Search for neighbors within a fixed radius (in nanometers).
+    case absoluteRadius(Float)
+    
+    // Search for neighbors within a multiple of covalent bond length.
+    case covalentBondScale(Float)
+  }
+}
+
+func match(
+  _ input: [Entity], 
+  algorithm: MatchAlgorithm = .covalentBondScale(1.5)
+) -> [[UInt32]]
 
 // Example of usage.
 let topology = Topology(...)
@@ -191,14 +204,14 @@ let farMatches = topology.match(entities, covalentBondScale: 2)
 
 Reports nearby atoms using an $O(n)$ algorithm.
 
-`covalentBondScale` equals the maximum distance for a neighbor, in multiples of typical covalent bond length. Bond length is determined by summing the covalent radii. The pairwise sum does not always equal the bond length from `MM4ForceField`; add some tolerance for such error. The default value of 1.5 provides enough tolerance for 50% error in approximated bond length.
+For `covalentBondScale`, bond length is determined by summing the covalent radii. The pairwise sum does not always equal the bond length from `MM4Parameters`; add some tolerance for such error. The default value of 1.5 provides enough tolerance for 50% error in approximated bond length.
 
 ```swift
 mutating func insertAtoms(_ entities: [Entity])
 mutating func insertBonds(_ bonds: [SIMD2<UInt32>])
 ```
 
-Add new atoms/bonds to the topology.
+Adds new atoms/bonds to the topology.
 
 ```swift
 mutating func removeAtoms(_ indices: [UInt32])

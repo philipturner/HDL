@@ -24,6 +24,10 @@ public struct Topology {
   public init(_ entities: [Entity]) {
     // Start by creating the stored properties of Topology, and the basic
     // computed properties. Add the functions for inserting and removing atoms
-    // and bonds.
+    // and bonds, exporting to MM4, etc.
+    //
+    // The next logical step is Morton reordering. This will employ the
+    // TopologyGrid infrastructure. The last, and most complex, step should be
+    // matching.
   }
 }

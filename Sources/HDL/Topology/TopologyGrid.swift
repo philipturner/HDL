@@ -13,9 +13,14 @@ typealias Half = Float32
 
 struct TopologyCell {
   var indices: [UInt32]?
-  var searchRadius: Half = .zero
+  var covalentSearchRadius: Half = .zero
 }
 
+// Topology grids are transient and regenerated upon every function that
+// requires them. This design choice decreases the complexity of state changes
+// in Topology, although it may decrease performance. It may also increase
+// algorithmic complexity for extremely tiny search lists. This performance
+// issue can be fixed if the need arises, and there is a reasonable alternative.
 struct TopologyGrid {
   let entities: [Entity]
   var cells: [TopologyCell] = []
@@ -95,7 +100,7 @@ struct TopologyGrid {
         let covalentRadius = Element.covalentRadii[atomicNumber]
         maxRadius = max(maxRadius, covalentRadius)
       }
-      cells[cellID].searchRadius = Half(maxRadius)
+      cells[cellID].covalentSearchRadius = Half(maxRadius)
     }
   }
   
@@ -132,10 +137,10 @@ struct TopologyGrid {
     return output
   }
   
-  func createMaxHalfSearchRadius() -> Half {
+  func createMaxCovalentSearchRadius() -> Half {
     var searchRadius: Half = .zero
     for cell in cells {
-      searchRadius = max(searchRadius, cell.searchRadius)
+      searchRadius = max(searchRadius, cell.covalentSearchRadius)
     }
     return searchRadius
   }

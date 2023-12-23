@@ -5,6 +5,19 @@
 //  Created by Philip Turner on 12/10/23.
 //
 
+// TODO: Rewrite large sections of this codebase from scratch. Don't update the
+// API documentation until the final result is completed. The grid size and
+// search radius will be determined using some heuristics of atom covalent
+// radius and population statistics of the target grid. The end product will be
+// much more low-level than 'Diamondoid', but permits exotic use cases like
+// (100) reconstruction, passivating strained shell structures, and Eric's
+// bond formation algorithm. But without baking those algorithms into the
+// compiler. Also, the '.bond(_)' entity needs to be removed. Topology may
+// output a different IR than 'Entity/EntityType', which was simply a solution
+// to match the API design language of the DSL.
+
+// TODO: Remove this API, instead having the user rule out potential matches
+// after fetching the candidates.
 public typealias MatchType = (
   _ input: Entity,
   _ candidate: Entity

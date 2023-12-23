@@ -61,9 +61,6 @@ Creates a lattice of crystal unit cells to edit. Coordinates are represented in 
 ```swift
 // Initialize a topology with the specified entities.
 Topology([Entity])
-
-// Property to retrieve the geometry.
-Topology.entities
 ```
 
 Encapsulates low-level operations during bond topology formation. These include $O(n)$ neighbor searching, insertion/removal of atoms/bonds, and Morton reordering.
@@ -71,8 +68,6 @@ Encapsulates low-level operations during bond topology formation. These include 
 <!--
 
 > TODO: Output the bond topology in a deterministic order. Use Morton order to also output atoms in a deterministic order based on spatial position. If multiple atoms fall within the same bucket, subdivide indefinitely or interlace the bits of the number representing their position. Interlacing bits may be a much simpler method to output correctly sorted atoms, instead of traversing the grid in a complex order.
-
-> TODO: Morton reordering should return a map of old -> new atoms.
 
 -->
 
@@ -164,21 +159,24 @@ Specifies the atom types to fill the lattice with, and the lattice constant. Thi
 The following APIs are available for `Topology`.
 
 ```swift
+var atoms: [Entity] { get }
 var bonds: [SIMD2<UInt32>] { get }
-var entities: [Entity] { get }
-
-func createAtomicNumbers() -> [UInt8]
-func createPositions() -> [SIMD3<Float>]
 ```
 
-The compiled topology is provided through a set of properties. These properties can be entered directly into `MM4ParametersDescriptor` or `MM4RigidBodyDescriptor`.
+The atoms and bonds backing the topology.
 
 ```swift
-func createAtomsMap() -> [[UInt32]]
-func createBondsMap() -> [[UInt32]]
+extension Topology {
+  enum MapType {
+    case atoms
+    case bonds
+  }
+  
+  func mapAtoms(to type: MapType) -> [[UInt32]]
+}
 ```
 
-Maps that point from atoms to adjacent covalent bonds and neighboring atoms.
+Createa a map that points from atoms to a list of adjacent atoms/bonds.
 
 ```swift
 extension Topology {
@@ -207,7 +205,7 @@ Reports nearby atoms using an $O(n)$ algorithm.
 For `covalentBondScale`, bond length is determined by summing the covalent radii. The pairwise sum does not always equal the bond length from `MM4Parameters`; add some tolerance for such error. The default value of 1.5 provides enough tolerance for 50% error in approximated bond length.
 
 ```swift
-mutating func insertAtoms(_ entities: [Entity])
+mutating func insertAtoms(_ atoms: [Entity])
 mutating func insertBonds(_ bonds: [SIMD2<UInt32>])
 ```
 
@@ -220,11 +218,17 @@ mutating func removeBonds(_ indices: [UInt32])
 
 Removes atoms/bonds at the specified indices. For `removeAtoms`, bonds connected to the removed atoms are also removed.
 
+An index may be specified multiple times in the input. The atom or bond will only be removed once.
+
 ```swift
 mutating func sort()
 ```
 
 Sorts atoms in Morton order, then sorts bonds in ascending order based on atom indices.
+
+The topology must be sorted before entering into a simulator. Otherwise, there are two consequences. The nonlocalized atom layout makes the nonbonded forces extremely expensive, increasing algorithmic complexity from $O(n)$ to $O(n^2)$. The nondeterministic bond order also makes troubleshooting parameter assignments more difficult.
+
+TODO: A function that generates directions to place passivators in. This will be needed for the topology to be usable in a complete bond generation workflow.
 
 ### Volume
 

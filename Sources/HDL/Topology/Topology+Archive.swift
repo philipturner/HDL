@@ -6,7 +6,7 @@
 //
 
 // An archive of old code to reference for operations like batched grid
-// traversal and Morton reordering.
+// traversal, Morton reordering, and hydrogen passivation.
 
 // MARK: - Dispatching Batched Neighbor Searches
 
@@ -620,7 +620,7 @@ extension Grid {
 
 #endif
 
-// MARK: - Valence Orbitals
+// MARK: - Orbitals
 
 #if false
 func createAtom(atoms: [MRAtom], atomID: Int) {

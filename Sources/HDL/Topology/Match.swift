@@ -52,12 +52,12 @@ extension Topology {
     case absoluteRadius(Float)
     
     // Search for neighbors within a multiple of covalent bond length.
-    case covalentBondScale(Float)
+    case covalentBondLength(Float)
   }
   
   public func match(
     _ input: [Entity],
-    algorithm: MatchAlgorithm = .covalentBondScale(1.5)
+    algorithm: MatchAlgorithm = .covalentBondLength(1.5)
   ) -> [ArraySlice<UInt32>] {
     // TODO: Activate the more advanced implementation below, once the simpler
     // one without reordering is ironed out. There may be no need to activate
@@ -144,7 +144,7 @@ private func matchImpl(
     switch algorithm {
     case .absoluteRadius(let radius):
       rhsR = Half(radius / 2).nextUp
-    case .covalentBondScale(let scale):
+    case .covalentBondLength(let scale):
       rhsR *= Half(scale).nextUp
     }
     var rhs = atom.storage
@@ -185,7 +185,7 @@ private func matchImpl(
     case .absoluteRadius(let radius):
       let radius16 = Half(radius / 2).nextUp
       lhsR = SIMD8(repeating: radius16)
-    case .covalentBondScale(let scale):
+    case .covalentBondLength(let scale):
       lhsR *= Half(scale).nextUp
     }
     

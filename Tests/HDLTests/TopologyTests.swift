@@ -25,6 +25,9 @@ final class TopologyTests: XCTestCase {
     //  }
   }
   
+  
+  // Good ideas for stuff the test suite should eventually cover:
+  //
   // Idea for testing correctness of TopologyGrid.mortonReordering: render a
   // trail of interpolated points between each atom in the list. If the Morton
   // reordering is correct, it will look like a Z-order curve.
@@ -47,6 +50,11 @@ final class TopologyTests: XCTestCase {
   // reconstruction to work will likely trigger edge cases where the compiler is
   // broken; reproducers can be added to the test suite.
   //
+  // TODO: - The second test case is an interesting method of forming strained
+  // shell structures. Passivate a crystalline lattice, then warp and remove
+  // hydrogens bonded to carbons that will merge. Validate that both this
+  // and the reconstructed (100) structure are accepted by the simulator.
+  //
   // sort() should still be debugged as explained above; this method is a form
   // of visual debugging. It may be helpful to have a utility function for
   // debugging bonds. For example, explode the crystal lattice and place marker
@@ -55,18 +63,14 @@ final class TopologyTests: XCTestCase {
   //
   // The old 'Diamondoid' topology generator can be used to bootstrap testing
   // of how sort() treats bonds, before the remainder of the functionality is
-  // working.
+  // working. In addition, enter into MM4Parameters as a final validation test.
   //
   // Implementation plan:
   // - 1) Visualizer for Morton order and bond topology in GitHub gist.
-  //   - 1.1) Test against Diamondoid and Lattice.
+  //   - 1.1) Test against Lattice -> Diamondoid reordering.
   //   - 1.2) Test against Topology.sort().
   // - 2) Test simple diamond and lonsdaleite lattice formation.
-  // - 3) Demonstrate (100) surface and strained shell structure formation.
-  // - 4) Test the generated structures in the old MM4 simulator.
-  
-  // TODO: - The second test case is an interesting method of forming strained
-  // shell structures. Passivate a crystalline lattice, then warp and remove
-  // hydrogens bonded to carbons that will merge. Validate that both this
-  // and the reconstructed (100) structure are accepted by the simulator.
+  // - 3) Reproduce graphene thiol and HAbst tripods from the
+  //      nanofactory demo.
+  // - 4) Demonstrate (100) surface and strained shell structure formation.
 }

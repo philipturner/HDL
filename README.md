@@ -65,12 +65,6 @@ Topology()
 
 Encapsulates low-level operations during bond topology formation. These include $O(n)$ neighbor searching, insertion/removal of atoms/bonds, and Morton reordering.
 
-<!--
-
-> TODO: Output the bond topology in a deterministic order. Use Morton order to also output atoms in a deterministic order based on spatial position. If multiple atoms fall within the same bucket, subdivide indefinitely or interlace the bits of the number representing their position. Interlacing bits may be a much simpler method to output correctly sorted atoms, instead of traversing the grid in a complex order.
-
--->
-
 ## Operations
 
 ### Lattice
@@ -199,13 +193,13 @@ extension Topology {
     case absoluteRadius(Float)
     
     // Search for neighbors within a multiple of covalent bond length.
-    case covalentBondScale(Float)
+    case covalentBondLength(Float)
   }
 }
 
 func match(
   _ input: [Entity], 
-  algorithm: MatchAlgorithm = .covalentBondScale(1.5)
+  algorithm: MatchAlgorithm = .covalentBondLength(1.5)
 ) -> [ArraySlice<UInt32>]
 
 // Example of usage.
@@ -213,7 +207,7 @@ var topology = Topology()
 topology.insert(atoms: atoms1)
 let closeMatches = topology.match(atoms2)
 let farMatches = topology.match(
-  atoms2, algorithm: .covalentBondScale(2))
+  atoms2, algorithm: .covalentBondLength(2))
 let angstromMatches = topology.match(
   atoms2, algorithm: .absoluteRadius(0.1))
 ```
@@ -268,11 +262,9 @@ If the directions cannot be determined with absolute certainty from the immediat
 
 Free radicals and lone pairs are treated the same way. This means a nitrogen with one missing passivator will return two options for N-H bond directions. Although the compiler cannot determine the passivator direction with certainty, it can narrow down a discrete set of choices.
 
+For the carbon in an acetylene radical, only one orbital is reported. The reported orbital contains the free radical and is collinear with the two carbon atoms. It is also the only orbital known with absolute positional certainty. The two pi orbitals could be rotated into a infinite number of specific positions around the axis. It may be possible exactly determine their orientation relative to other pi orbitals in a carbyne rod. However, that heuristic involves more than just immediate neighbors.
+
 Another edge case is halogens. Although they have 3 lone pairs, there is no method to positionally constrain the directions of sp3 orbitals. In contrast, the nonbonding orbitals of divalent oxygen and trivalent nitrogen are reported. The difference in behavior corresponds to how primary carbons are treated differently than secondary and tertiary carbons.
-
-
-
-TODO: A function that generates directions to place passivators in. This will be needed for the topology to be usable in a complete bond generation workflow. It should use `ArraySlice` for efficient representation, just like `map(_:to:)`.
 
 ### Volume
 

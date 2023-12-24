@@ -5,31 +5,12 @@
 //  Created by Philip Turner on 12/2/23.
 //
 
-// MARK: - Declaration
-
-// TODO: Rewrite large sections of this codebase from scratch. Don't update the
-// API documentation until the final result is completed. The grid size and
-// search radius will be determined using some heuristics of atom covalent
-// radius and population statistics of the target grid. The end product will be
-// much more low-level than 'Diamondoid', but permits exotic use cases like
-// (100) reconstruction, passivating strained shell structures, and Eric's
-// bond formation algorithm. But without baking those algorithms into the
-// compiler. Also, the '.bond(_)' entity needs to be removed. Topology may
-// output a different IR than 'Entity/EntityType', which was simply a solution
-// to match the API design language of the DSL.
-
 public struct Topology {
   public internal(set) var atoms: [Entity] = []
   public internal(set) var bonds: [SIMD2<UInt32>] = []
   
   public init() {
-    // Start by creating the stored properties of Topology, and the basic
-    // computed properties. Add the functions for inserting and removing atoms
-    // and bonds, exporting to MM4, etc.
-    //
-    // The next logical step is Morton reordering. This will employ the
-    // TopologyGrid infrastructure. The last, and most complex, step should be
-    // matching.
+    
   }
 }
 

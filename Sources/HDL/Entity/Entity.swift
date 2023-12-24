@@ -5,8 +5,6 @@
 //  Created by Philip Turner on 10/22/23.
 //
 
-import Foundation
-
 public enum EntityType: RawRepresentable {
   case atom(Element)
   case empty

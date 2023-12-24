@@ -248,6 +248,30 @@ Sorts atoms in Morton order, then sorts bonds in ascending order based on atom i
 
 The topology must be sorted before entering into a simulator. Otherwise, there are two consequences. The nonlocalized atom layout makes the nonbonded forces extremely expensive, increasing algorithmic complexity from $O(n)$ to $O(n^2)$. The nondeterministic bond order also makes troubleshooting parameter assignments more difficult.
 
+```swift
+extension Topology {
+  enum OrbitalHybridization {
+    case sp1
+    case sp2
+    case sp3
+  }
+}
+
+func nonbondingOrbitals(
+  hybridization: OrbitalHybridization = .sp3
+) -> [ArraySlice<SIMD3<Float>>]
+```
+
+Directions for nonbonding orbitals in the valence shell. The directions are represented by normalized vectors.
+
+If the directions cannot be determined with absolute certainty from the immediate neighbors, no orbitals are reported. Examples are methane carbons, primary carbons in the sp3 hybridization, or sp2-bonded carbons with only a single bond filled. There are multiple reasonable heuristics for deciding where to place passivators in such edge cases. The choice of a heuristic is best deferred to the user. Furthermore, the appearance of such edge cases often signals malformed geometry or functional groups that ought to be removed.
+
+Free radicals and lone pairs are treated the same way. This means a nitrogen with one missing passivator will return two options for N-H bond directions. Although the compiler cannot determine the passivator direction with certainty, it can narrow down a discrete set of choices.
+
+Another edge case is halogens. Although they have 3 lone pairs, there is no method to positionally constrain the directions of sp3 orbitals. In contrast, the nonbonding orbitals of divalent oxygen and trivalent nitrogen are reported. The difference in behavior corresponds to how primary carbons are treated differently than secondary and tertiary carbons.
+
+
+
 TODO: A function that generates directions to place passivators in. This will be needed for the topology to be usable in a complete bond generation workflow. It should use `ArraySlice` for efficient representation, just like `map(_:to:)`.
 
 ### Volume

@@ -619,3 +619,130 @@ extension Grid {
 }
 
 #endif
+
+// MARK: - Valence Orbitals
+
+#if false
+func createAtom(atoms: [MRAtom], atomID: Int) {
+  precondition(atomID > -1)
+  let thisAtom = atoms[atomID]
+  
+  let newAtomID = Int32(self.atoms.count)
+  newIndicesMap[atomID] = newAtomID
+  self.atoms.append(thisAtom)
+  
+  var neighborTypes: [Int] = []
+  var neighborCenters: [SIMD3<Float>] = []
+  for j in 0..<centerTypes[atomID] {
+    let index = Int(centerNeighbors[atomID][j])
+    neighborTypes.append(centerTypes[index])
+    neighborCenters.append(atoms[index].origin)
+    
+    // Change this; store the bonds with indices being sorted inside the
+    // bond, but only add a bond when the neighbor is already inside the
+    // final list.
+    let newNeighborID = newIndicesMap[index]
+    guard newNeighborID > -1 else {
+      continue
+    }
+    var newBond: SIMD2<Int32> = .zero
+    newBond[0] = min(newAtomID, newNeighborID)
+    newBond[1] = max(newAtomID, newNeighborID)
+    bonds.append(newBond)
+  }
+  
+  let valenceElectrons = Constants.valenceElectrons(
+    element: thisAtom.element)
+  if centerTypes[atomID] > valenceElectrons {
+    fatalError("Too many bonds.")
+  }
+  
+  var totalBonds = centerTypes[atomID]
+  func addHydrogen(direction: SIMD3<Float>) {
+    guard totalBonds < valenceElectrons else {
+      return
+    }
+    totalBonds += 1
+    
+    let bondLength = Constants.bondLengths[
+      [1, thisAtom.element]]!.average
+    let hydrogenCenter = thisAtom.origin + bondLength * direction
+    let hydrogenID = Int32(self.atoms.count)
+    
+    self.atoms.append(MRAtom(origin: hydrogenCenter, element: 1))
+    self.bonds.append(SIMD2(Int32(newAtomID), hydrogenID))
+  }
+  
+  switch centerTypes[atomID] {
+  case 4:
+    break
+  case 3:
+    let sideAB = neighborCenters[1] - neighborCenters[0]
+    let sideAC = neighborCenters[2] - neighborCenters[0]
+    var normal = _cross_platform_normalize(_cross_platform_cross(sideAB, sideAC))
+    
+    let deltaA = thisAtom.origin - neighborCenters[0]
+    if _cross_platform_dot(normal, deltaA) < 0 {
+      normal = -normal
+    }
+    
+    addHydrogen(direction: normal)
+  case 2:
+    let midPoint = (neighborCenters[1] + neighborCenters[0]) / 2
+    guard _cross_platform_distance(midPoint, thisAtom.origin) > 0.001 else {
+      fatalError("sp3 carbons are too close to 180 degrees.")
+    }
+    
+    let normal = _cross_platform_normalize(thisAtom.origin - midPoint)
+    let axis = _cross_platform_normalize(neighborCenters[1] - midPoint)
+    for angle in [-sp3BondAngle / 2, sp3BondAngle / 2] {
+      let rotation = Quaternion<Float>(angle: angle, axis: axis)
+      let direction = rotation.act(on: normal)
+      addHydrogen(direction: direction)
+    }
+  case 1:
+    guard neighborTypes[0] > 1 else {
+      fatalError("Cannot determine structure of primary carbon.")
+    }
+    
+    let j = Int(centerNeighbors[atomID][0])
+    var referenceIndex: Int?
+    for k in 0..<neighborTypes[0] {
+      let index = Int(centerNeighbors[j][k])
+      if atomID != index {
+        referenceIndex = index
+        break
+      }
+    }
+    guard let referenceIndex else {
+      fatalError("Could not find valid neighbor index.")
+    }
+    let referenceCenter = atoms[referenceIndex].origin
+    let normal = _cross_platform_normalize(thisAtom.origin - atoms[j].origin)
+    
+    let referenceDelta = atoms[j].origin - referenceCenter
+    var orthogonal = referenceDelta - normal * _cross_platform_dot(normal, referenceDelta)
+    guard _cross_platform_length(orthogonal) > 0.001 else {
+      fatalError("sp3 carbons are too close to 180 degrees.")
+    }
+    orthogonal = _cross_platform_normalize(orthogonal)
+    let axis = _cross_platform_cross(normal, orthogonal)
+    
+    var directions: [SIMD3<Float>] = []
+    let firstHydrogenRotation = Quaternion<Float>(
+      angle: .pi - sp3BondAngle, axis: axis)
+    directions.append(firstHydrogenRotation.act(on: normal))
+    
+    let secondHydrogenRotation = Quaternion<Float>(
+      angle: 120 * .pi / 180, axis: normal)
+    directions.append(secondHydrogenRotation.act(on: directions[0]))
+    directions.append(secondHydrogenRotation.act(on: directions[1]))
+    
+    for direction in directions {
+      addHydrogen(direction: direction)
+    }
+  default:
+    fatalError("This should never happen.")
+  }
+}
+#endif

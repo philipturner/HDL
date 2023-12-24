@@ -38,7 +38,9 @@ public enum Element: UInt8, CustomStringConvertible {
     }
   }
   
-  // Private API for approximating covalent bond length.
+  // Private API for approximating covalent bond length. This is meant to be
+  // called in bulk, even when whole-module optimization is disabled.
+  @usableFromInline
   static let covalentRadii: [Float] = {
     // Source: https://periodictable.com/Properties/A/CovalentRadius.v.log.html
     var output = [Float](repeating: -1, count: 127)
@@ -55,4 +57,9 @@ public enum Element: UInt8, CustomStringConvertible {
     output[79] = 136 / 1000
     return output
   }()
+  
+  @inlinable @inline(__always)
+  public var covalentRadius: Float {
+    Self.covalentRadii[Int(rawValue)]
+  }
 }

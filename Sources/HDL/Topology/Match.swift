@@ -5,6 +5,12 @@
 //  Created by Philip Turner on 12/23/23.
 //
 
+#if arch(arm64)
+typealias Half = Float16
+#else
+typealias Half = Float32
+#endif
+
 // TODO: Start with an O(n^2) algorithm for now. Get all the tests finished,
 // enabling a full-stack workflow. Later, implement the optimization that
 // creates a grid for O(n) traversal. This approach allows an entire test suite

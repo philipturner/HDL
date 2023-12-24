@@ -41,7 +41,7 @@ protocol LatticeGrid {
   init(bounds: SIMD3<Float>, materialType: MaterialType)
   mutating func replace(with other: Int8, where mask: Mask)
   
-  var entities: [Entity] { get }
+  var atoms: [Entity] { get }
 }
 
 extension LatticeGrid {

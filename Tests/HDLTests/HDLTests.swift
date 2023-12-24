@@ -53,8 +53,8 @@ final class HDLTests: XCTestCase {
         }
       }
       
-      XCTAssertGreaterThan(lattice.entities.count, 0)
-      XCTAssertTrue(lattice.entities.contains(where: {
+      XCTAssertGreaterThan(lattice.atoms.count, 0)
+      XCTAssertTrue(lattice.atoms.contains(where: {
         $0.type == .atom(element)
       }))
     }
@@ -82,11 +82,11 @@ final class HDLTests: XCTestCase {
       }
     }
     XCTAssertGreaterThanOrEqual(
-      goldLattice.entities.count, carbonLattice.entities.count / 2)
+      goldLattice.atoms.count, carbonLattice.atoms.count / 2)
     
-    for entity in goldLattice.entities {
+    for atom in goldLattice.atoms {
       // Map the position to a fraction of the unit cell.
-      var position = entity.position
+      var position = atom.position
       position /= Constant(.square) { .elemental(.gold) }
       position *= 2
       
@@ -140,9 +140,9 @@ final class HDLTests: XCTestCase {
           Replace { .empty }
         }
       }
-      XCTAssertEqual(goldLattice.entities.count, parameter[1])
+      XCTAssertEqual(goldLattice.atoms.count, parameter[1])
 #endif
-      XCTAssertEqual(carbonLattice.entities.count, parameter[2])
+      XCTAssertEqual(carbonLattice.atoms.count, parameter[2])
     }
   }
 }

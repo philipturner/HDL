@@ -51,7 +51,7 @@ Lattice<Basis> { h, k, l in
 }
 
 // Property to retrieve the geometry.
-Lattice<Basis>.entities
+Lattice<Basis>.atoms
 ```
 
 Object encapsulating crystal plane algebra.
@@ -59,8 +59,8 @@ Object encapsulating crystal plane algebra.
 Creates a lattice of crystal unit cells to edit. Coordinates are represented in numbers of crystal unit cells. The coordinate system may be mapped to a non-orthonormal coordinate system internally. Keep this in mind when processing `SIMD3<Float>` vectors. For example, avoid normalizing any vectors.
 
 ```swift
-// Initialize a topology with the specified entities.
-Topology([Entity])
+// Initialize an empty topology. Geometry will be added using member functions.
+Topology()
 ```
 
 Encapsulates low-level operations during bond topology formation. These include $O(n)$ neighbor searching, insertion/removal of atoms/bonds, and Morton reordering.
@@ -172,11 +172,25 @@ extension Topology {
     case bonds
   }
   
-  func mapAtoms(to type: MapType) -> [[UInt32]]
+  func map(
+    _ primaryType: MapType,
+    to secondaryType: MapType
+  ) -> [ArraySlice<UInt32>]
 }
+
+// Example of usage.
+var topology = Topology()
+topology.insertAtoms(atoms)
+topology.insertBonds(bonds)
+
+let atomsToAtomsMap = topology.map(.atoms, to: .atoms)
+let atomsToBondsMap = topology.map(.atoms, to: .bonds)
+let bondsToAtomsMap = topology.map(.bonds, to: .atoms)
 ```
 
-Createa a map that points from atoms to a list of adjacent atoms/bonds.
+Create a map that points from atoms/bonds to a list of connected atoms/bonds.
+
+The primary and secondary type cannot both be `.bonds`. There cannot be more than 8 connections to an atom. If one of the types is `.bonds`, the indices within the array slice are always sorted. Otherwise, the indices correspond to bonds in ascending order.
 
 ```swift
 extension Topology {
@@ -196,10 +210,9 @@ func match(
 
 // Example of usage.
 var topology = Topology()
-topology.insertAtoms(entities1)
-
-let closeMatches = topology.match(entities2)
-let farMatches = topology.match(entities2, covalentBondScale: 2)
+topology.insertAtoms(atoms1)
+let closeMatches = topology.match(atoms2)
+let farMatches = topology.match(atoms2, covalentBondScale: 2)
 ```
 
 Reports nearby atoms using an $O(n)$ algorithm.
@@ -233,7 +246,7 @@ Sorts atoms in Morton order, then sorts bonds in ascending order based on atom i
 
 The topology must be sorted before entering into a simulator. Otherwise, there are two consequences. The nonlocalized atom layout makes the nonbonded forces extremely expensive, increasing algorithmic complexity from $O(n)$ to $O(n^2)$. The nondeterministic bond order also makes troubleshooting parameter assignments more difficult.
 
-TODO: A function that generates directions to place passivators in. This will be needed for the topology to be usable in a complete bond generation workflow.
+TODO: A function that generates directions to place passivators in. This will be needed for the topology to be usable in a complete bond generation workflow. It should use `ArraySlice` for efficient representation, just like `map(_:to:)`.
 
 ### Volume
 
@@ -278,7 +291,7 @@ Reflect `normal` across `reflector`. Generate a plane with the normal before ref
 Replace { EntityType }
 ```
 
-Replace all entities in the selected volume with a new entity.
+Replace all atoms in the selected volume with a new entity.
 
 To delete atoms, use `Replace { .empty }`. Removed atoms cannot be restored by a subsequent `Replace`.
 

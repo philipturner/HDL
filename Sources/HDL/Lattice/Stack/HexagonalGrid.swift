@@ -226,7 +226,7 @@ struct HexagonalGrid: LatticeGrid {
     }
   }
   
-  var entities: [Entity] {
+  var atoms: [Entity] {
     var output: [Entity] = []
     let outputScale = SIMD3<Float>(
       hexagonSideLength, hexagonSideLength, prismHeight

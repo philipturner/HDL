@@ -415,7 +415,7 @@ struct CubicGrid: LatticeGrid {
     }
   }
   
-  var entities: [Entity] {
+  var atoms: [Entity] {
     var output: [Entity] = []
     let outputTransform = (
       SIMD3<Float>(squareSideLength, 0, 0),

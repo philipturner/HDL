@@ -7,16 +7,6 @@
 
 // MARK: - Declaration
 
-#if arch(arm64)
-typealias Half = Float16
-#else
-typealias Half = Float32
-#endif
-
-struct TopologyCell {
-  var indices: [UInt32] = []
-}
-
 // Topology grids are transient and regenerated upon every function that
 // requires them. This design choice decreases the complexity of state changes
 // in Topology, although it may decrease performance. It may also increase
@@ -24,7 +14,7 @@ struct TopologyCell {
 // issue can be fixed if the need arises, and there is a reasonable alternative.
 struct TopologyGrid {
   let atoms: [Entity]
-  var cells: [TopologyCell] = []
+  var cells: [[UInt32]] = []
   var atomsToCellsMap: [SIMD2<UInt32>] = []
   
   // Origin and dimensions are in discrete multiples of cell width.
@@ -57,7 +47,7 @@ struct TopologyGrid {
     
     // Use checking arithmetic to ensure the multiplication doesn't overflow.
     let cellCount = Int32(dimensions[0] * dimensions[1] * dimensions[2])
-    cells = Array(repeating: TopologyCell(), count: Int(cellCount))
+    cells = Array(repeating: [], count: Int(cellCount))
     atomsToCellsMap = Array(repeating: .zero, count: atoms.count)
     
     for atomID in atoms.indices {
@@ -73,8 +63,8 @@ struct TopologyGrid {
       let originDelta = SIMD3<Int32>(position) &- self.origin
       let cellID = self.createCellID(originDelta: originDelta)
       
-      let mappedAtomID = cells[cellID].indices.count
-      cells[cellID].indices.append(UInt32(truncatingIfNeeded: atomID))
+      let mappedAtomID = cells[cellID].count
+      cells[cellID].append(UInt32(truncatingIfNeeded: atomID))
       
       let location = SIMD2<Int>(cellID, mappedAtomID)
       atomsToCellsMap[atomID] = SIMD2(truncatingIfNeeded: location)
@@ -153,14 +143,13 @@ extension TopologyGrid {
     var atomList: [SIMD2<UInt64>] = []
     for element in cellList {
       let cellID = Int(truncatingIfNeeded: element[0])
-      let atomIndices = cells[cellID].indices
-      for atomID in atomIndices {
+      for atomID in cells[cellID] {
         let atom = atoms[Int(atomID)]
         let scaledPosition = atom.position / cellWidth
         let floorPosition = scaledPosition.rounded(.down)
         let originDelta = SIMD3<Int32>(floorPosition) &- self.origin
         guard createCellID(originDelta: originDelta) == cellID else {
-          fatalError("Atom not in the correct cell.")
+          fatalError("Atom was not in the correct cell.")
         }
         
         let remainder = (scaledPosition - floorPosition) * Float(1 << 21)

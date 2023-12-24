@@ -81,7 +81,7 @@ final class PerformanceTests: XCTestCase {
         replaceEnd = cross_platform_media_time()
       }
     }
-    XCTAssertEqual(lattice.entities.count, 57601)
+    XCTAssertEqual(lattice.atoms.count, 57601)
     
     let overallEnd = cross_platform_media_time()
     if Self.printPerformanceSummary {
@@ -182,7 +182,7 @@ final class PerformanceTests: XCTestCase {
         replaceEnd = cross_platform_media_time()
       }
     }
-    XCTAssertEqual(lattice.entities.count, 81142)
+    XCTAssertEqual(lattice.atoms.count, 81142)
     
     let overallEnd = cross_platform_media_time()
     if Self.printPerformanceSummary {
@@ -239,7 +239,7 @@ final class PerformanceTests: XCTestCase {
         replaceEnd = cross_platform_media_time()
       }
     }
-    XCTAssertEqual(lattice.entities.count, 173517)
+    XCTAssertEqual(lattice.atoms.count, 173517)
     
     let overallEnd = cross_platform_media_time()
     if Self.printPerformanceSummary {
@@ -426,7 +426,7 @@ final class PerformanceTests: XCTestCase {
         replaceEnd2 = cross_platform_media_time()
       }
     }
-    XCTAssertEqual(lattice.entities.count, 64226)
+    XCTAssertEqual(lattice.atoms.count, 64226)
     
     let overallEnd = cross_platform_media_time()
     intersectEnd += intersectEnd2 - intersectStart2

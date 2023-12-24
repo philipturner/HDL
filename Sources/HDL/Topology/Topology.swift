@@ -42,7 +42,7 @@ public struct Topology {
 // TODO: Add test cases for these functions.
   
 extension Topology {
-  public mutating func insertAtoms(_ atoms: [Entity]) {
+  public mutating func insert(atoms: [Entity]) {
     for atom in atoms {
       guard atom.storage.w > 0 else {
         fatalError("Topology does not accept empty entities.")
@@ -54,7 +54,7 @@ extension Topology {
     self.atoms += atoms
   }
   
-  public mutating func insertBonds(_ bonds: [SIMD2<UInt32>]) {
+  public mutating func insert(bonds: [SIMD2<UInt32>]) {
     let bondMax = UInt32(truncatingIfNeeded: atoms.count)
     for bond in bonds {
       guard all(bond .< bondMax) else {
@@ -64,7 +64,7 @@ extension Topology {
     self.bonds += bonds
   }
   
-  public mutating func removeAtoms(_ indices: [UInt32]) {
+  public mutating func remove(atoms indices: [UInt32]) {
     var marks = [Bool](repeating: true, count: atoms.count)
     guard indices.allSatisfy({ $0 < atoms.count }) else {
       fatalError("One or more atom indices were out of range.")
@@ -100,10 +100,10 @@ extension Topology {
         removedBonds.append(UInt32(truncatingIfNeeded: i))
       }
     }
-    self.removeAtoms(removedBonds)
+    self.remove(bonds: removedBonds)
   }
   
-  public mutating func removeBonds(_ indices: [UInt32]) {
+  public mutating func remove(bonds indices: [UInt32]) {
     var marks = [Bool](repeating: true, count: bonds.count)
     guard indices.allSatisfy({ $0 < bonds.count }) else {
       fatalError("One or more bond indices were out of range.")

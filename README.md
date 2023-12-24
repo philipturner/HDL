@@ -180,8 +180,8 @@ extension Topology {
 
 // Example of usage.
 var topology = Topology()
-topology.insertAtoms(atoms)
-topology.insertBonds(bonds)
+topology.insert(atoms: atoms)
+topology.insert(bonds: bonds)
 
 let atomsToAtomsMap = topology.map(.atoms, to: .atoms)
 let atomsToBondsMap = topology.map(.atoms, to: .bonds)
@@ -210,9 +210,10 @@ func match(
 
 // Example of usage.
 var topology = Topology()
-topology.insertAtoms(atoms1)
+topology.insert(atoms: atoms1)
 let closeMatches = topology.match(atoms2)
-let farMatches = topology.match(atoms2, covalentBondScale: 2)
+let farMatches = topology.match(
+  atoms2, algorithm: .covalentBondScale(2))
 ```
 
 Reports nearby atoms using an $O(n)$ algorithm.
@@ -220,15 +221,15 @@ Reports nearby atoms using an $O(n)$ algorithm.
 For `covalentBondScale`, bond length is determined by summing the covalent radii. The pairwise sum does not always equal the bond length from `MM4Parameters`; add some tolerance for such error. The default value of 1.5 provides enough tolerance for 50% error in approximated bond length.
 
 ```swift
-mutating func insertAtoms(_ atoms: [Entity])
-mutating func insertBonds(_ bonds: [SIMD2<UInt32>])
+mutating func insert(atoms: [Entity])
+mutating func insert(bonds: [SIMD2<UInt32>])
 ```
 
 Adds new atoms/bonds to the topology.
 
 ```swift
-mutating func removeAtoms(_ indices: [UInt32])
-mutating func removeBonds(_ indices: [UInt32])
+mutating func remove(atoms indices: [UInt32])
+mutating func remove(bonds indices: [UInt32])
 ```
 
 Removes atoms/bonds at the specified indices. For `removeAtoms`, bonds connected to the removed atoms are also removed.

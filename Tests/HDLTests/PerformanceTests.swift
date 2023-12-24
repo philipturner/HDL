@@ -446,5 +446,9 @@ final class PerformanceTests: XCTestCase {
     // After optimization 6: ~0.160 seconds
     // 57.0x speedup
   }
+  
+  // We need to run performance tests of Topology.match, to ensure the
+  // acceleration algorithm is working properly. I could imagine subtle bugs
+  // that make it incorrect, resulting in O(n^2) scaling.
 #endif
 }

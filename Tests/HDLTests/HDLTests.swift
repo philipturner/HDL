@@ -145,29 +145,4 @@ final class HDLTests: XCTestCase {
       XCTAssertEqual(carbonLattice.entities.count, parameter[2])
     }
   }
-  
-  func testTopologyInit() {
-    let lattice = Lattice<Cubic> { h, k, l in
-      Bounds { 4 * h + 4 * k + 4 * l }
-      Material { .elemental(.carbon) }
-    }
-    
-    let topology1 = Topology(lattice.entities)
-#if DEBUG
-//    XCTAssertEqual(topology1.grid.origin, SIMD3(0, 0, 0))
-//    XCTAssertEqual(topology1.grid.dimensions, SIMD3(3, 3, 3))
-#endif
-    _ = topology1
-    
-    let topology2 = Topology(lattice.entities.map {
-      var copy = $0
-      copy.position -= 0.5
-      return copy
-    })
-#if DEBUG
-//    XCTAssertEqual(topology2.grid.origin, SIMD3(-1, -1, -1))
-//    XCTAssertEqual(topology2.grid.dimensions, SIMD3(3, 3, 3))
-#endif
-    _ = topology2
-  }
 }

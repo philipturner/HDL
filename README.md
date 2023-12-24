@@ -195,9 +195,11 @@ func match(
 ) -> [[UInt32]]
 
 // Example of usage.
-let topology = Topology(...)
-let closeMatches = topology.match(entities)
-let farMatches = topology.match(entities, covalentBondScale: 2)
+var topology = Topology()
+topology.insertAtoms(entities1)
+
+let closeMatches = topology.match(entities2)
+let farMatches = topology.match(entities2, covalentBondScale: 2)
 ```
 
 Reports nearby atoms using an $O(n)$ algorithm.
@@ -221,7 +223,10 @@ Removes atoms/bonds at the specified indices. For `removeAtoms`, bonds connected
 An index may be specified multiple times in the input. The atom or bond will only be removed once.
 
 ```swift
-mutating func sort()
+// Sorts the atoms and returns an array of the old atoms' indices in the new
+// list.
+@discardableResult
+mutating func sort() -> [UInt32]
 ```
 
 Sorts atoms in Morton order, then sorts bonds in ascending order based on atom indices.

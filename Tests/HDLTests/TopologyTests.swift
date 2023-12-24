@@ -24,4 +24,17 @@ final class TopologyTests: XCTestCase {
     //    _ = topology2
     //  }
   }
+  
+  // Idea for testing correctness of TopologyGrid.mortonReordering: render a
+  // trail of interpolated points between each atom in the list. If the Morton
+  // reordering is correct, it will look like a Z-order curve.
+  
+  // Idea for testing correctness of Topology.sort(): Repeat the same test
+  // multiple times with the input randomly shuffled beforehand. Assert
+  // that the output (atoms, bonds) is always the same, and that the output is
+  // different from the input.
+  
+  // Idea for testing correctness of Topology.match(): Ensure the matched
+  // indices actually appear in ascending order of distance. Ensure none of them
+  // are more than the algorithm's specified distance cutoff.
 }

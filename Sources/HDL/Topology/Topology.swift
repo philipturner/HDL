@@ -18,10 +18,6 @@
 // output a different IR than 'Entity/EntityType', which was simply a solution
 // to match the API design language of the DSL.
 
-// Always store a source of truth as a linear array in memory. The sorting into
-// grid cells is transient, and frequently reconstructed (e.g. some added atoms
-// may require the grid to expand its dimensions).
-
 public struct Topology {
   public internal(set) var atoms: [Entity] = []
   public internal(set) var bonds: [SIMD2<UInt32>] = []
@@ -128,10 +124,18 @@ extension Topology {
 // TODO: Add test cases for Morton reordering and sorting.
 
 extension Topology {
+  // Notes regarding hypothesized bottlenecks:
+  //
   // We may eventually want a CoW-based backend that caches results of sorting.
   // For now, the topology is redundantly placed into Morton order every time
   // 'sort()' or 'match()' is called. It may not be a major bottleneck if the
   // atoms' already sorted order speeds up the quicksort algorithm.
+  //
+  // This bottleneck would adversely affect asymmetric Match invocations, where
+  // the input is much smaller than the output. The Match function would have
+  // to be called several times in quick succession. Such a situation may not be
+  // problematic, if the user can discover a way to batch the invocations of
+  // Match into a single call.
   @discardableResult
   public mutating func sort() -> [UInt32] {
     let grid = TopologyGrid(atoms: atoms)

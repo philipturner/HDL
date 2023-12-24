@@ -111,9 +111,9 @@ struct CubicMask: LatticeMask {
               let sector2 = sector &+ SIMD3(
                 subSectorX, subSectorY, subSectorZ) &* 2
               
-              let permX: SIMD8<UInt8> = .init(0, 0, 0, 0, 1, 1, 1, 1)
-              let permY: SIMD8<UInt8> = .init(0, 0, 1, 1, 0, 0, 1, 1)
-              let permZ: SIMD8<UInt8> = .init(0, 1, 0, 1, 0, 1, 0, 1)
+              let permX = SIMD8<UInt8>(0, 0, 0, 0, 1, 1, 1, 1)
+              let permY = SIMD8<UInt8>(0, 0, 1, 1, 0, 0, 1, 1)
+              let permZ = SIMD8<UInt8>(0, 1, 0, 1, 0, 1, 0, 1)
               var trialX = SIMD8(repeating: Float(sector2.x) - origin.x)
               var trialY = SIMD8(repeating: Float(sector2.y) - origin.y)
               var trialZ = SIMD8(repeating: Float(sector2.z) - origin.z)
@@ -155,9 +155,9 @@ struct CubicMask: LatticeMask {
               let sector2 = sector &+ SIMD3(
                 subSectorX, subSectorY, subSectorZ) &* 4
               
-              let permX: SIMD8<UInt8> = .init(0, 0, 0, 0, 1, 1, 1, 1)
-              let permY: SIMD8<UInt8> = .init(0, 0, 1, 1, 0, 0, 1, 1)
-              let permZ: SIMD8<UInt8> = .init(0, 1, 0, 1, 0, 1, 0, 1)
+              let permX = SIMD8<UInt8>(0, 0, 0, 0, 1, 1, 1, 1)
+              let permY = SIMD8<UInt8>(0, 0, 1, 1, 0, 0, 1, 1)
+              let permZ = SIMD8<UInt8>(0, 1, 0, 1, 0, 1, 0, 1)
               var trialX = SIMD8(repeating: Float(sector2.x) - origin.x)
               var trialY = SIMD8(repeating: Float(sector2.y) - origin.y)
               var trialZ = SIMD8(repeating: Float(sector2.z) - origin.z)
@@ -196,9 +196,9 @@ struct CubicMask: LatticeMask {
       for sectorZ in 0..<sectorsZ {
         for sectorY in 0..<sectorsY {
           for sectorX in 0..<sectorsX {
-            let permX: SIMD8<UInt8> = .init(0, 0, 0, 0, 1, 1, 1, 1)
-            let permY: SIMD8<UInt8> = .init(0, 0, 1, 1, 0, 0, 1, 1)
-            let permZ: SIMD8<UInt8> = .init(0, 1, 0, 1, 0, 1, 0, 1)
+            let permX = SIMD8<UInt8>(0, 0, 0, 0, 1, 1, 1, 1)
+            let permY = SIMD8<UInt8>(0, 0, 1, 1, 0, 0, 1, 1)
+            let permZ = SIMD8<UInt8>(0, 1, 0, 1, 0, 1, 0, 1)
             var trialX = SIMD8(repeating: Float(sectorX) * 8 - origin.x)
             var trialY = SIMD8(repeating: Float(sectorY) * 8 - origin.y)
             var trialZ = SIMD8(repeating: Float(sectorZ) * 8 - origin.z)
@@ -248,9 +248,9 @@ struct CubicMask: LatticeMask {
         for sectorZ in start.z..<end.z {
           for sectorY in start.y..<end.y {
             for sectorX in start.x..<end.x {
-              let permX: SIMD8<UInt8> = .init(0, 0, 0, 0, 1, 1, 1, 1)
-              let permY: SIMD8<UInt8> = .init(0, 0, 1, 1, 0, 0, 1, 1)
-              let permZ: SIMD8<UInt8> = .init(0, 1, 0, 1, 0, 1, 0, 1)
+              let permX = SIMD8<UInt8>(0, 0, 0, 0, 1, 1, 1, 1)
+              let permY = SIMD8<UInt8>(0, 0, 1, 1, 0, 0, 1, 1)
+              let permZ = SIMD8<UInt8>(0, 1, 0, 1, 0, 1, 0, 1)
               var trialX = SIMD8(repeating: Float(sectorX) * 8 - origin.x)
               var trialY = SIMD8(repeating: Float(sectorY) * 8 - origin.y)
               var trialZ = SIMD8(repeating: Float(sectorZ) * 8 - origin.z)

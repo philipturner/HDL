@@ -171,12 +171,12 @@ extension Topology {
     case atoms
     case bonds
   }
-  
-  func map(
-    _ primaryType: MapType,
-    to secondaryType: MapType
-  ) -> [ArraySlice<UInt32>]
 }
+
+func map(
+  _ primaryType: MapType,
+  to secondaryType: MapType
+) -> [ArraySlice<UInt32>]
 
 // Example of usage.
 var topology = Topology()
@@ -206,7 +206,7 @@ extension Topology {
 func match(
   _ input: [Entity], 
   algorithm: MatchAlgorithm = .covalentBondScale(1.5)
-) -> [[UInt32]]
+) -> [ArraySlice<UInt32>]
 
 // Example of usage.
 var topology = Topology()
@@ -214,6 +214,8 @@ topology.insert(atoms: atoms1)
 let closeMatches = topology.match(atoms2)
 let farMatches = topology.match(
   atoms2, algorithm: .covalentBondScale(2))
+let angstromMatches = topology.match(
+  atoms2, algorithm: .absoluteRadius(0.1))
 ```
 
 Reports nearby atoms using an $O(n)$ algorithm.
@@ -237,8 +239,7 @@ Removes atoms/bonds at the specified indices. For `removeAtoms`, bonds connected
 An index may be specified multiple times in the input. The atom or bond will only be removed once.
 
 ```swift
-// Sorts the atoms and returns an array of the old atoms' indices in the new
-// list.
+// Sorts the atoms and returns the old atoms' indices in the new list.
 @discardableResult
 mutating func sort() -> [UInt32]
 ```

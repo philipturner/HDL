@@ -26,6 +26,8 @@ enum Element: UInt8 {
   case sulfur = 16
   case germanium = 32
   case gold = 79
+  
+  var covalentRadius: Float { get }
 }
 
 enum EntityType {

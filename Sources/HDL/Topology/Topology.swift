@@ -202,9 +202,7 @@ extension Topology {
         outputRanges.append(rangeStart..<rangeEnd)
       }
       
-      
-      for atomID in atoms.indices {
-        let range = outputRanges[atomID]
+      for range in outputRanges {
         let rangeStart = Int(truncatingIfNeeded: range.lowerBound)
         let rangeEnd = Int(truncatingIfNeeded: range.upperBound)
         let slice = outputArray[rangeStart..<rangeEnd]
@@ -223,8 +221,8 @@ extension Topology {
       var outputSlices: [ArraySlice<UInt32>] = []
       outputSlices.reserveCapacity(bonds.count)
       for i in bonds.indices {
-        let rangeStart = 2 * i
-        let rangeEnd = 2 * (i + 1)
+        let rangeStart = 2 &* i
+        let rangeEnd = 2 &* (i &+ 1)
         let slice = outputArray[rangeStart..<rangeEnd]
         outputSlices.append(slice)
       }

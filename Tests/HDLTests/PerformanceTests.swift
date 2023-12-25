@@ -5,7 +5,7 @@ import System
 
 private let startTime = ContinuousClock.now
 
-private func cross_platform_media_time() -> Double {
+func cross_platform_media_time() -> Double {
   let duration = ContinuousClock.now.duration(to: startTime)
   let seconds = duration.components.seconds
   let attoseconds = duration.components.attoseconds
@@ -455,8 +455,9 @@ final class PerformanceTests: XCTestCase {
       Material { .elemental(.carbon) }
     }
     
-    print("dataset   ", "|", " grid ", "|", "octree")
-    print("----------", "|", "------", "|", "------")
+    var output: [String] = []
+    output.append("dataset    |  grid  | octree")
+    output.append("---------- | ------ | ------")
     
     // TODO: Move this test into release mode after ensuring it works correctly.
     // Debug mode can be used again in the future, to debug correctness of
@@ -509,10 +510,14 @@ final class PerformanceTests: XCTestCase {
       while reprOctree.count < 6 {
         reprOctree = " \(reprOctree)"
       }
-      print(trialName, "|", reprGrid, "|", reprOctree)
+      output.append("\(trialName) | \(reprGrid) | \(reprOctree)")
     }
     
-    // Report one result for ordered, another for random, another for reversed.
+    print()
+    print("atoms:", lattice.atoms.count)
+    for line in output {
+      print(line)
+    }
   }
   
   // We need to run performance tests of Topology.match, to ensure the

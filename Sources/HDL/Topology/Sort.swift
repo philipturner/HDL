@@ -20,6 +20,8 @@
 // typical distribution from Lattice. It may unfairly increase execution time
 // of the grid sorter.
 
+import System
+
 extension Topology {
   @discardableResult
   public mutating func sort() -> [UInt32] {
@@ -49,6 +51,15 @@ extension Topology {
     }
     return reordering
   }
+}
+
+private let startTime = ContinuousClock.now
+
+func cross_platform_media_time() -> Double {
+  let duration = ContinuousClock.now.duration(to: startTime)
+  let seconds = duration.components.seconds
+  let attoseconds = duration.components.attoseconds
+  return -(Double(seconds) + Double(attoseconds) * 1e-18)
 }
 
 struct GridSorter {
@@ -89,11 +100,6 @@ struct GridSorter {
     
     for atomID in atoms.indices {
       let atom = atoms[atomID]
-      precondition(atom.storage.w != 0, "Empty entities are not permitted.")
-      precondition(
-        atom.storage.w == Float(Int8(atom.storage.w)),
-        "Atomic number must be between 1 and 127.")
-      
       var position = atom.position - origin
       position /= cellWidth
       position.round(.down)

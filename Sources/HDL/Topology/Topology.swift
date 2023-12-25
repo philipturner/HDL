@@ -109,6 +109,10 @@ extension Topology {
   public mutating func sort() -> [UInt32] {
     let grid = TopologyGrid(atoms: atoms)
     let reordering = grid.mortonReordering()
+    atoms = reordering.map { i in
+      let atomID = Int(truncatingIfNeeded: i)
+      return self.atoms[atomID]
+    }
     
     for i in bonds.indices {
       let bond = SIMD2<Int>(truncatingIfNeeded: bonds[i])

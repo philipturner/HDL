@@ -94,10 +94,10 @@ struct GridSorter {
         atom.storage.w == Float(Int8(atom.storage.w)),
         "Atomic number must be between 1 and 127.")
       
-      var position = atom.position
+      var position = atom.position - origin
       position /= cellWidth
       position.round(.down)
-      let originDelta = SIMD3<Int32>(position - origin)
+      let originDelta = SIMD3<Int32>(position)
       let cellID = self.createCellID(originDelta: originDelta)
       
       let mappedAtomID = cells[cellID].count

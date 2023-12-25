@@ -446,9 +446,77 @@ final class PerformanceTests: XCTestCase {
     // After optimization 6: ~0.160 seconds
     // 57.0x speedup
   }
+#endif
+  
+  func testSort() throws {
+    let lattice = Lattice<Hexagonal> { h, k, l in
+      let h2k = h + 2 * k
+      Bounds { 5 * (2 * h + h2k + l) }
+      Material { .elemental(.carbon) }
+    }
+    
+    print("dataset   ", "|", " grid ", "|", "octree")
+    print("----------", "|", "------", "|", "------")
+    
+    // TODO: Move this test into release mode after ensuring it works correctly.
+    // Debug mode can be used again in the future, to debug correctness of
+    // optimized sorting implementations.
+    for trialID in 0..<4 {
+      var trialAtoms: [Entity]
+      var trialName: String
+      
+      switch trialID {
+      case 0:
+        var topology = Topology()
+        topology.insert(atoms: lattice.atoms)
+        topology.sort()
+        
+        trialAtoms = topology.atoms
+        trialName = "pre-sorted"
+      case 1:
+        trialAtoms = lattice.atoms
+        trialName = "lattice   "
+      case 2:
+        trialAtoms = lattice.atoms.shuffled()
+        trialName = "shuffled  "
+      case 3:
+        trialAtoms = lattice.atoms.reversed()
+        trialName = "reversed  "
+      default:
+        fatalError("This should never happen.")
+      }
+      
+      let startGrid = cross_platform_media_time()
+      var topology = Topology()
+      topology.insert(atoms: trialAtoms)
+      let resultGrid = topology.sort()
+      let endGrid = cross_platform_media_time()
+      
+      let startOctree = cross_platform_media_time()
+      let octree = OctreeSorter(atoms: trialAtoms)
+      let resultOctree = octree.mortonReordering()
+      let endOctree = cross_platform_media_time()
+      
+      XCTAssertEqual(resultGrid, resultOctree)
+      
+      let usGrid = Int((endGrid - startGrid) * 1e6)
+      let usOctree = Int((endOctree - startOctree) * 1e6)
+      var reprGrid = "\(usGrid)"
+      var reprOctree = "\(usOctree)"
+      while reprGrid.count < 6 {
+        reprGrid = " \(reprGrid)"
+      }
+      while reprOctree.count < 6 {
+        reprOctree = " \(reprOctree)"
+      }
+      print(trialName, "|", reprGrid, "|", reprOctree)
+    }
+    
+    // Report one result for ordered, another for random, another for reversed.
+  }
   
   // We need to run performance tests of Topology.match, to ensure the
   // acceleration algorithm is working properly. One could imagine subtle bugs
   // that make it incorrect, resulting in O(n^2) scaling.
-#endif
+
 }

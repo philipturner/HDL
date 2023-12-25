@@ -15,8 +15,6 @@ public struct Topology {
 }
 
 // MARK: - Insert and Remove
-
-// TODO: Add test cases for these functions.
   
 extension Topology {
   public mutating func insert(atoms: [Entity]) {
@@ -109,9 +107,11 @@ extension Topology {
   public mutating func sort() -> [UInt32] {
     let grid = TopologyGrid(atoms: atoms)
     let reordering = grid.mortonReordering()
-    atoms = reordering.map { i in
-      let atomID = Int(truncatingIfNeeded: i)
-      return self.atoms[atomID]
+    let previousAtoms = atoms
+    for originalID in reordering.indices {
+      let reorderedID32 = reordering[originalID]
+      let reorderedID = Int(truncatingIfNeeded: reorderedID32)
+      atoms[reorderedID] = previousAtoms[originalID]
     }
     
     for i in bonds.indices {

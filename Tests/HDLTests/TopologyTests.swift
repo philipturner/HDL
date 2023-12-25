@@ -1,36 +1,113 @@
 import XCTest
-#if DEBUG
-@testable import HDL
-#else
 import HDL
-#endif
 
 final class TopologyTests: XCTestCase {
-  func testTopology() throws {
-    //  func testTopologyInit() {
-    //    let lattice = Lattice<Cubic> { h, k, l in
-    //      Bounds { 4 * h + 4 * k + 4 * l }
-    //      Material { .elemental(.carbon) }
-    //    }
-    //
-    //    let topology1 = Topology(lattice.entities)
-    //    _ = topology1
-    //
-    //    let topology2 = Topology(lattice.entities.map {
-    //      var copy = $0
-    //      copy.position -= 0.5
-    //      return copy
-    //    })
-    //    _ = topology2
-    //  }
+  func testInsertRemove() throws {
+    let lonsdaleite = Lonsdaleite()
+    var topology = Topology()
+    
+    topology.insert(atoms: lonsdaleite.atoms)
+    XCTAssertEqual(topology.atoms, lonsdaleite.atoms)
+    XCTAssertEqual(topology.bonds, [])
+    
+    topology.remove(atoms: lonsdaleite.atoms.indices.map(UInt32.init))
+    XCTAssertEqual(topology.atoms, [])
+    XCTAssertEqual(topology.bonds, [])
+    
+    topology.insert(atoms: lonsdaleite.atoms)
+    topology.insert(bonds: lonsdaleite.bonds)
+    XCTAssertEqual(topology.atoms, lonsdaleite.atoms)
+    XCTAssertEqual(topology.bonds, lonsdaleite.bonds)
+    
+    topology.remove(bonds: lonsdaleite.bonds.indices.map(UInt32.init))
+    XCTAssertEqual(topology.atoms, lonsdaleite.atoms)
+    XCTAssertEqual(topology.bonds, [])
+    
+    topology.insert(bonds: lonsdaleite.bonds)
+    XCTAssertEqual(topology.atoms, lonsdaleite.atoms)
+    XCTAssertEqual(topology.bonds, lonsdaleite.bonds)
+    
+    topology.remove(atoms: lonsdaleite.atoms.indices.map(UInt32.init))
+    XCTAssertEqual(topology.atoms, [])
+    XCTAssertEqual(topology.bonds, [])
   }
   
+  func testPartialRemove() {
+    let lonsdaleite = Lonsdaleite()
+    var topology = Topology()
+    
+    var compactedAtomCount = 0
+    var mappedAtomIndices: [Int] = []
+    var removedAtomIDs: [UInt32] = []
+    var removedBondIDs: [UInt32] = []
+    
+    var carbonAtoms: [Entity] = []
+    var originalCarbonBonds: [SIMD2<UInt32>] = []
+    var compactedCarbonBonds: [SIMD2<UInt32>] = []
+    
+    for atomID in lonsdaleite.atoms.indices {
+      let atom = lonsdaleite.atoms[atomID]
+      if atom.atomicNumber == 1 {
+        mappedAtomIndices.append(-1)
+        removedAtomIDs.append(UInt32(atomID))
+      } else {
+        mappedAtomIndices.append(compactedAtomCount)
+        carbonAtoms.append(atom)
+        compactedAtomCount += 1
+      }
+    }
+    
+    for bondID in lonsdaleite.bonds.indices {
+      let bond = lonsdaleite.bonds[bondID]
+      let atom1 = lonsdaleite.atoms[Int(bond[0])]
+      let atom2 = lonsdaleite.atoms[Int(bond[1])]
+      if atom1.atomicNumber == 1 || atom2.atomicNumber == 1 {
+        removedBondIDs.append(UInt32(bondID))
+        continue
+      }
+      
+      let mappedID1 = mappedAtomIndices[Int(bond[0])]
+      let mappedID2 = mappedAtomIndices[Int(bond[1])]
+      originalCarbonBonds.append(bond)
+      compactedCarbonBonds.append(SIMD2(UInt32(mappedID1),
+                                        UInt32(mappedID2)))
+    }
+    
+    // Remove all carbon-hydrogen bonds and ensure the remaining topology
+    // appears as expected.
+    topology.insert(atoms: lonsdaleite.atoms)
+    topology.insert(bonds: lonsdaleite.bonds)
+    topology.remove(bonds: removedBondIDs)
+    XCTAssertEqual(topology.atoms, lonsdaleite.atoms)
+    XCTAssertEqual(topology.bonds, originalCarbonBonds)
+    
+    topology.remove(atoms: topology.atoms.indices.map(UInt32.init))
+    XCTAssertEqual(topology.atoms, [])
+    XCTAssertEqual(topology.bonds, [])
+    
+    // Remove all hydrogen atoms and ensure the remaining carbon-carbon bonds
+    // appear as expected.
+    topology.insert(atoms: lonsdaleite.atoms)
+    topology.insert(bonds: lonsdaleite.bonds)
+    topology.remove(atoms: removedAtomIDs)
+    XCTAssertEqual(topology.atoms, carbonAtoms)
+    XCTAssertEqual(topology.bonds, compactedCarbonBonds)
+  }
+  
+  // This test currently covers Morton reordering, but not correctness of
+  // bond remapping afterward. Before testing the latter, we need to visualize
+  // results of the atom and bond reordering in the renderer.
+  func testSorting() throws {
+    /*
+     // TODO: Shuffle the indices for atoms in a random order, then re-map the
+     // bonds accordingly.
+     
+     // TODO: In a separate test case, invert the positions of the atoms and
+     // ensure the bonds are reordered properly.
+     */
+  }
   
   // Good ideas for stuff the test suite should eventually cover:
-  //
-  // Idea for testing correctness of TopologyGrid.mortonReordering: render a
-  // trail of interpolated points between each atom in the list. If the Morton
-  // reordering is correct, it will look like a Z-order curve.
   //
   // Idea for testing correctness of Topology.sort(): Repeat the same test
   // multiple times with the input randomly shuffled beforehand. Assert

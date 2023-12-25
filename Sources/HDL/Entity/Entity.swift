@@ -57,7 +57,7 @@ public enum EntityType: RawRepresentable {
   }
 }
 
-public struct Entity {
+public struct Entity: Equatable, Hashable {
   public var storage: SIMD4<Float>
   
   @inlinable @inline(__always)

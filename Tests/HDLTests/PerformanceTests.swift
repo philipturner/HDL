@@ -447,6 +447,18 @@ final class PerformanceTests: XCTestCase {
     // 57.0x speedup
   }
   
+  // This test compares the grid sorter to an alternative, recursive
+  // implementation. It first measures cold-start speed, then speed once the
+  // grid sorter can take advantage of the set already being sorted.
+  //
+  // The eventually chosen implementation might be a hybrid of these. It might
+  // temporarily generate Morton indices to check whether segments of the atoms
+  // are already sorted. It could also switch between different methods at
+  // different levels of the hierarchy.
+  func testSortingSpeed() throws {
+    
+  }
+  
   // We need to run performance tests of Topology.match, to ensure the
   // acceleration algorithm is working properly. I could imagine subtle bugs
   // that make it incorrect, resulting in O(n^2) scaling.

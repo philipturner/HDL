@@ -94,25 +94,179 @@ final class TopologyTests: XCTestCase {
     XCTAssertEqual(topology.bonds, compactedCarbonBonds)
   }
   
-  // This test currently covers Morton reordering, but not correctness of
-  // bond remapping afterward. Before testing the latter, we need to visualize
-  // results of the atom and bond reordering in the renderer.
-  func testSorting() throws {
-    /*
-     // TODO: Shuffle the indices for atoms in a random order, then re-map the
-     // bonds accordingly.
-     
-     // TODO: In a separate test case, invert the positions of the atoms and
-     // ensure the bonds are reordered properly.
-     */
+  func testMap() throws {
+    let lonsdaleite = Lonsdaleite()
+    var topology = Topology()
+    topology.insert(atoms: lonsdaleite.atoms)
+    topology.insert(bonds: lonsdaleite.bonds)
+    
+    // bonds -> atoms
+    do {
+      let map = topology.map(.bonds, to: .atoms)
+      XCTAssertEqual(map.count, topology.bonds.count)
+      
+      for bondID in map.indices {
+        let bond = topology.bonds[bondID]
+        let slice = map[bondID]
+        XCTAssertEqual(slice.count, 2)
+        XCTAssertEqual(slice[slice.startIndex + 0], bond[0])
+        XCTAssertEqual(slice[slice.startIndex + 1], bond[1])
+      }
+    }
+    
+    // atoms -> bonds
+    do {
+      var bondCoverage = [Bool](
+        repeating: false, count: lonsdaleite.bonds.count)
+      let map = topology.map(.atoms, to: .bonds)
+      XCTAssertEqual(map.count, topology.atoms.count)
+      
+      for atomID in map.indices {
+        let atom = topology.atoms[atomID]
+        let slice = map[atomID]
+        if atom.atomicNumber == 1 {
+          XCTAssertEqual(slice.count, 1)
+        } else {
+          XCTAssertEqual(slice.count, 4)
+        }
+        
+        for i in slice.indices {
+          let bondID = Int(slice[i])
+          let bond = topology.bonds[bondID]
+          bondCoverage[bondID] = true
+          XCTAssert(bond[0] == UInt32(atomID) ||
+                    bond[1] == UInt32(atomID))
+        }
+      }
+      
+      XCTAssert(bondCoverage.allSatisfy { $0 == true })
+    }
+    
+    // atoms -> atoms
+    do {
+      var atomCoverage = [Bool](
+        repeating: false, count: lonsdaleite.atoms.count)
+      let map = topology.map(.atoms, to: .atoms)
+      XCTAssertEqual(map.count, topology.atoms.count)
+      
+      for atomID in map.indices {
+        let atom = topology.atoms[atomID]
+        let slice = map[atomID]
+        if atom.atomicNumber == 1 {
+          XCTAssertEqual(slice.count, 1)
+        } else {
+          XCTAssertEqual(slice.count, 4)
+        }
+        
+        for i in slice.indices {
+          let neighborID = Int(slice[i])
+          let neighbor = topology.atoms[neighborID]
+          atomCoverage[neighborID] = true
+          
+          if atom.atomicNumber == 1 {
+            XCTAssertEqual(neighbor.atomicNumber, 6)
+          }
+          XCTAssertNotEqual(atomID, neighborID)
+        }
+      }
+      
+      XCTAssert(atomCoverage.allSatisfy { $0 == true })
+    }
+  }
+  
+  func testSort() throws {
+    let lonsdaleite = Lonsdaleite()
+    let shuffledMapping = lonsdaleite.atoms.indices.map { $0 }.shuffled()
+    var shuffledAtoms = lonsdaleite.atoms
+    for originalID in shuffledMapping.indices {
+      let reorderedID = shuffledMapping[originalID]
+      shuffledAtoms[reorderedID] = lonsdaleite.atoms[originalID]
+    }
+    
+    let shuffledBonds = lonsdaleite.bonds.map {
+      let atomID1 = shuffledMapping[Int($0.x)]
+      let atomID2 = shuffledMapping[Int($0.y)]
+      return SIMD2<UInt32>(UInt32(atomID1),
+                           UInt32(atomID2))
+    }
+    
+    var topology = Topology()
+    topology.insert(atoms: shuffledAtoms)
+    topology.insert(bonds: shuffledBonds)
+    
+    func checkSelfConsistency() {
+      let map = topology.map(.atoms, to: .atoms)
+      for atomID in topology.atoms.indices {
+        let atom = topology.atoms[atomID]
+        let slice = map[atomID]
+        if atom.atomicNumber == 1 {
+          XCTAssertEqual(slice.count, 1)
+        } else {
+          XCTAssertEqual(slice.count, 4)
+        }
+        
+        for i in slice.indices {
+          XCTAssertNotEqual(atomID, Int(slice[i]))
+        }
+      }
+    }
+    
+    checkSelfConsistency()
+    let topologyReordering = topology.sort()
+    checkSelfConsistency()
+    
+    // Check that the reordering doesn't just copy the input.
+    let copyReordering = topology.atoms.indices.map(UInt32.init)
+    XCTAssertNotEqual(copyReordering, topologyReordering)
+    
+    // Check that the atoms are exactly the same.
+    let octreeSorter = OctreeSorter(atoms: shuffledAtoms)
+    let octreeReordering = octreeSorter.mortonReordering()
+    for (lhs, rhs) in zip(topologyReordering, octreeReordering) {
+      XCTAssertEqual(lhs, rhs)
+    }
+    
+    // Check that the correct bonds exist in some order.
+    let correctBonds = shuffledBonds.map {
+      let atomID1 = Int($0.x)
+      let atomID2 = Int($0.y)
+      return SIMD2<UInt32>(topologyReordering[atomID1],
+                           topologyReordering[atomID2])
+    }
+    var bondsDictionary: [SIMD2<UInt32>: Bool] = [:]
+    for reorderedBond in topology.bonds {
+      bondsDictionary[reorderedBond] = true
+    }
+    for correctBond in correctBonds {
+      let reversed = SIMD2(correctBond.y, correctBond.x)
+      XCTAssert(bondsDictionary[correctBond] != nil ||
+                bondsDictionary[reversed] != nil)
+    }
+    
+    // Check that the bonds were rearranged to be sorted in order (>99% of the
+    // time, this occurs).
+    var different = false
+    for (lhs, rhs) in zip(correctBonds, topology.bonds) {
+      let reversed = SIMD2(lhs.y, lhs.x)
+      if lhs != rhs && reversed != rhs {
+        different = true
+      }
+    }
+    XCTAssertTrue(different)
+    
+    // Sort the bonds, then check they are exactly the same.
+    var sortedBonds = correctBonds.map {
+      SIMD2($0.min(), $0.max())
+    }
+    sortedBonds.sort(by: {
+      let hash1 = Int($0.y) + Int(1 << 32) * Int($0.x)
+      let hash2 = Int($1.y) + Int(1 << 32) * Int($1.x)
+      return hash1 < hash2
+    })
+    XCTAssertEqual(sortedBonds, topology.bonds)
   }
   
   // Good ideas for stuff the test suite should eventually cover:
-  //
-  // Idea for testing correctness of Topology.sort(): Repeat the same test
-  // multiple times with the input randomly shuffled beforehand. Assert
-  // that the output (atoms, bonds) is always the same, and that the output is
-  // different from the input.
   //
   // Idea for testing correctness of Topology.match(): Ensure the matched
   // indices actually appear in ascending order of distance. Ensure none of them
@@ -132,12 +286,6 @@ final class TopologyTests: XCTestCase {
   // hydrogens bonded to carbons that will merge. Validate that both this
   // and the reconstructed (100) structure are accepted by the simulator.
   //
-  // sort() should still be debugged as explained above; this method is a form
-  // of visual debugging. It may be helpful to have a utility function for
-  // debugging bonds. For example, explode the crystal lattice and place marker
-  // atoms on an interpolated line between actual atoms. Presence of malformed
-  // bonds will be extremely obvious.
-  //
   // The old 'Diamondoid' topology generator can be used to bootstrap testing
   // of how sort() treats bonds, before the remainder of the functionality is
   // working. In addition, enter into MM4Parameters as a final validation test.
@@ -146,8 +294,9 @@ final class TopologyTests: XCTestCase {
   // - 1) Visualizer for Morton order and bond topology in GitHub gist.
   //   - 1.1) Test against Lattice -> Diamondoid reordering.
   //   - 1.2) Test against Topology.sort().
-  // - 2) Test simple diamond and lonsdaleite lattice formation.
-  // - 3) Reproduce graphene thiol and HAbst tripods from the
+  // - 2) Debug correctness of match() and nonbondedOrbitals().
+  // - 3) Test simple diamond and lonsdaleite lattice formation.
+  // - 4) Reproduce graphene thiol and HAbst tripods from the
   //      nanofactory demo.
-  // - 4) Demonstrate (100) surface and strained shell structure formation.
+  // - 5) Demonstrate (100) surface and strained shell structure formation.
 }

@@ -98,44 +98,7 @@ extension Topology {
   }
 }
 
-// MARK: - Sort
-
-// TODO: Add test cases for Morton reordering and sorting.
-
-extension Topology {
-  @discardableResult
-  public mutating func sort() -> [UInt32] {
-    let grid = TopologyGrid(atoms: atoms)
-    let reordering = grid.mortonReordering()
-    let previousAtoms = atoms
-    for originalID in reordering.indices {
-      let reorderedID32 = reordering[originalID]
-      let reorderedID = Int(truncatingIfNeeded: reorderedID32)
-      atoms[reorderedID] = previousAtoms[originalID]
-    }
-    
-    for i in bonds.indices {
-      let bond = SIMD2<Int>(truncatingIfNeeded: bonds[i])
-      var newBond: SIMD2<UInt32> = .zero
-      newBond[0] = reordering[bond[0]]
-      newBond[1] = reordering[bond[1]]
-      newBond = SIMD2(newBond.min(), newBond.max())
-      bonds[i] = newBond
-    }
-    bonds.sort {
-      if $0.x != $1.x {
-        return $0.x < $1.x
-      } else {
-        return $0.y < $1.y
-      }
-    }
-    return reordering
-  }
-}
-
 // MARK: - Map
-
-// TODO: Add test cases for mapping.
 
 extension Topology {
   public enum MapType {

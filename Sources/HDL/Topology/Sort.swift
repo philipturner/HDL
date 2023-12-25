@@ -1,18 +1,57 @@
 //
-//  TopologyGrid.swift
+//  Sort.swift
 //  MolecularRenderer
 //
 //  Created by Philip Turner on 12/2/23.
 //
 
-// MARK: - Declaration
+// Notes for when you get around to optimizing this:
+//
+// A test should compare the grid sorter to an alternative, recursive
+// implementation. It first measures cold-start speed, then speed once the
+// grid sorter can take advantage of the set already being sorted.
+//
+// The eventually chosen implementation might be a hybrid of these. It might
+// temporarily generate Morton indices to check whether segments of the atoms
+// are already sorted. It could also switch between different methods at
+// different levels of the hierarchy.
+//
+// Note: random shuffling creates a different data distribution than the
+// typical distribution from Lattice. It may unfairly increase execution time
+// of the grid sorter.
 
-// Topology grids are transient and regenerated upon every function that
-// requires them. This design choice decreases the complexity of state changes
-// in Topology, although it may decrease performance. It may also increase
-// algorithmic complexity for extremely tiny search lists. This performance
-// issue can be fixed if the need arises, and there is a reasonable alternative.
-struct TopologyGrid {
+extension Topology {
+  @discardableResult
+  public mutating func sort() -> [UInt32] {
+    let grid = GridSorter(atoms: atoms)
+    let reordering = grid.mortonReordering()
+    let previousAtoms = atoms
+    for originalID in reordering.indices {
+      let reorderedID32 = reordering[originalID]
+      let reorderedID = Int(truncatingIfNeeded: reorderedID32)
+      atoms[reorderedID] = previousAtoms[originalID]
+    }
+    
+    for i in bonds.indices {
+      let bond = SIMD2<Int>(truncatingIfNeeded: bonds[i])
+      var newBond: SIMD2<UInt32> = .zero
+      newBond[0] = reordering[bond[0]]
+      newBond[1] = reordering[bond[1]]
+      newBond = SIMD2(newBond.min(), newBond.max())
+      bonds[i] = newBond
+    }
+    bonds.sort {
+      if $0.x != $1.x {
+        return $0.x < $1.x
+      } else {
+        return $0.y < $1.y
+      }
+    }
+    return reordering
+  }
+}
+
+struct GridSorter {
   let atoms: [Entity]
   var cells: [[UInt32]] = []
   var atomsToCellsMap: [SIMD2<UInt32>] = []
@@ -30,8 +69,8 @@ struct TopologyGrid {
       origin = .zero
       dimensions = .zero
     } else {
-      var minimum: SIMD3<Float> = .init(repeating: .greatestFiniteMagnitude)
-      var maximum: SIMD3<Float> = .init(repeating: -.greatestFiniteMagnitude)
+      var minimum = SIMD3<Float>(repeating: .greatestFiniteMagnitude)
+      var maximum = -minimum
       for atom in atoms {
         let position = atom.position
         minimum.replace(with: position, where: position .< minimum)
@@ -121,7 +160,7 @@ private func morton_interleave(_ input: SIMD3<Int32>) -> UInt64 {
   return x | y | z
 }
 
-extension TopologyGrid {
+extension GridSorter {
   func mortonReordering() -> [UInt32] {
     var cellList: [SIMD2<UInt64>] = []
     for z in 0..<dimensions.z {

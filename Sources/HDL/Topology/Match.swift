@@ -66,9 +66,9 @@ extension Topology {
     return matchImpl(lhs: input, rhs: atoms, algorithm: algorithm)
     
     #else
-    let lhsGrid = TopologyGrid(atoms: input)
+    let lhsGrid = GridSorter(atoms: input)
     let lhsReordering = lhsGrid.mortonReordering()
-    let rhsGrid = TopologyGrid(atoms: atoms)
+    let rhsGrid = GridSorter(atoms: atoms)
     let rhsReordering = rhsGrid.mortonReordering()
     
     let invalidEntity = Entity(storage: .init(repeating: -1))

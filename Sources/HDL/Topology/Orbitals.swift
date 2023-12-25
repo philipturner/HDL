@@ -29,6 +29,7 @@ extension Topology {
     var outputRanges: [Range<UInt32>] = []
     var outputSlices: [ArraySlice<SIMD3<Float>>] = []
     
+  outer:
     for atomID in atoms.indices {
       let rangeStart = UInt32(truncatingIfNeeded: outputArray.count)
       defer {
@@ -55,21 +56,76 @@ extension Topology {
       }
       let sigmaBondCount = valence - hybridization.piBondCount
       guard sigmaBondCount >= 1 else {
-        continue
+        continue outer
       }
       
-      let neighbors = atomsToAtomsMap[atomID]
-      switch (hybridization, neighbors.count) {
-      case (.sp1, 1):
-        break
-      case (.sp2, 2):
-        break
-      case (.sp3, 2):
-        break
-      case (.sp3, 3):
-        break
+      let neighborIDs = atomsToAtomsMap[atomID]
+      switch (hybridization, neighborIDs.count) {
+      case (.sp1, 1): break
+      case (.sp2, 2): break
+      case (.sp3, 2): break
+      case (.sp3, 3): break
       default:
-        continue
+        continue outer
+      }
+      
+      withUnsafeTemporaryAllocation(of: SIMD3<Float>.self, capacity: 3) {
+        let deltas = $0
+        var normal: SIMD3<Float> = .zero
+        var distances = SIMD4<Float>(repeating: .greatestFiniteMagnitude)
+        
+        // Calculate deltas between the atom and its neighbors.
+        for i in 0..<neighborIDs.count {
+          let neighborID = neighborIDs[neighborIDs.startIndex &+ i]
+          let neighbor = atoms[Int(neighborID)]
+          let delta4 = neighbor.storage - atom.storage
+          let delta = unsafeBitCast(delta4, to: SIMD3<Float>.self)
+          deltas[i] = delta
+          distances[i] = (delta * delta).sum()
+          normal += delta
+        }
+        distances[3] = (normal * normal).sum()
+        if any(distances .< 0.001 * 0.001) {
+          // Reject any bonds smaller than 1 picometer.
+          // Also return early if 'averageDelta' is extremely small.
+          return
+        }
+        
+        // Normalize the deltas.
+        distances = 1 / distances.squareRoot()
+        for i in 0..<3 {
+          deltas[i] *= distances[i]
+        }
+        normal *= distances[3]
+        
+        // Branch on whether the situation resembles a sidewall carbon.
+        if hybridization == .sp3 && neighborIDs.count == 2 {
+          var crossProduct: SIMD3<Float> = .zero
+          let axis = deltas[1] - deltas[0]
+          crossProduct.x = axis.y * normal.z - axis.z * normal.y
+          crossProduct.y = axis.z * normal.x - axis.x * normal.z
+          crossProduct.z = axis.x * normal.y - axis.y * normal.x
+          
+          let crossProductSquared = (crossProduct * crossProduct).sum()
+          if crossProductSquared < 0.001 * 0.001 {
+            // Reject a situation that outputs NAN direction vectors.
+            return
+          }
+          crossProduct /= crossProductSquared.squareRoot()
+          
+          // The order of the returned bonds is ambiguous, but it will be
+          // deterministic after calling 'sort()'.
+          let normalWeight = Float(1.0 / 9).squareRoot()
+          let crossProductWeight = Float(8.0 / 9).squareRoot()
+          outputArray.append(
+            normal * normalWeight + crossProduct * crossProductWeight)
+          outputArray.append(
+            normal * normalWeight - crossProduct * crossProductWeight)
+        } else {
+          // In the remaining cases, simply return something pointing opposite
+          // to the average of the deltas.
+          outputArray.append(-normal)
+        }
       }
     }
     

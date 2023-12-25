@@ -33,15 +33,15 @@ struct OctreeSorter {
       }
       
       origin = minimum
-      dimensions = (maximum - minimum).rounded(.up)
-      dimensions.replace(with: .init(repeating: 1), where: dimensions .<= 0)
+      dimensions = maximum - minimum
+      dimensions.replace(with: .init(repeating: 0.5), where: dimensions .< 0.5)
       
-      for lane in 0..<3 {
-        let element = dimensions[lane]
-        if element != element.binade {
-          dimensions[lane] = 2 * element.binade
-        }
-      }
+//      for lane in 0..<3 {
+//        let element = dimensions[lane]
+//        if element != element.binade {
+//          dimensions[lane] = 2 * element.binade
+//        }
+//      }
     }
   }
   

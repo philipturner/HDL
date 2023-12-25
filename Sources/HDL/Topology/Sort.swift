@@ -63,22 +63,17 @@ func cross_platform_media_time() -> Double {
 }
 
 struct GridSorter {
-  let atoms: [Entity]
-  var cells: [[UInt32]] = []
-  var atomsToCellsMap: [SIMD2<UInt32>] = []
+  var atoms: [Entity] = []
   
-  // Origin and dimensions are in discrete multiples of cell width.
-  var cellWidth: Float
   var origin: SIMD3<Float>
-  var dimensions: SIMD3<Int32>
+  var dimensions: SIMD3<Float>
   
-  init(atoms: [Entity], cellWidth: Float = 1.0) {
+  init(atoms: [Entity]) {
     self.atoms = atoms
-    self.cellWidth = cellWidth
     
     if atoms.count == 0 {
       origin = .zero
-      dimensions = .zero
+      dimensions = .init(repeating: 1)
     } else {
       var minimum = SIMD3<Float>(repeating: .greatestFiniteMagnitude)
       var maximum = -minimum
@@ -87,139 +82,129 @@ struct GridSorter {
         minimum.replace(with: position, where: position .< minimum)
         maximum.replace(with: position, where: position .> maximum)
       }
-      minimum /= cellWidth
-      maximum /= cellWidth
+      for atom in atoms {
+        let position = atom.position
+        minimum.replace(with: position, where: position .< minimum)
+      }
+      
       origin = minimum
-      dimensions = SIMD3<Int32>((maximum - minimum).rounded(.up))
+      dimensions = maximum - minimum
+      dimensions.replace(with: .init(repeating: 0.5), where: dimensions .< 0.5)
     }
-    
-    // Use checking arithmetic to ensure the multiplication doesn't overflow.
-    let cellCount = Int32(dimensions[0] * dimensions[1] * dimensions[2])
-    cells = Array(repeating: [], count: Int(cellCount))
-    atomsToCellsMap = Array(repeating: .zero, count: atoms.count)
-    
-    for atomID in atoms.indices {
-      let atom = atoms[atomID]
-      var position = atom.position - origin
-      position /= cellWidth
-      position.round(.down)
-      let originDelta = SIMD3<Int32>(position)
-      let cellID = self.createCellID(originDelta: originDelta)
-      
-      let mappedAtomID = cells[cellID].count
-      cells[cellID].append(UInt32(truncatingIfNeeded: atomID))
-      
-      let location = SIMD2<Int>(cellID, mappedAtomID)
-      atomsToCellsMap[atomID] = SIMD2(truncatingIfNeeded: location)
-    }
-  }
-  
-  // The input is the position relative to the grid's origin.
-  @inline(__always)
-  func createCellID(originDelta: SIMD3<Int32>) -> Int {
-    var coords = originDelta
-    coords.replace(with: SIMD3.zero, where: coords .< 0)
-    coords.replace(with: dimensions &- 1, where: coords .>= dimensions)
-    
-    let x = coords.x
-    let y = coords.y &* dimensions[0]
-    let z = coords.z &* dimensions[0] &* dimensions[1]
-    return Int(x &+ y &+ z)
   }
 }
 
 // MARK: - Morton Reordering
 
-// Source: https://stackoverflow.com/a/18528775
-@inline(__always)
-private func morton_interleave(_ input: Int32) -> UInt64 {
-  var x = UInt64(truncatingIfNeeded: input & 0x1fffff)
-  x = (x | x &<< 32) & 0x1f00000000ffff
-  x = (x | x &<< 16) & 0x1f0000ff0000ff
-  x = (x | x &<< 8) & 0x100f00f00f00f00f
-  x = (x | x &<< 4) & 0x10c30c30c30c30c3
-  x = (x | x &<< 2) & 0x1249249249249249
-  return x
-}
-
-// Source: https://stackoverflow.com/a/28358035
-@inline(__always)
-private func morton_deinterleave(_ input: UInt64) -> Int32 {
-  var x = input & 0x9249249249249249
-  x = (x | (x &>> 2))  & 0x30c30c30c30c30c3
-  x = (x | (x &>> 4))  & 0xf00f00f00f00f00f
-  x = (x | (x &>> 8))  & 0x00ff0000ff0000ff
-  x = (x | (x &>> 16)) & 0xffff00000000ffff
-  x = (x | (x &>> 32)) & 0x00000000ffffffff
-  return Int32(truncatingIfNeeded: x)
-}
-
-// The inputs are 21-bit, unsigned, normalized integers.
-@inline(__always)
-private func morton_interleave(_ input: SIMD3<Int32>) -> UInt64 {
-  let signed = SIMD3<Int32>(truncatingIfNeeded: input)
-  let x = morton_interleave(signed.x) << 0
-  let y = morton_interleave(signed.y) << 1
-  let z = morton_interleave(signed.z) << 2
-  return x | y | z
-}
-
 extension GridSorter {
   func mortonReordering() -> [UInt32] {
-    var cellList: [SIMD2<UInt64>] = []
-    for z in 0..<dimensions.z {
-      for y in 0..<dimensions.y {
-        for x in 0..<dimensions.x {
-          let originDelta = SIMD3(x, y, z)
-          let mortonCode = morton_interleave(originDelta)
-          let cellID = createCellID(originDelta: originDelta)
-          let cellID64 = UInt64(truncatingIfNeeded: cellID)
-          cellList.append(SIMD2(cellID64, mortonCode))
-        }
-      }
+    var output: [UInt32] = []
+    let dictionary: UnsafeMutablePointer<UInt32> =
+      .allocate(capacity: 8 * atoms.count)
+    defer {
+      dictionary.deallocate()
     }
-    cellList.sort { $0.y < $1.y }
     
-    var output = [UInt32](repeating: .max, count: atoms.count)
-    var mortonListSize: Int = 0
-    
-    var atomList: [SIMD2<UInt64>] = []
-    for element in cellList {
-      let cellID = Int(truncatingIfNeeded: element[0])
-      for atomID in cells[cellID] {
-        let atom = atoms[Int(atomID)]
-        let scaledPosition = (atom.position - origin) / cellWidth
-        let floorPosition = scaledPosition.rounded(.down)
-        let originDelta = SIMD3<Int32>(floorPosition)
-        guard createCellID(originDelta: originDelta) == cellID else {
-          fatalError("Atom was not in the correct cell.")
+    func traverse(
+      atomIDs: UnsafeBufferPointer<UInt32>,
+      levelOrigin: SIMD3<Float>,
+      levelSize: Float
+    ) {
+      if levelSize < 1 / 32 {
+        output += atomIDs
+        return
+      }
+      
+      var dictionaryCount: SIMD8<Int> = .zero
+      
+      for atomID32 in atomIDs {
+        var index: SIMD3<UInt32> = .init(repeating: 1)
+        let atomID = Int(truncatingIfNeeded: atomID32)
+        let atomPosition = atoms[atomID].position - self.origin
+        index.replace(
+          with: .init(repeating: 0),
+          where: atomPosition .< levelOrigin)
+        
+        let key = Int(
+          truncatingIfNeeded: (index &<< SIMD3(0, 1, 2)).wrappedSum())
+        let previousCount = dictionaryCount[key]
+        let pointer = dictionary.advanced(
+          by: key &* atoms.count &+ previousCount)
+        
+        dictionaryCount[key] &+= 1
+        pointer.pointee = atomID32
+      }
+      
+      var temporaryAllocationSize = 0
+      for laneID in 0..<8 {
+        let allocationSize = dictionaryCount[laneID]
+        temporaryAllocationSize &+= allocationSize
+      }
+      
+      withUnsafeTemporaryAllocation(
+        of: UInt32.self,
+        capacity: temporaryAllocationSize
+      ) { bufferPointer in
+        var start = 0
+        for laneID in 0..<8 {
+          let allocationSize = dictionaryCount[laneID]
+          guard allocationSize > 0 else {
+            continue
+          }
+          
+          let oldPointer = dictionary.advanced(by: laneID &* atoms.count)
+          let newPointer = bufferPointer.baseAddress.unsafelyUnwrapped + start
+          newPointer.initialize(from: oldPointer, count: allocationSize)
+          start &+= allocationSize
         }
         
-        let remainder = (scaledPosition - floorPosition) * Float(1 << 21)
-        var remainderInt = SIMD3<Int32>(remainder)
-        let maxValue = SIMD3<Int32>(repeating: (1 << 21 - 1))
-        remainderInt.replace(with: 0, where: remainder .< 0)
-        remainderInt.replace(with: maxValue, where: remainderInt .> maxValue)
-        let mortonCode = morton_interleave(remainderInt)
-        let atomID64 = UInt64(truncatingIfNeeded: atomID)
-        atomList.append(SIMD2(atomID64, mortonCode))
+        start = 0
+        for laneID in 0..<8 {
+          let allocationSize = dictionaryCount[laneID]
+          guard allocationSize > 0 else {
+            continue
+          }
+          
+          let newPointer = bufferPointer.baseAddress.unsafelyUnwrapped + start
+          start &+= allocationSize
+          if allocationSize == 1 {
+            output.append(newPointer.pointee)
+            continue
+          }
+          
+          let newBufferPointer = UnsafeBufferPointer(
+            start: newPointer, count: allocationSize)
+          let key32 = UInt32(truncatingIfNeeded: laneID)
+          let intOffset = (key32 &>> SIMD3(0, 1, 2)) & 1
+          let floatOffset = SIMD3<Float>(intOffset) * 2 - 1
+          let newOrigin = levelOrigin + floatOffset * levelSize / 2
+          traverse(
+            atomIDs: newBufferPointer,
+            levelOrigin: newOrigin,
+            levelSize: levelSize / 2)
+        }
       }
-      atomList.sort { $0.y < $1.y }
-      
-      for element in atomList {
-        let atomID = Int(truncatingIfNeeded: element[0])
-        let mortonMapping = UInt32(truncatingIfNeeded: mortonListSize)
-        output[atomID] = mortonMapping
-        mortonListSize += 1
-      }
-      atomList.removeAll(keepingCapacity: true)
     }
     
-    precondition(
-      mortonListSize == atoms.count, "Morton reordered list was invalid.")
-    if output.contains(.max) {
-      fatalError("Morton reordered list was invalid.")
+    let levelSize = self.dimensions.max() / 2
+    let levelOrigin = SIMD3<Float>(repeating: levelSize)
+    let initialArray = atoms.indices.map(UInt32.init(truncatingIfNeeded:))
+    initialArray.withUnsafeBufferPointer { bufferPointer in
+      traverse(
+        atomIDs: bufferPointer,
+        levelOrigin: levelOrigin,
+        levelSize: levelSize)
     }
-    return output
+    precondition(output.count == atoms.count)
+    
+    var reordering = [UInt32](repeating: .max, count: atoms.count)
+    for reorderedID in output.indices {
+      let originalID32 = output[reorderedID]
+      let originalID = Int(truncatingIfNeeded: originalID32)
+      let reorderedID32 = UInt32(truncatingIfNeeded: reorderedID)
+      reordering[originalID] = reorderedID32
+    }
+    precondition(!reordering.contains(.max))
+    return reordering
   }
 }

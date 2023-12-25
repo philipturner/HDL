@@ -58,7 +58,7 @@ struct GridSorter {
   
   // Origin and dimensions are in discrete multiples of cell width.
   var cellWidth: Float
-  var origin: SIMD3<Int32>
+  var origin: SIMD3<Float>
   var dimensions: SIMD3<Int32>
   
   init(atoms: [Entity], cellWidth: Float = 1.0) {
@@ -78,10 +78,8 @@ struct GridSorter {
       }
       minimum /= cellWidth
       maximum /= cellWidth
-      minimum.round(.down)
-      maximum.round(.up)
-      origin = SIMD3<Int32>(minimum)
-      dimensions = SIMD3<Int32>(maximum - minimum)
+      origin = minimum
+      dimensions = SIMD3<Int32>((maximum - minimum).rounded(.up))
     }
     
     // Use checking arithmetic to ensure the multiplication doesn't overflow.
@@ -99,7 +97,7 @@ struct GridSorter {
       var position = atom.position
       position /= cellWidth
       position.round(.down)
-      let originDelta = SIMD3<Int32>(position) &- self.origin
+      let originDelta = SIMD3<Int32>(position - origin)
       let cellID = self.createCellID(originDelta: originDelta)
       
       let mappedAtomID = cells[cellID].count
@@ -184,9 +182,9 @@ extension GridSorter {
       let cellID = Int(truncatingIfNeeded: element[0])
       for atomID in cells[cellID] {
         let atom = atoms[Int(atomID)]
-        let scaledPosition = atom.position / cellWidth
+        let scaledPosition = (atom.position - origin) / cellWidth
         let floorPosition = scaledPosition.rounded(.down)
-        let originDelta = SIMD3<Int32>(floorPosition) &- self.origin
+        let originDelta = SIMD3<Int32>(floorPosition)
         guard createCellID(originDelta: originDelta) == cellID else {
           fatalError("Atom was not in the correct cell.")
         }

@@ -31,10 +31,9 @@ struct OctreeSorter {
         let position = atom.position
         minimum.replace(with: position, where: position .< minimum)
       }
-      minimum.round(.down)
-      maximum.round(.up)
+      
       origin = minimum
-      dimensions = maximum - minimum
+      dimensions = (maximum - minimum).rounded(.up)
       dimensions.replace(with: .init(repeating: 1), where: dimensions .<= 0)
       
       for lane in 0..<3 {

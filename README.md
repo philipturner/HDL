@@ -15,7 +15,7 @@ Table of Contents
 For an introduction, visit the [tutorial](./Documentation/GrapheneSiliceneBilayer.md).
 
 ```swift
-enum Element: UInt8 {
+enum Element {
   case hydrogen = 1
   case carbon = 6
   case nitrogen = 7

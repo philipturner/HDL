@@ -244,7 +244,7 @@ mutating func sort() -> [UInt32]
 
 Sorts atoms in Morton order, then sorts bonds in ascending order based on atom indices.
 
-The topology must be sorted before entering into a simulator. Otherwise, there are two consequences. The nonlocalized atom layout makes the nonbonded forces extremely expensive, increasing algorithmic complexity from $O(n)$ to $O(n^2)$. The nondeterministic bond order also makes troubleshooting parameter assignments more difficult.
+The topology must be sorted before entering into a simulator. Otherwise, there are two consequences. Absence of spatial locality makes nonbonded forces extremely expensive, increasing algorithmic complexity from $O(n)$ to $O(n^2)$. Nondeterministic bond order also makes parameters harder to troubleshoot.
 
 ```swift
 extension Topology {

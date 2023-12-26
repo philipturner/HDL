@@ -266,6 +266,8 @@ final class TopologyTests: XCTestCase {
     XCTAssertEqual(sortedBonds, topology.bonds)
   }
   
+  // TODO: Next step is to debug correctness of match().
+  
   // Good ideas for stuff the test suite should eventually cover:
   //
   // Idea for testing correctness of Topology.match(): Ensure the matched

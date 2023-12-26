@@ -446,10 +446,10 @@ final class PerformanceTests: XCTestCase {
     // After optimization 6: ~0.160 seconds
     // 57.0x speedup
   }
-#endif
+
   
   func testSort() throws {
-    let latticeScale: Float = 5
+    let latticeScale: Float = 10
     let testParallel = Bool.random() ? true : true
     let lattice = Lattice<Hexagonal> { h, k, l in
       let h2k = h + 2 * k
@@ -592,6 +592,7 @@ final class PerformanceTests: XCTestCase {
     // 14     |  44688 |   6085 |   3789 |     2160 | 1.6 -> 2.8
     // 20     | 129600 |  19932 |  10811 |     6567 | 1.8 -> 3.0
   }
+#endif
   
   // We need to run performance tests of Topology.match, to ensure the
   // acceleration algorithm is working properly. One could imagine subtle bugs

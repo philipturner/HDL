@@ -266,16 +266,98 @@ final class TopologyTests: XCTestCase {
     XCTAssertEqual(sortedBonds, topology.bonds)
   }
   
-  // TODO: Next step is to debug correctness of match().
+  // Test match() against phosphorus-doped silicon.
+  func testMatchSilicon() throws {
+    let lattice = Lattice<Cubic> { h, k, l in
+      Bounds { 3 * (h + k + l) }
+      Material { .elemental(.silicon) }
+      
+      Volume {
+        Origin { 0.1 * h }
+        Plane { -h }
+        
+        // The dopants replace sidewall silicons, so they only form 2 covalent
+        // bonds with the bulk crystal.
+        Replace { .atom(.phosphorus) }
+      }
+    }
+    
+    let expectedImpurity: Float = 0.25 / 3
+    let siliconCount = lattice.atoms.filter { $0.atomicNumber == 14 }.count
+    let phosphorusCount = lattice.atoms.filter { $0.atomicNumber == 15 }.count
+    let dopantConcentration =
+    Float(phosphorusCount) / Float(siliconCount + phosphorusCount)
+    XCTAssertEqual(expectedImpurity, dopantConcentration, accuracy: 0.01)
+    
+    var topology = Topology()
+    topology.insert(atoms: lattice.atoms)
+    let matches = topology.match(
+      lattice.atoms, algorithm: .covalentBondLength(2.1))
+    XCTAssertEqual(matches.indices, lattice.atoms.indices)
+    
+    for i in matches.indices {
+      let range = matches[i]
+      XCTAssertGreaterThan(range.count, 0)
+      XCTAssertGreaterThan(range.count, 4)
+      XCTAssertLessThan(range.count, 30)
+      XCTAssertEqual(range[range.startIndex], UInt32(i))
+      
+      let atom = lattice.atoms[i]
+      var selfRadius: Float
+      if atom.atomicNumber == 14 {
+        selfRadius = Element.silicon.covalentRadius
+      } else {
+        selfRadius = Element.phosphorus.covalentRadius
+      }
+      
+      var actualMatches: [Int: Bool] = [:]
+      for match in range {
+        actualMatches[Int(match)] = true
+      }
+      
+      for j in lattice.atoms.indices {
+        let neighbor = lattice.atoms[j]
+        let delta = atom.position - neighbor.position
+        let distance = (delta * delta).sum().squareRoot()
+        
+        var neighborRadius: Float
+        if neighbor.atomicNumber == 14 {
+          neighborRadius = Element.silicon.covalentRadius
+        } else {
+          neighborRadius = Element.phosphorus.covalentRadius
+        }
+        let searchRadius = 2.1 * (selfRadius + neighborRadius)
+        
+        if distance < searchRadius {
+          XCTAssertNotNil(
+            actualMatches[j], "\(i) -> \(j), \(distance / searchRadius)")
+        } else {
+          XCTAssertNil(
+            actualMatches[j], "\(i) -> \(j), \(distance / searchRadius)")
+        }
+      }
+      
+      var previousDistance: Float = 0
+      for match in range {
+        let neighbor = lattice.atoms[Int(match)]
+        let delta = atom.position - neighbor.position
+        let distance = (delta * delta).sum().squareRoot()
+        XCTAssertLessThanOrEqual(previousDistance, distance + 1e-3)
+        previousDistance = distance
+      }
+    }
+  }
   
-  // Good ideas for stuff the test suite should eventually cover:
-  //
-  // Idea for testing correctness of Topology.match(): Ensure the matched
-  // indices actually appear in ascending order of distance. Ensure none of them
-  // are more than the algorithm's specified distance cutoff.
-  //
-  // Idea for ultimate litmus test: use the new, flexible topology compiler to
-  // reconstruct (100) surfaces.
+  // Test that a raw carbon lattice produces the same results with
+  // .covalentBondLength(1.1) and 2.2x the absolute radius of carbon. Then,
+  // test that lonsdaleite with 1.05-1.1x covalent bond length returns only
+  // the C-C and C-H covalent bonds. Finally, perform an asymmetric search
+  // using hydrogens detached from an unpassivated lonsdaleite lattice. Assert
+  // that the formed structure is the exact same as one created from
+  // Lonsdaleite() after sorting.
+  func testMatchLonsdaleite() throws {
+    
+  }
   
   // TODO: - Instead of a time-consuming, exhaustive test suite, debug this
   // visually in the renderer. The covered functionality is not as complex as
@@ -291,12 +373,16 @@ final class TopologyTests: XCTestCase {
   // The old 'Diamondoid' topology generator can be used to bootstrap testing
   // of how sort() treats bonds, before the remainder of the functionality is
   // working. In addition, enter into MM4Parameters as a final validation test.
+  // Finally, run the structures through the old MM4 simulator for a few ps.
   //
   // Implementation plan:
   // - 1) Visualizer for Morton order and bond topology in GitHub gist.
   //   - 1.1) Test against Lattice -> Diamondoid reordering.
   //   - 1.2) Test against Topology.sort().
   // - 2) Debug correctness of match() and nonbondedOrbitals().
+  //   - 2.1) Visualize the results of match().
+  //   - 2.2) Create an optimized match().
+  //   - 2.3) Ensure there's no unusually slow code in nonbondedOrbitals().
   // - 3) Test simple diamond and lonsdaleite lattice formation.
   // - 4) Reproduce graphene thiol and HAbst tripods from the
   //      nanofactory demo.

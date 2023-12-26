@@ -6,8 +6,8 @@
 //
 
 public struct Topology {
-  public internal(set) var atoms: [Entity] = []
-  public internal(set) var bonds: [SIMD2<UInt32>] = []
+  public var atoms: [Entity] = []
+  public var bonds: [SIMD2<UInt32>] = []
   
   public init() {
     

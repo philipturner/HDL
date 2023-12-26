@@ -504,8 +504,11 @@ final class TopologyTests: XCTestCase {
       passivatedCarbonCount = max(1, passivatedCarbonCount)
       
       var lines: [String] = []
-      lines.append("type      " + " | " + "total" + " | " + "passivated")
-      lines.append("----------" + " | " + "-----" + " | " + "-----")
+      lines.append(
+        "type      " + " | " + "count" + " | " + "total" + " | " + "passivated")
+      lines.append(
+        "----------" + " | " + "-----" + " | " + "-----" + " | " + "-----")
+      
       for i in 0...4 {
         var output: String
         switch i {
@@ -521,8 +524,12 @@ final class TopologyTests: XCTestCase {
         
         let total = Float(stats[i]) / Float(totalCarbonCount)
         let passivated = Float(stats[i]) / Float(passivatedCarbonCount)
+        var countRepr = "\(stats[i])"
         var totalRepr = String(format: "%.1f", 100 * total) + "%"
         var passivatedRepr = String(format: "%.1f", 100 * passivated) + "%"
+        while countRepr.count < 5 {
+          countRepr = " \(countRepr)"
+        }
         while totalRepr.count < 5 {
           totalRepr = " \(totalRepr)"
         }
@@ -530,6 +537,8 @@ final class TopologyTests: XCTestCase {
           passivatedRepr = " \(passivatedRepr)"
         }
         
+        output += countRepr
+        output += " | "
         output += totalRepr
         output += " | "
         if i >= 1 && i <= 3 {
@@ -570,14 +579,14 @@ final class TopologyTests: XCTestCase {
       
       var stats: SIMD8<Int> = .zero
       for i in topology.atoms.indices {
-        let matchRange = matches[i]
+        let matchesRange = matches[i]
         let neighborRange = atomsToAtomsMap[i]
-        XCTAssertEqual(matchRange.count - 1, neighborRange.count)
+        XCTAssertEqual(matchesRange.count - 1, neighborRange.count)
         
-        for j in (matchRange.startIndex+1)..<matchRange.endIndex {
+        for j in (matchesRange.startIndex+1)..<matchesRange.endIndex {
           var matchCount: Int = 0
           for k in neighborRange.indices {
-            if matchRange[j] == neighborRange[k] {
+            if matchesRange[j] == neighborRange[k] {
               matchCount += 1
             }
           }
@@ -623,7 +632,8 @@ final class TopologyTests: XCTestCase {
         }
         stats[neighborRange.count] += 1
       }
-#if true
+      
+#if false
       let lines = carbonTypeSummary(stats)
       print()
       print("lonsdaleite:")
@@ -631,13 +641,93 @@ final class TopologyTests: XCTestCase {
         print(line)
       }
 #endif
+      XCTAssertEqual(stats[0], 0) // none are malformed
+      XCTAssertEqual(stats[1], 0) // none are primary
+      XCTAssertEqual(stats[2], 20) // a small fraction are sidewall
+      XCTAssertEqual(stats[3], 134) // predominantly bridgehead
+      XCTAssertEqual(stats[4], 170)
     }
     
     // Test cubic diamond, malformed, and sidewall carbons. Assert that a small
     // fraction are primary, 4 are malformed, and none are bridgehead.
     do {
-      // TODO: - Gather statistics about cubic diamond (test case with reduced
-      // coverage), then visually debug both crystals in the renderer.
+      let lattice = Lattice<Cubic> { h, k, l in
+        Bounds { 3 * h + 3 * k + 4 * l }
+        Material { .elemental(.carbon) }
+      }
+      var topology = Topology()
+      topology.insert(atoms: lattice.atoms)
+      let matches = topology.match(topology.atoms)
+      XCTAssertEqual(lattice.atoms.count, topology.atoms.count)
+      XCTAssertEqual(matches.count, topology.atoms.count)
+      
+      var statsBefore: SIMD8<Int> = .zero
+      for i in topology.atoms.indices {
+        let matchesRange = matches[i]
+        XCTAssertGreaterThanOrEqual(matchesRange.count, 1)
+        XCTAssertLessThanOrEqual(matchesRange.count, 5)
+        
+        var bonds: [SIMD2<UInt32>] = []
+        for j in matchesRange[(matchesRange.startIndex+1)...] {
+          if j < UInt32(i) {
+            bonds.append(SIMD2(j, UInt32(i)))
+          }
+        }
+        topology.insert(bonds: bonds)
+        
+        statsBefore[matchesRange.count - 1] += 1
+      }
+      
+      // The topology is not sorted when we create these orbitals. This is
+      // different from the conditions for generating lonsdaleite in the
+      // unit test 'testMatchLonsdaleite()'.
+      let atomsToAtomsMap = topology.map(.atoms, to: .atoms)
+      let orbitals = topology.nonbondingOrbitals()
+      XCTAssertEqual(atomsToAtomsMap.count, topology.atoms.count)
+      XCTAssertEqual(orbitals.count, topology.atoms.count)
+      XCTAssertGreaterThan(orbitals.count, 0)
+      
+      var stats: SIMD8<Int> = .zero
+      for i in topology.atoms.indices {
+        let matchesRange = matches[i]
+        let neighborRange = atomsToAtomsMap[i]
+        let orbitalsRange = orbitals[i]
+        XCTAssertEqual(matchesRange.count - 1, neighborRange.count)
+        
+        var expectedOrbitals: Int
+        switch neighborRange.count {
+        case 0: expectedOrbitals = 0
+        case 1: expectedOrbitals = 0
+        case 2: expectedOrbitals = 2
+        case 3: expectedOrbitals = 1
+        case 4: expectedOrbitals = 0
+        default:
+          fatalError("This should never happen.")
+        }
+        XCTAssertEqual(orbitalsRange.count, expectedOrbitals)
+        
+        stats[neighborRange.count] += 1
+      }
+      
+      // Assert that the statistics before and after C-C bond generation are the
+      // same.
+      for i in 0...4 {
+        XCTAssertEqual(statsBefore[i], stats[i])
+      }
+      
+#if false
+      let lines = carbonTypeSummary(stats)
+      print()
+      print("cubic diamond:")
+      for line in lines {
+        print(line)
+      }
+#endif
+      XCTAssertEqual(stats[0], 4) // 4 are malformed
+      XCTAssertEqual(stats[1], 32) // a small fraction are primary
+      XCTAssertEqual(stats[2], 98) // predominantly sidewall
+      XCTAssertEqual(stats[3], 0) // none are bridgehead
+      XCTAssertEqual(stats[4], 231)
     }
   }
   
@@ -652,26 +742,21 @@ final class TopologyTests: XCTestCase {
   // hydrogens bonded to carbons that will merge. Validate that both this
   // and the reconstructed (100) structure are accepted by the simulator.
   //
-  // The old 'Diamondoid' topology generator can be used to bootstrap testing
-  // of how sort() treats bonds, before the remainder of the functionality is
-  // working. Enter into MM4Parameters and ensure no errors are thrown.
-  // Finally, run the structures through the old MM4 simulator for a few ps.
-  //
   // Implementation plan:
   // - 1) Visualizer for Morton order and bond topology in GitHub gist. ✅
   //   - 1.1) Test against Lattice -> Diamondoid reordering. ✅
   //   - 1.2) Test against Topology.sort(). ✅
   // - 2) Test simple diamond and lonsdaleite lattice formation. ✅
-  //   - 2.1) Visually debug hydrogen generation against Diamondoid.
-  //   - 2.2) Add code to HDL documentation, for generating diamond and
-  //          lonsdaleite with the new compiler.
-  //   - 2.3) Add code to HDL documentation, for generating graphene thiol and
+  //   - 2.1) Demonstrate (100) surface reconstruction, validate that it's
+  //          accepted by MM4RigidBody.
+  //   - 2.2) Add reference code to HDLTests, for generating lonsdaleite, cubic
+  //          diamond, and curved shell structures with the new compiler.
+  //   - 2.3) Add reference code to HDLTests, for generating graphene thiol and
   //          HAbst tripods with the new compiler.
-  // - 3) Debug performance of match() and nonbondedOrbitals().
-  //   - 3.1) Use nonbondedOrbitals() to create large performance tests for
-  //          asymmetric match().
-  //   - 3.2) Ensure there's no unusually slow code in nonbondedOrbitals().
-  //   - 3.3) Create an optimized match(), tuned against two radii/algorithms
-  //          for symmetric and two variants of plausible asymmetric search.
-  // - 4) Demonstrate (100) surface and strained shell structure formation.
+  // - 3) Optimize the compiler.
+  //   - 3.1) Add performance test cases for some snippets of real-world code
+  //          from these experiments.
+  //   - 3.2) Enumerate the time spent on different stages of compilation.
+  //   - 3.3) Create an optimized match(), tuned against both extremes of search
+  //          radius and asymmetry.
 }

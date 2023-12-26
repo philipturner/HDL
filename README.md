@@ -8,7 +8,6 @@ Table of Contents
     - [Lattice](#lattice)
     - [Topology](#topology)
     - [Volume](#volume)
-- [Tips](#tips)
 
 ## Overview
 

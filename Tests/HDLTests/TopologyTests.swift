@@ -759,4 +759,5 @@ final class TopologyTests: XCTestCase {
   //   - 3.2) Enumerate the time spent on different stages of compilation.
   //   - 3.3) Create an optimized match(), tuned against both extremes of search
   //          radius and asymmetry.
+  // - 4) Add performance test for the infamous back board from the nanofactory.
 }

@@ -1,5 +1,6 @@
 import XCTest
 import HDL
+import Numerics
 
 final class TopologyTests: XCTestCase {
   func testInsertRemove() throws {
@@ -490,6 +491,202 @@ final class TopologyTests: XCTestCase {
     }
   }
   
+  // Test both cubic diamond (only sidewall or malformed carbons) and
+  // lonsdaleite (only bridgehead carbons). For the sidewall carbons, assert
+  // that the majority of generated hydrogens physically overlap a neighbor.
+  func testNonbondingOrbitals() throws {
+    func carbonTypeSummary(_ stats: SIMD8<Int>) -> [String] {
+      var passivatedCarbonCount = 0
+      var totalCarbonCount = 0
+      passivatedCarbonCount += stats[1] + stats[2] + stats[3]
+      totalCarbonCount += passivatedCarbonCount
+      totalCarbonCount += stats[0] + stats[4]
+      passivatedCarbonCount = max(1, passivatedCarbonCount)
+      
+      var lines: [String] = []
+      lines.append("type      " + " | " + "total" + " | " + "passivated")
+      lines.append("----------" + " | " + "-----" + " | " + "-----")
+      for i in 0...4 {
+        var output: String
+        switch i {
+        case 0: output = "malformed "
+        case 1: output = "primary   "
+        case 2: output = "sidewall  "
+        case 3: output = "bridgehead"
+        case 4: output = "bulk      "
+        default:
+          fatalError("This should never happen.")
+        }
+        output += " | "
+        
+        let total = Float(stats[i]) / Float(totalCarbonCount)
+        let passivated = Float(stats[i]) / Float(passivatedCarbonCount)
+        var totalRepr = String(format: "%.1f", 100 * total) + "%"
+        var passivatedRepr = String(format: "%.1f", 100 * passivated) + "%"
+        while totalRepr.count < 5 {
+          totalRepr = " \(totalRepr)"
+        }
+        while passivatedRepr.count < 5 {
+          passivatedRepr = " \(passivatedRepr)"
+        }
+        
+        output += totalRepr
+        output += " | "
+        if i >= 1 && i <= 3 {
+          output += passivatedRepr
+        }
+        lines.append(output)
+      }
+      return lines
+    }
+    
+    // Test lonsdaleite and bridgehead carbons. Assert that a small fraction of
+    // the carbons are sidewall, but none are malformed.
+    do {
+      let lonsdaleite = Lonsdaleite()
+      var topology = Topology()
+      topology.insert(atoms: lonsdaleite.atoms)
+      topology.insert(bonds: lonsdaleite.bonds)
+      
+      let hydrogenIndices = lonsdaleite.atoms.indices.filter {
+        lonsdaleite.atoms[$0].atomicNumber == 1
+      }
+      topology.remove(atoms: hydrogenIndices.map(UInt32.init))
+      
+      let matches = topology.match(
+        topology.atoms, algorithm: .covalentBondLength(1.1))
+      let atomsToAtomsMap = topology.map(.atoms, to: .atoms)
+      let orbitals = topology.nonbondingOrbitals()
+      XCTAssertEqual(matches.count, atomsToAtomsMap.count)
+      XCTAssertGreaterThan(matches.count, 0)
+      
+      var hydrogenTopology = Topology()
+      hydrogenTopology.insert(atoms: lonsdaleite.atoms.filter {
+        $0.atomicNumber == 1
+      })
+      let hydrogenMatches = hydrogenTopology.match(topology.atoms)
+      XCTAssertGreaterThan(hydrogenTopology.atoms.count, 0)
+      XCTAssertEqual(hydrogenMatches.count, topology.atoms.count)
+      
+      var stats: SIMD8<Int> = .zero
+      for i in topology.atoms.indices {
+        let matchRange = matches[i]
+        let neighborRange = atomsToAtomsMap[i]
+        XCTAssertEqual(matchRange.count - 1, neighborRange.count)
+        
+        for j in (matchRange.startIndex+1)..<matchRange.endIndex {
+          var matchCount: Int = 0
+          for k in neighborRange.indices {
+            if matchRange[j] == neighborRange[k] {
+              matchCount += 1
+            }
+          }
+          XCTAssertEqual(matchCount, 1)
+        }
+        
+        let orbitalsRange = orbitals[i]
+        let hydrogenRange = hydrogenMatches[i]
+        XCTAssertEqual(orbitalsRange.count, hydrogenRange.count)
+        XCTAssertEqual(orbitalsRange.count, 4 - neighborRange.count)
+        XCTAssertEqual(orbitalsRange.indices, hydrogenRange.indices)
+        
+        var orbitalID = 0
+        for j in orbitalsRange.indices {
+          defer { orbitalID += 1 }
+          let orbitalDirection = orbitalsRange[j]
+          let hydrogenID = hydrogenRange[j]
+          let hydrogenAtom = hydrogenTopology.atoms[Int(hydrogenID)]
+          let carbonAtom = topology.atoms[Int(i)]
+          
+          var delta = hydrogenAtom.position - carbonAtom.position
+          let orbitalLengthSq = (orbitalDirection * orbitalDirection).sum()
+          let deltaLength = (delta * delta).sum().squareRoot()
+          delta /= deltaLength
+          XCTAssertEqual(orbitalLengthSq, 1, accuracy: 1e-3)
+          XCTAssertGreaterThan(deltaLength, 1e-3)
+          
+          if orbitalsRange.count == 2 &&
+              (orbitalDirection * delta).sum() < 0.99999 &&
+             (orbitalsRange[j + 1 - 2 * orbitalID] * delta).sum() < 0.99999 {
+            print(i, neighborRange.count, orbitalDirection, delta)
+            if j == orbitalsRange.startIndex {
+              continue
+            }
+            
+            var deltas: [SIMD3<Float>] = []
+            for neighborID in neighborRange {
+              let neighbor = topology.atoms[Int(neighborID)]
+              var delta = neighbor.position - carbonAtom.position
+              delta /= (delta * delta).sum().squareRoot()
+              deltas.append(delta)
+              print("-", delta)
+            }
+            var normal = deltas[0] + deltas[1]
+            var axis = deltas[1] - deltas[0]
+            normal /= (normal * normal).sum().squareRoot()
+            axis /= (axis * axis).sum().squareRoot()
+            
+            var midPoint = (deltas[0] + deltas[1]) / 2
+            var axis2 = deltas[1] - midPoint
+            midPoint /= (midPoint * midPoint).sum().squareRoot()
+            axis2 /= (axis2 * axis2).sum().squareRoot()
+            print("--", normal, midPoint)
+            print("--", axis, axis2)
+            
+            let quaternion = Quaternion<Float>(
+              angle: 109.5/2 * Float.pi / 180,
+              axis: axis)
+            let rotated = quaternion.act(on: -normal)
+            let quaternion2 = Quaternion<Float>(
+              angle: -109.5/2 * Float.pi / 180,
+              axis: axis)
+            let rotated2 = quaternion2.act(on: -normal)
+            print("---", rotated)
+            print("---", rotated2)
+            
+            var crossProduct: SIMD3<Float> = .zero
+            crossProduct.x = axis.y * normal.z - axis.z * normal.y
+            crossProduct.y = axis.z * normal.x - axis.x * normal.z
+            crossProduct.z = axis.x * normal.y - axis.y * normal.x
+            let crossProductSquared = (crossProduct * crossProduct).sum()
+            crossProduct /= crossProductSquared.squareRoot()
+            
+            var altCrossProduct = rotated2 - rotated
+            let altCrossProductSq = (altCrossProduct * altCrossProduct).sum()
+            altCrossProduct /= altCrossProductSq.squareRoot()
+            
+            print("---", crossProduct)
+            print("---", altCrossProduct)
+            print("---", (rotated * crossProduct).sum() * (rotated * crossProduct).sum())
+            print("---", (rotated * normal).sum() * (rotated * normal).sum())
+            
+            /*
+             let normal = _cross_platform_normalize(thisAtom.origin - midPoint)
+             let axis = _cross_platform_normalize(neighborCenters[1] - midPoint)
+             for angle in [-sp3BondAngle / 2, sp3BondAngle / 2] {
+               let rotation = Quaternion<Float>(angle: angle, axis: axis)
+               let direction = rotation.act(on: normal)
+               addHydrogen(direction: direction)
+             }
+             */
+          }
+        }
+        stats[neighborRange.count] += 1
+      }
+#if true
+      let lines = carbonTypeSummary(stats)
+      print()
+      print("lonsdaleite:")
+      for line in lines {
+        print(line)
+      }
+#endif
+    }
+    
+    // Test cubic diamond, malformed, and sidewall carbons. Assert that a small
+    // fraction are primary, 4 are malformed, and none are bridgehead.
+  }
+  
   // TODO: - Instead of a time-consuming, exhaustive test suite, debug this
   // visually in the renderer. The covered functionality is not as complex as
   // MM4RigidBody and doesn't need the same approach to testing. Getting (100)
@@ -501,23 +698,30 @@ final class TopologyTests: XCTestCase {
   // hydrogens bonded to carbons that will merge. Validate that both this
   // and the reconstructed (100) structure are accepted by the simulator.
   //
+  // TODO: - Tutorials demonstrating correct formation of the following. The
+  // audience is my future self.
+  // - Graphene thiol
+  // - HAbst tripod w/ energy minimization in xTB
+  //
   // The old 'Diamondoid' topology generator can be used to bootstrap testing
   // of how sort() treats bonds, before the remainder of the functionality is
   // working. In addition, enter into MM4Parameters as a final validation test.
   // Finally, run the structures through the old MM4 simulator for a few ps.
   //
   // Implementation plan:
-  // - 1) Visualizer for Morton order and bond topology in GitHub gist.
-  //   - 1.1) Test against Lattice -> Diamondoid reordering.
-  //   - 1.2) Test against Topology.sort().
-  // - 2) Debug correctness of match() and nonbondedOrbitals().
-  //   - 2.1) Use nonbondedOrbitals() to create large performance tests for
-  //          asymmetric match().
-  //   - 2.2) Ensure there's no unusually slow code in nonbondedOrbitals().
-  //   - 2.3) Create an optimized match(), tuned against two radii/algorithms
-  //          for symmetric and two variants of plausible asymmetric search.
-  // - 3) Test simple diamond and lonsdaleite lattice formation.
-  // - 4) Reproduce graphene thiol and HAbst tripods from the
+  // - 1) Visualizer for Morton order and bond topology in GitHub gist. ✅
+  //   - 1.1) Test against Lattice -> Diamondoid reordering. ✅
+  //   - 1.2) Test against Topology.sort(). ✅
+  // - 2) Test simple diamond and lonsdaleite lattice formation. ✅
+  //   - 2.1) Visually debug hydrogen generation against Diamondoid.
+  // - 3) Reproduce graphene thiol and HAbst tripods from the
   //      nanofactory demo.
+  //   - 3.1) Create tutorials for these two molecules.
+  // - 4) Debug performance of match() and nonbondedOrbitals().
+  //   - 4.1) Use nonbondedOrbitals() to create large performance tests for
+  //          asymmetric match().
+  //   - 4.2) Ensure there's no unusually slow code in nonbondedOrbitals().
+  //   - 4.3) Create an optimized match(), tuned against two radii/algorithms
+  //          for symmetric and two variants of plausible asymmetric search.
   // - 5) Demonstrate (100) surface and strained shell structure formation.
 }

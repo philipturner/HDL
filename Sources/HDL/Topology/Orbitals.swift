@@ -115,12 +115,12 @@ extension Topology {
           
           // The order of the returned bonds is ambiguous, but it will be
           // deterministic after calling 'sort()'.
-          let normalWeight = Float(1.0 / 9).squareRoot()
-          let crossProductWeight = Float(8.0 / 9).squareRoot()
-          outputArray.append(
-            normal * normalWeight + crossProduct * crossProductWeight)
+          let normalWeight = -Float(1.0 / 3).squareRoot()
+          let crossProductWeight = Float(2.0 / 3).squareRoot()
           outputArray.append(
             normal * normalWeight - crossProduct * crossProductWeight)
+          outputArray.append(
+            normal * normalWeight + crossProduct * crossProductWeight)
         } else {
           // In the remaining cases, simply return something pointing opposite
           // to the average of the deltas.

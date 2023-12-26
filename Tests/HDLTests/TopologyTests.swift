@@ -350,13 +350,144 @@ final class TopologyTests: XCTestCase {
   
   // Test that a raw carbon lattice produces the same results with
   // .covalentBondLength(1.1) and 2.2x the absolute radius of carbon. Then,
-  // test that lonsdaleite with 1.05-1.1x covalent bond length returns only
+  // test that lonsdaleite with ~1.1-1.5x covalent bond length returns only
   // the C-C and C-H covalent bonds. Finally, perform an asymmetric search
-  // using hydrogens detached from an unpassivated lonsdaleite lattice. Assert
-  // that the formed structure is the exact same as one created from
-  // Lonsdaleite() after sorting.
+  // using hydrogens detached from an unpassivated lonsdaleite lattice. Form a
+  // topology and assert that, after sorting, it is the same as Lonsdaleite().
   func testMatchLonsdaleite() throws {
+    let lonsdaleite = Lonsdaleite()
+    let carbons = lonsdaleite.atoms.filter { $0.atomicNumber == 6 }
+    do {
+      var topology = Topology()
+      topology.insert(atoms: carbons)
+      let matchesCovalent = topology.match(
+        topology.atoms, algorithm: .covalentBondLength(1.1))
+      XCTAssertEqual(matchesCovalent.count, carbons.count)
+      
+      for i in matchesCovalent.indices {
+        let range = matchesCovalent[i]
+        XCTAssertGreaterThan(range.count, 0)
+        XCTAssertGreaterThan(range.count, 2)
+        XCTAssertLessThan(range.count, 6)
+      }
+      
+      var absoluteRadius = Element.carbon.covalentRadius
+      absoluteRadius += Element.carbon.covalentRadius
+      absoluteRadius *= 1.1
+      let matchesAbsolute = topology.match(
+        topology.atoms, algorithm: .absoluteRadius(absoluteRadius))
+      XCTAssertEqual(matchesAbsolute.count, carbons.count)
+      XCTAssertEqual(matchesCovalent, matchesAbsolute)
+    }
     
+    do {
+      var topology = Topology()
+      topology.insert(atoms: lonsdaleite.atoms)
+      let matches = topology.match(topology.atoms)
+      XCTAssertEqual(matches.count, lonsdaleite.atoms.count)
+      
+      for i in matches.indices {
+        let atom = lonsdaleite.atoms[i]
+        let range = matches[i]
+        if atom.atomicNumber == 1 {
+          XCTAssertEqual(range.count, 2)
+        } else {
+          XCTAssertEqual(range.count, 5)
+        }
+        XCTAssertEqual(range[range.startIndex], UInt32(i))
+        
+        if atom.atomicNumber == 1 {
+          let carbonIndex = Int(range[range.startIndex + 1])
+          let carbon = lonsdaleite.atoms[carbonIndex]
+          XCTAssertEqual(carbon.atomicNumber, 6)
+        }
+      }
+    }
+    
+    var expectedAtoms: [Entity]
+    var expectedBonds: [SIMD2<UInt32>]
+    do {
+      var topology = Topology()
+      topology.insert(atoms: lonsdaleite.atoms)
+      topology.insert(bonds: lonsdaleite.bonds)
+      topology.sort()
+      XCTAssertGreaterThan(topology.atoms.count, 0)
+      XCTAssertGreaterThan(topology.bonds.count, 0)
+      
+      expectedAtoms = topology.atoms
+      expectedBonds = topology.bonds
+    }
+    
+    let hydrogens = lonsdaleite.atoms.filter { $0.atomicNumber == 1 }
+    do {
+      var topology = Topology()
+      topology.insert(atoms: carbons)
+      let carbonMatches = topology.match(topology.atoms)
+      
+      for i in carbons.indices {
+        let range = carbonMatches[i]
+        XCTAssertGreaterThanOrEqual(range.count, 3)
+        XCTAssertLessThanOrEqual(range.count, 5)
+        
+        var bonds: [SIMD2<UInt32>] = []
+        XCTAssertEqual(range[range.startIndex], UInt32(i))
+        for j in (range.startIndex + 1)..<range.endIndex {
+          XCTAssertNotEqual(range[j], UInt32(i))
+          
+          // Don't create duplicate bonds.
+          let bond = SIMD2<UInt32>(range[j], UInt32(i))
+          if any(bond % 3 .== 0) {
+            if bond[0] < bond[1] {
+              bonds.append(bond)
+            }
+          } else {
+            if bond[1] < bond[0] {
+              bonds.append(bond)
+            }
+          }
+        }
+        topology.insert(bonds: bonds)
+      }
+      
+      let hydrogenMatches = topology.match(hydrogens)
+      XCTAssertEqual(hydrogenMatches.count, hydrogens.count)
+      XCTAssertNotEqual(hydrogenMatches.count, carbons.count)
+      XCTAssertNotEqual(hydrogenMatches.count, topology.atoms.count)
+      XCTAssertNotEqual(hydrogenMatches.count, lonsdaleite.atoms.count)
+      
+      let hydrogenStart = topology.atoms.count
+      topology.insert(atoms: hydrogens)
+      XCTAssertGreaterThan(hydrogenMatches.count, 0)
+      
+      for i in hydrogens.indices {
+        let range = hydrogenMatches[i]
+        XCTAssertEqual(range.count, 1)
+        
+        let carbon: UInt32 = range[range.startIndex]
+        let hydrogen: UInt32 = UInt32(hydrogenStart + i)
+        var bond: SIMD2<UInt32>
+        if Bool.random() {
+          bond = SIMD2(hydrogen, carbon)
+        } else {
+          bond = SIMD2(carbon, hydrogen)
+        }
+        topology.insert(bonds: [bond])
+      }
+      
+      XCTAssertNotEqual(topology.atoms, expectedAtoms)
+      XCTAssertNotEqual(topology.bonds, expectedBonds)
+      XCTAssertEqual(topology.atoms.count, expectedAtoms.count)
+      XCTAssertEqual(topology.bonds.count, expectedBonds.count)
+      
+      topology.sort()
+      XCTAssertEqual(topology.atoms, expectedAtoms)
+      XCTAssertEqual(topology.bonds, expectedBonds)
+      
+      XCTAssertGreaterThan(topology.atoms.count, 0)
+      XCTAssertGreaterThan(topology.bonds.count, 0)
+      XCTAssertGreaterThan(expectedAtoms.count, 0)
+      XCTAssertGreaterThan(expectedBonds.count, 0)
+    }
   }
   
   // TODO: - Instead of a time-consuming, exhaustive test suite, debug this
@@ -380,9 +511,11 @@ final class TopologyTests: XCTestCase {
   //   - 1.1) Test against Lattice -> Diamondoid reordering.
   //   - 1.2) Test against Topology.sort().
   // - 2) Debug correctness of match() and nonbondedOrbitals().
-  //   - 2.1) Visualize the results of match().
-  //   - 2.2) Create an optimized match().
-  //   - 2.3) Ensure there's no unusually slow code in nonbondedOrbitals().
+  //   - 2.1) Use nonbondedOrbitals() to create large performance tests for
+  //          asymmetric match().
+  //   - 2.2) Ensure there's no unusually slow code in nonbondedOrbitals().
+  //   - 2.3) Create an optimized match(), tuned against two radii/algorithms
+  //          for symmetric and two variants of plausible asymmetric search.
   // - 3) Test simple diamond and lonsdaleite lattice formation.
   // - 4) Reproduce graphene thiol and HAbst tripods from the
   //      nanofactory demo.

@@ -449,19 +449,37 @@ final class PerformanceTests: XCTestCase {
 #endif
   
   func testSort() throws {
+    let latticeScale: Float = 20
     let lattice = Lattice<Hexagonal> { h, k, l in
       let h2k = h + 2 * k
-      Bounds { 5 * (2 * h + h2k + l) }
+      Bounds { latticeScale * (2 * h + h2k + l) }
       Material { .elemental(.carbon) }
     }
+    
+    // 'lattice' configuration, serial
+    //
+    // bounds | atoms  | octree |  0.25 |  0.5 |    1 |    2 |    4 | optimized
+    // ------ | ------ | ------ | ----- | ---- | ---- | ---- | ---- | ----------
+    // 5      |   2100 |    136 |   286 |  142 |  146 |      |      |  174
+    // 7      |   5684 |    411 |   472 |  299 |  315 |  508 |      |  293
+    // 10     |  16400 |   1168 |  2345 |  866 |  698 |  686 | 1276 |  887
+    // 14     |  44688 |   3333 |  3447 | 2122 | 1863 | 1775 | 3512 | 1891
+    // 20     | 129600 |   9245 | 19899 | 6695 | 5882 | 5332 | 4959 | 5403
+    
+    // 'lattice' configuration, 2x duplicated
+    //
+    // bounds | atoms  | octree | serial | parallel |
+    // ------ | ------ | ------ | ------ | -------- |
+    // 5      |   2100 |
+    // 7      |   5684 |
+    // 10     |  16400 |
+    // 14     |  44688 |
+    // 20     | 129600 |
     
     var output: [String] = []
     output.append("dataset    |  grid  | octree")
     output.append("---------- | ------ | ------")
     
-    // TODO: Move this test into release mode after ensuring it works correctly.
-    // Debug mode can be used again in the future, to debug correctness of
-    // optimized sorting implementations.
     for trialID in 0..<4 {
       var trialAtoms: [Entity]
       var trialName: String
@@ -518,6 +536,10 @@ final class PerformanceTests: XCTestCase {
     for line in output {
       print(line)
     }
+    
+    // Next, profile whether two grids will be constructed in parallel by
+    // DispatchQueue.concurrentPerform, a necessary condition for accelerating
+    // the preparation for Topology.match().
   }
   
   // We need to run performance tests of Topology.match, to ensure the

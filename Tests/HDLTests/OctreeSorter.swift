@@ -5,6 +5,7 @@
 //  Created by Philip Turner on 12/25/23.
 //
 
+import Dispatch
 import HDL
 
 struct OctreeSorter {
@@ -35,13 +36,6 @@ struct OctreeSorter {
       origin = minimum
       dimensions = maximum - minimum
       dimensions.replace(with: .init(repeating: 0.5), where: dimensions .< 0.5)
-      
-//      for lane in 0..<3 {
-//        let element = dimensions[lane]
-//        if element != element.binade {
-//          dimensions[lane] = 2 * element.binade
-//        }
-//      }
     }
   }
   
@@ -128,12 +122,17 @@ struct OctreeSorter {
       }
     }
     
-    let levelSize = self.dimensions.max() / 2
-    let levelOrigin = SIMD3<Float>(repeating: levelSize)
+    let volume = dimensions.x * dimensions.y * dimensions.z
+    let chunkVolume = volume / 27
+    let highestLevelSize = 2 * pow(chunkVolume, 1.0 / 3)
+    
+    let levelOrigin = SIMD3<Float>(repeating: highestLevelSize)
     let initialArray = atoms.indices.map(UInt32.init(truncatingIfNeeded:))
     initialArray.withUnsafeBufferPointer { bufferPointer in
       traverse(
-        atomIDs: bufferPointer, levelOrigin: levelOrigin, levelSize: levelSize)
+        atomIDs: bufferPointer,
+        levelOrigin: levelOrigin,
+        levelSize: highestLevelSize)
     }
     precondition(output.count == atoms.count)
     

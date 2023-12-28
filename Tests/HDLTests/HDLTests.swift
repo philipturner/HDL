@@ -100,7 +100,7 @@ final class HDLTests: XCTestCase {
     }
   }
   
-  func testPlane111() {
+  func testPlane111() throws {
     var parameters: [SIMD3<Int>] = [
       SIMD3(3, 613, 1018),
       SIMD3(4, 1337, 2313),
@@ -145,4 +145,41 @@ final class HDLTests: XCTestCase {
       XCTAssertEqual(carbonLattice.atoms.count, parameter[2])
     }
   }
+  
+  // TODO: Enable this in debug mode once the matching algorithm has been
+  // sped up.
+  #if !DEBUG
+  func testShellStructure() throws {
+    var elements: [Element] = []
+    elements.append(.silicon)
+    #if !DEBUG
+    elements.append(.carbon)
+    #endif
+    
+    for element in elements {
+      var structure = ShellStructure(element: element)
+      structure.compilationPass0()
+      XCTAssertEqual(structure.topology.atoms.count, 894)
+      XCTAssertEqual(structure.topology.bonds.count, 0)
+      
+      structure.compilationPass1()
+      XCTAssertEqual(structure.topology.atoms.count, 1514)
+      XCTAssertEqual(structure.topology.bonds.count, 2098)
+      
+      structure.compilationPass2()
+      XCTAssertEqual(structure.topology.atoms.count, 1514)
+      XCTAssertEqual(structure.topology.bonds.count, 2098)
+      
+      if element == .carbon {
+        structure.compilationPass3(onlyMergeHydrogens: true)
+        XCTAssertEqual(structure.topology.atoms.count, 1358)
+        XCTAssertEqual(structure.topology.bonds.count, 1942)
+      } else {
+        structure.compilationPass3(onlyMergeHydrogens: false)
+        XCTAssertEqual(structure.topology.atoms.count, 1098)
+        XCTAssertEqual(structure.topology.bonds.count, 1539)
+      }
+    }
+  }
+  #endif
 }

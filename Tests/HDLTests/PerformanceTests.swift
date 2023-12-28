@@ -560,10 +560,12 @@ final class PerformanceTests: XCTestCase {
       }
     }
     
-    print()
-    print("atoms:", lattice.atoms.count)
-    for line in output {
-      print(line)
+    if Self.printPerformanceSummary {
+      print()
+      print("atoms:", lattice.atoms.count)
+      for line in output {
+        print(line)
+      }
     }
     
     // During Topology.match, there are some situations where two similarly

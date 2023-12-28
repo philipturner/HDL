@@ -760,4 +760,32 @@ final class TopologyTests: XCTestCase {
   //   - 3.3) Create an optimized match(), tuned against both extremes of search
   //          radius and asymmetry.
   // - 4) Add performance test for the infamous back board from the nanofactory.
+  
+  // Elaboration on sections 2, 3, and 4:
+  //
+  // Creating some demos for adding to HDL unit tests. Due to the volume of the
+  // code for (100) surface reconstruction, it cannot be added to the test suite.
+  // Therefore, I have to design an alternative strained shell structure built
+  // from hexagonal diamond. This alternative may not be manufacturable.
+  // - small lonsdaleite shell structure
+  // - HAbst tripod
+  // - graphene thiol
+  //
+  // For performance tests, profile two different sizes of cubic diamond crystal.
+  // The following match operations are plausible during (100) reconstruction.
+  // - match carbons against carbons
+  // - match a large number of duplicated hydrogens against each other
+  //   - uses a small absolute radius
+  // - match colliding hydrogens against each other and nearby carbons
+  //   - not actually used, but a good test of asymmetry
+  //   - report expected results assuming no collisions are resolved (simpler
+  //     situation that doesn't require actual reconstruction and can be
+  //     integrated into the test suite)
+  //
+  // A performance test case for generating nonbonding orbitals:
+  // - a large, thin sheet of (100) diamond that can be warped into a shell
+  //   - during (100) reconstruction, orbitals may be regenerated several times
+  //
+  // Finally a performance test of the nanofactory backboard that reports the
+  // time spent in each stage. This includes sorting.
 }

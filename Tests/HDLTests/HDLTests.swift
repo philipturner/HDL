@@ -182,4 +182,54 @@ final class HDLTests: XCTestCase {
     }
   }
   #endif
+  
+  func testGrapheneThiol() throws {
+    var structure = GrapheneThiol()
+    func filter(_ atomicNumber: UInt8) -> [UInt32] {
+      var output: [UInt32] = []
+      for i in structure.topology.atoms.indices {
+        let atom = structure.topology.atoms[i]
+        if atom.atomicNumber == atomicNumber {
+          output.append(UInt32(i))
+        }
+      }
+      return output
+    }
+    func withOrbitals(_ closure: ([ArraySlice<SIMD3<Float>>]) -> Void) {
+      let orbitals = structure.topology.nonbondingOrbitals(hybridization: .sp2)
+      closure(orbitals)
+    }
+    
+    structure.compilationPass0()
+    XCTAssertEqual(structure.topology.atoms.count, 54)
+    XCTAssertEqual(structure.topology.bonds.count, 0)
+    XCTAssertEqual(filter(6).count, 54)
+    withOrbitals { orbitals in
+      XCTAssertEqual(orbitals.last!.endIndex, 0)
+    }
+    
+    structure.compilationPass1()
+    XCTAssertEqual(structure.topology.atoms.count, 54)
+    XCTAssertEqual(structure.topology.bonds.count, 0)
+    withOrbitals { orbitals in
+      XCTAssertEqual(orbitals.last!.endIndex, 0)
+    }
+    
+    structure.compilationPass2()
+    XCTAssertEqual(structure.topology.atoms.count, 54)
+    XCTAssertEqual(structure.topology.bonds.count, 71)
+    withOrbitals { orbitals in
+      XCTAssertGreaterThan(orbitals.last!.endIndex, 0)
+    }
+    
+    structure.compilationPass3()
+    XCTAssertEqual(structure.topology.atoms.count, 78)
+    XCTAssertEqual(structure.topology.bonds.count, 95)
+    XCTAssertEqual(filter(1).count, 20)
+    XCTAssertEqual(filter(6).count, 54)
+    XCTAssertEqual(filter(16).count, 4)
+    withOrbitals { orbitals in
+      XCTAssertEqual(orbitals.last!.endIndex, 0)
+    }
+  }
 }

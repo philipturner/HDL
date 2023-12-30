@@ -731,28 +731,17 @@ final class TopologyTests: XCTestCase {
     }
   }
   
-  // TODO: - Instead of a time-consuming, exhaustive test suite, debug this
-  // visually in the renderer. The covered functionality is not as complex as
-  // MM4RigidBody and doesn't need the same approach to testing. Getting (100)
-  // reconstruction to work will likely trigger edge cases where the compiler is
-  // broken; reproducers can be added to the test suite.
-  //
-  // TODO: - The second test case is an interesting method of forming strained
-  // shell structures. Passivate a crystalline lattice, then warp and remove
-  // hydrogens bonded to carbons that will merge. Validate that both this
-  // and the reconstructed (100) structure are accepted by the simulator.
-  //
   // Implementation plan:
   // - 1) Visualizer for Morton order and bond topology in GitHub gist. ✅
   //   - 1.1) Test against Lattice -> Diamondoid reordering. ✅
   //   - 1.2) Test against Topology.sort(). ✅
   // - 2) Test simple diamond and lonsdaleite lattice formation. ✅
   //   - 2.1) Demonstrate (100) surface reconstruction, validate that it's
-  //          accepted by MM4RigidBody.
+  //          accepted by MM4RigidBody. ✅
   //   - 2.2) Add reference code to HDLTests, for generating lonsdaleite, cubic
-  //          diamond, and curved shell structures with the new compiler.
+  //          diamond, and curved shell structures with the new compiler. ✅
   //   - 2.3) Add reference code to HDLTests, for generating graphene thiol and
-  //          HAbst tripods with the new compiler.
+  //          HAbst tripods with the new compiler. ✅
   // - 3) Optimize the compiler.
   //   - 3.1) Add performance test cases for some snippets of real-world code
   //          from these experiments.
@@ -767,25 +756,18 @@ final class TopologyTests: XCTestCase {
   // code for (100) surface reconstruction, it cannot be added to the test suite.
   // Therefore, I have to design an alternative strained shell structure built
   // from hexagonal diamond. This alternative may not be manufacturable.
-  // - small lonsdaleite shell structure
-  // - HAbst tripod
-  // - graphene thiol
+  // - small lonsdaleite shell structure ✅
+  // - graphene thiol ✅
+  // - HAbst tripod ✅
   //
-  // For performance tests, profile two different sizes of cubic diamond crystal.
+  // For performance tests, profile 2 different sizes of cubic diamond crystal.
   // The following match operations are plausible during (100) reconstruction.
   // - match carbons against carbons
   // - match a large number of duplicated hydrogens against each other
   //   - uses a small absolute radius
   // - match colliding hydrogens against each other and nearby carbons
   //   - not actually used, but a good test of asymmetry
-  //   - report expected results assuming no collisions are resolved (simpler
-  //     situation that doesn't require actual reconstruction and can be
-  //     integrated into the test suite)
   //
-  // A performance test case for generating nonbonding orbitals:
-  // - a large, thin sheet of (100) diamond that can be warped into a shell
-  //   - during (100) reconstruction, orbitals may be regenerated several times
-  //
-  // Finally a performance test of the nanofactory backboard that reports the
+  // Finally, a performance test of the nanofactory backboard that reports the
   // time spent in each stage. This includes sorting.
 }

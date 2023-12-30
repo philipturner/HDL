@@ -226,6 +226,8 @@ mutating func insert(bonds: [SIMD2<UInt32>])
 
 Adds new atoms/bonds to the topology.
 
+The new atoms and bonds are added directly to the end of the list. The atoms and bonds are not checked for duplicates. For example, if you specify a bond multiple times, it will be added multiple times. This behavior is different from `remove()`, which checks for duplication before removing.
+
 ```swift
 mutating func remove(atoms indices: [UInt32])
 mutating func remove(bonds indices: [UInt32])
@@ -234,6 +236,8 @@ mutating func remove(bonds indices: [UInt32])
 Removes atoms/bonds at the specified indices. For `removeAtoms`, bonds connected to the removed atoms are also removed.
 
 An index may be specified multiple times in the input. The atom or bond will only be removed once.
+
+The order of atoms and bonds is preserved after removal. The removed items are taken out of the list, and the remainder is compacted in place. This behavior is different from `sort()`, which makes the relative order of atoms unknown after the transformation.
 
 ```swift
 // Sorts the atoms and returns the old atoms' indices in the new list.

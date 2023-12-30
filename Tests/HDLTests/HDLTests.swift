@@ -228,4 +228,51 @@ final class HDLTests: XCTestCase {
       XCTAssertEqual(orbitals.last!.endIndex, 0)
     }
   }
+  
+  func testCBNTripod() throws {
+    var tripod = CBNTripod()
+    var atomRecord: [UInt8: Int]
+    
+    func createAtomRecord(_ tripod: CBNTripod) -> [UInt8: Int] {
+      var output: [UInt8: Int] = [:]
+      for atom in tripod.createAtoms() {
+        var previous = output[atom.atomicNumber] ?? 0
+        previous += 1
+        output[atom.atomicNumber] = previous
+      }
+      return output
+    }
+    
+    tripod.rotateLegs(slantAngleDegrees: 62, swingAngleDegrees: 5)
+    atomRecord = createAtomRecord(tripod)
+    XCTAssertEqual(tripod.createAtoms().count, 63)
+    XCTAssertEqual(atomRecord.keys.count, 6)
+    XCTAssertEqual(atomRecord[1], 18)
+    XCTAssertEqual(atomRecord[6], 29)
+    XCTAssertEqual(atomRecord[7], 3)
+    XCTAssertEqual(atomRecord[9], 9)
+    XCTAssertEqual(atomRecord[14], 3)
+    XCTAssertEqual(atomRecord[32], 1)
+    
+    tripod.passivateNHGroups(.hydrogen)
+    atomRecord = createAtomRecord(tripod)
+    XCTAssertEqual(tripod.createAtoms().count, 63)
+    XCTAssertEqual(atomRecord.keys.count, 5)
+    XCTAssertEqual(atomRecord[1], 21)
+    XCTAssertEqual(atomRecord[6], 29)
+    XCTAssertEqual(atomRecord[7], 3)
+    XCTAssertEqual(atomRecord[9], 9)
+    XCTAssertEqual(atomRecord[32], 1)
+    
+    tripod.passivateNHGroups(.silicon)
+    atomRecord = createAtomRecord(tripod)
+    XCTAssertEqual(tripod.createAtoms().count, 63)
+    XCTAssertEqual(atomRecord.keys.count, 6)
+    XCTAssertEqual(atomRecord[1], 18)
+    XCTAssertEqual(atomRecord[6], 29)
+    XCTAssertEqual(atomRecord[7], 3)
+    XCTAssertEqual(atomRecord[9], 9)
+    XCTAssertEqual(atomRecord[14], 3)
+    XCTAssertEqual(atomRecord[32], 1)
+  }
 }

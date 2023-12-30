@@ -11,21 +11,7 @@ typealias Half = Float16
 typealias Half = Float32
 #endif
 
-// Notes for when you get around to optimizing this:
-//
-// MARK: - Far-Term Goal
-//
-// Higher levels of the hierarchy: recursive bounding box-bounding box test,
-// also with search radius in the same manner as OpenMM PADDED_CUTOFF. Store
-// block position as 3 x SIMD8<Float>, block bounds as 3 x SIMD8<Half>, block
-// radii as SIMD8<Half>.
-// - use FloatingPoint.nextUp to round toward positive infinity
-// - make the two halves of each SIMD8 independent, so they can be paged into
-//   ISA registers without spilling
-//
-// Lowest level of the hierarchy: 8 atoms in one block against 8 atoms in
-// another block. Store atom data as SIMD4<Float> in memory, but unpack into
-// 3 x SIMD8<Float> + SIMD8<Half> in registers.
+// Goals for optimizing this:
 //
 // MARK: - Near-Term Goal
 //
@@ -45,6 +31,20 @@ typealias Half = Float32
 // closest points might be in the middle of the list, while the farthest points
 // are in the end. Perhaps a fixed halfway split or a poll to locate the
 // smallest point, or a 50-50 mix between the two heuristics.
+//
+// MARK: - Far-Term Goal
+//
+// Higher levels of the hierarchy: recursive bounding box-bounding box test,
+// also with search radius in the same manner as OpenMM PADDED_CUTOFF. Store
+// block position as 3 x SIMD8<Float>, block bounds as 3 x SIMD8<Half>, block
+// radii as SIMD8<Half>.
+// - use FloatingPoint.nextUp to round toward positive infinity
+// - make the two halves of each SIMD8 independent, so they can be paged into
+//   ISA registers without spilling
+//
+// Lowest level of the hierarchy: 8 atoms in one block against 8 atoms in
+// another block. Store atom data as SIMD4<Float> in memory, but unpack into
+// 3 x SIMD8<Float> + SIMD8<Half> in registers.
 
 extension Topology {
   public enum MatchAlgorithm {
@@ -59,9 +59,18 @@ extension Topology {
     _ input: [Entity],
     algorithm: MatchAlgorithm = .covalentBondLength(1.5)
   ) -> [ArraySlice<UInt32>] {
-    // TODO: Activate the more advanced implementation below, once the simpler
-    // one without reordering is ironed out. There may be no need to activate
-    // it, until you get around to optimization.
+    // There is already some inherent order to atoms, since they originate from
+    // spatially local and semi-Z-curve unit cells. Therefore, sorting should
+    // be explored only as an optimization over an O(n)/O(nlogn) algorithm. We
+    // should quantify how much it speeds up performance. Try different test
+    // cases with truly random shuffling of data.
+    //
+    // You could also create a cutoff. For very small structures, sorting may
+    // harm performance more than it helps. Multithreading also harms
+    // performance for small-enough problem sizes and must be selectively
+    // disabled. It would be simple to have just 2 ensemble members:
+    // - single-threaded, no sorting
+    // - multi-threaded, sorting
     #if true
     return matchImpl(lhs: input, rhs: atoms, algorithm: algorithm)
     

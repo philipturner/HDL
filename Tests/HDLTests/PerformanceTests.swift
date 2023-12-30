@@ -26,7 +26,7 @@ private func fmt(_ start: Double, _ end: Double) -> String {
 final class PerformanceTests: XCTestCase {
   static let printPerformanceSummary = false
   
-#if !DEBUG
+#if RELEASE
   func testGoldSurface() throws {
     let overallStart = cross_platform_media_time()
     var gridInitStart: Double = 0
@@ -446,7 +446,6 @@ final class PerformanceTests: XCTestCase {
     // After optimization 6: ~0.160 seconds
     // 57.0x speedup
   }
-
   
   func testSort() throws {
     let latticeScale: Float = 10
@@ -456,8 +455,6 @@ final class PerformanceTests: XCTestCase {
       Bounds { latticeScale * (2 * h + h2k + l) }
       Material { .elemental(.carbon) }
     }
-    
-    
     
     var output: [String] = []
     if testParallel {

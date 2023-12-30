@@ -1,9 +1,5 @@
 import XCTest
-#if DEBUG
-@testable import HDL
-#else
 import HDL
-#endif
 
 final class HDLTests: XCTestCase {
   func testAdamantane() throws {
@@ -106,7 +102,7 @@ final class HDLTests: XCTestCase {
       SIMD3(4, 1337, 2313),
       SIMD3(5, 2481, 4406),
     ]
-#if !DEBUG
+#if RELEASE
     parameters += [
       SIMD3(6, 4141, 7489),
       SIMD3(7, 6413, 11754),
@@ -129,7 +125,7 @@ final class HDLTests: XCTestCase {
           Replace { .empty }
         }
       }
-#if !DEBUG
+#if RELEASE
       let goldLattice = Lattice<Cubic> { h, k, l in
         Bounds { scale * 2 * (h + k + l) }
         Material { .elemental(.gold) }
@@ -148,11 +144,11 @@ final class HDLTests: XCTestCase {
   
   // TODO: Enable this in debug mode once the matching algorithm has been
   // sped up.
-  #if !DEBUG
+  #if RELEASE
   func testShellStructure() throws {
     var elements: [Element] = []
     elements.append(.silicon)
-    #if !DEBUG
+    #if RELEASE
     elements.append(.carbon)
     #endif
     

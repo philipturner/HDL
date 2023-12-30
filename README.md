@@ -321,3 +321,13 @@ Volume { }
 ```
 
 Encapsulates a set of planes, so that everything inside the scope is removed from the stack upon exiting. This must be called inside `Lattice` and may be called inside another `Volume`.
+
+## Testing
+
+Some unit test are disabled by default. They take too much time to execute in debug mode. However, Swift release mode takes too long to compile the tests. The solution is to gate the tests under the macro `RELEASE`. Then, hack the debug-mode compiler to actually compile in release mode, but with incremental compilation.
+
+Enter the following at command-line to run all of the tests:
+
+```
+swift test -Xswiftc -Ounchecked -Xswiftc -DRELEASE
+```

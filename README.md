@@ -237,7 +237,7 @@ Removes atoms/bonds at the specified indices. For `removeAtoms`, bonds connected
 
 An index may be specified multiple times in the input. The atom or bond will only be removed once.
 
-The order of atoms and bonds is preserved after removal. The removed items are taken out of the list, and the remainder is compacted in place. This behavior is different from `sort()`, which makes the relative order of atoms unknown after the transformation.
+The order of atoms and bonds is preserved after removal. The removed items are taken out of the list, and the remainder is compacted in place. This behavior is different from `sort()`, which scrambles the relative order of atoms.
 
 ```swift
 // Sorts the atoms and returns the old atoms' indices in the new list.

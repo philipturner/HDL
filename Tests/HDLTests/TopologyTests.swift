@@ -760,7 +760,7 @@ final class TopologyTests: XCTestCase {
   // - graphene thiol ✅
   // - HAbst tripod ✅
   //
-  // For performance tests, profile 2 different sizes of cubic diamond crystal.
+  // For performance tests, profile variable sizes of cubic diamond crystal.
   // The following match operations are plausible during (100) reconstruction.
   // - match carbons against carbons
   // - match a large number of duplicated hydrogens against each other

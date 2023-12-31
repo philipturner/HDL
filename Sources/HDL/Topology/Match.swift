@@ -112,39 +112,10 @@ private func matchImpl(
   rhs: [Entity],
   algorithm: Topology.MatchAlgorithm
 ) -> [ArraySlice<UInt32>] {
-  // MARK: - Prepare RHS
+  // MARK: - Prepare LHS and RHS
   
-  var rhsTransformed: [SIMD4<Float>] = []
-  for atomID in rhs.indices {
-    let atom = rhs[atomID]
-    let atomicNumber = Int(atom.storage.w)
-    var rhsR = Element.covalentRadii[atomicNumber]
-    
-    switch algorithm {
-    case .absoluteRadius(let radius):
-      rhsR = radius / 2
-    case .covalentBondLength(let scale):
-      rhsR *= scale
-    }
-    var rhs = atom.storage
-    rhs.w = rhsR
-    rhsTransformed.append(rhs)
-  }
-  
-  // Pad the RHS to the granularity of blocks.
-  for _ in rhs.count..<(rhs.count + 7)/8*8 {
-    let original = rhsTransformed[rhs.count &- 1]
-    rhsTransformed.append(original)
-  }
-  
-  var rhsBlockBounds: [SIMD8<Float>] = []
-  for vID in 0..<rhsTransformed.count/8 {
-    let bounds = createBoundingBox(vID: vID, array: rhsTransformed)
-    rhsBlockBounds.append(bounds)
-  }
-  
-  // MARK: - Prepare LHS
-  
+  let (rhsTransformed, rhsBlockBounds) = transform(rhs, algorithm: algorithm)
+  let (lhsTransformed, lhsBlockBounds) = transform(lhs, algorithm: algorithm)
   var outputArray: [UInt32] = []
   var outputRanges: [Range<Int>] = []
   var outputSlices: [ArraySlice<UInt32>] = []
@@ -155,40 +126,16 @@ private func matchImpl(
     var lhsY: SIMD8<Float> = .zero
     var lhsZ: SIMD8<Float> = .zero
     var lhsR: SIMD8<Float> = .zero
-    let validLanes = min(8, lhs.count - vID * 8)
-    precondition(validLanes > 0, "Unexpected lane count.")
+    for laneID in 0..<8 {
+      let atom = lhsTransformed[vID &* 8 &+ laneID]
+      lhsX[laneID] = atom.x
+      lhsY[laneID] = atom.y
+      lhsZ[laneID] = atom.z
+      lhsR[laneID] = atom.w
+    }
+    let lhsBlockBound = lhsBlockBounds[vID]
     
-    var lhsArray: [SIMD4<Float>] = []
-    lhsArray.reserveCapacity(8)
-    for laneID in 0..<validLanes {
-      let atom = lhs[vID &* 8 &+ laneID]
-      lhsX[laneID] = atom.storage.x
-      lhsY[laneID] = atom.storage.y
-      lhsZ[laneID] = atom.storage.z
-      lhsArray.append(atom.storage)
-      
-      let atomicNumber = Int(atom.storage.w)
-      let covalentRadius = Element.covalentRadii[atomicNumber]
-      lhsR[laneID] = covalentRadius
-    }
-    for laneID in validLanes..<8 {
-      lhsX[laneID] = lhsX[validLanes &- 1]
-      lhsY[laneID] = lhsY[validLanes &- 1]
-      lhsZ[laneID] = lhsZ[validLanes &- 1]
-      lhsR[laneID] = lhsR[validLanes &- 1]
-      lhsArray.append(lhsArray.last!)
-    }
-    
-    switch algorithm {
-    case .absoluteRadius(let radius):
-      lhsR = SIMD8(repeating: radius / 2)
-    case .covalentBondLength(let scale):
-      lhsR *= scale
-    }
-    for lane in 0..<8 {
-      lhsArray[lane].w = lhsR[lane]
-    }
-    let lhsBlockBound = createBoundingBox(vID: 0, array: lhsArray)
+    // MARK: - Search
     
     var matches: [[SIMD2<Float>]] = []
     for _ in 0..<8 {
@@ -196,8 +143,6 @@ private func matchImpl(
       array.reserveCapacity(8)
       matches.append(array)
     }
-    
-    // MARK: - Search
     
     for vID in rhsBlockBounds.indices {
       let rhsBlockBound = rhsBlockBounds[vID]
@@ -218,11 +163,8 @@ private func matchImpl(
        */
       
       let blockCenterX = lhsBlockBound.lowHalf
-      let blockSizeX = lhsBlockBound.highHalf
       let blockCenterY = rhsBlockBound.lowHalf
-      let blockSizeY = rhsBlockBound.highHalf
       let paddedCutoff = lhsBlockBound[7] + rhsBlockBound[7]
-      let paddedCutoffSquared = paddedCutoff * paddedCutoff
       let largeCutoff = paddedCutoff + blockCenterX.w + blockCenterY.w
       let largeCutoffSquared = largeCutoff * largeCutoff
       
@@ -232,7 +174,11 @@ private func matchImpl(
       guard condition1 else {
         continue
       }
-      
+          
+//      let blockSizeX = lhsBlockBound.highHalf
+//      let blockSizeY = rhsBlockBound.highHalf
+//      let paddedCutoffSquared = paddedCutoff * paddedCutoff
+//
 //      blockDelta.replace(with: -blockDelta, where: blockDelta .< 0)
 //      blockDelta = blockDelta - blockSizeX - blockSizeY
 //      blockDelta.replace(with: SIMD4.zero, where: blockDelta .< 0)
@@ -255,9 +201,9 @@ private func matchImpl(
         if any(mask) {
           let atomID32 = UInt32(truncatingIfNeeded: atomID)
           
-          // If this part is a bottleneck, there may be clever ways to improve the
-          // parallelism of conditional writes to a compacted array. 8 arrays can
-          // be generated concurrently, using zero control flow.
+          // If this part is a bottleneck, there may be clever ways to improve
+          // the parallelism of conditional writes to a compacted array. 8
+          // arrays can be generated concurrently, using zero control flow.
           for laneID in 0..<8 {
             let keyValuePair = SIMD2(
               Float(bitPattern: atomID32),
@@ -272,6 +218,7 @@ private func matchImpl(
     
     // MARK: - Sort
     
+    let validLanes = min(8, lhs.count - vID * 8)
     for laneID in 0..<validLanes {
       // Remove bogus matches that result from padding the RHS.
       while let last = matches[laneID].last,
@@ -299,11 +246,6 @@ private func matchImpl(
   return outputSlices
 }
 
-// TODO: Expand to 8x32 blocks in a subsequent optimization, study what
-// speedup is gained. The easiest way to accelerate this might be a hierarchy
-// of different levels (8x8, 8x32, 8x1024) with O(nlogn) complexity. After
-// that hierarchy is established, we investigate even faster block sizes that
-// converge on O(n) (32x32, 1024x1024).
 @inline(__always)
 func createBoundingBox(vID: Int, array: [SIMD4<Float>]) -> SIMD8<Float> {
   var minimum = SIMD4<Float>(repeating: .greatestFiniteMagnitude)
@@ -333,4 +275,40 @@ func createBoundingBox(vID: Int, array: [SIMD4<Float>]) -> SIMD8<Float> {
   // Write the maximum radius to bounds[7]
   bounds[7] = maximum.w
   return bounds
+}
+
+@inline(__always)
+func transform(_ atoms: [Entity], algorithm: Topology.MatchAlgorithm) -> (
+  transformed: [SIMD4<Float>], blockBounds: [SIMD8<Float>]
+) {
+  var transformed: [SIMD4<Float>] = []
+  for atomID in atoms.indices {
+    let atom = atoms[atomID]
+    let atomicNumber = Int(atom.storage.w)
+    var rhsR = Element.covalentRadii[atomicNumber]
+    
+    switch algorithm {
+    case .absoluteRadius(let radius):
+      rhsR = radius / 2
+    case .covalentBondLength(let scale):
+      rhsR *= scale
+    }
+    var rhs = atom.storage
+    rhs.w = rhsR
+    transformed.append(rhs)
+  }
+  
+  // Pad to the granularity of blocks.
+  for _ in atoms.count..<(atoms.count + 7)/8*8 {
+    let original = transformed[atoms.count &- 1]
+    transformed.append(original)
+  }
+  
+  var blockBounds: [SIMD8<Float>] = []
+  for vID in 0..<transformed.count/8 {
+    let bounds = createBoundingBox(vID: vID, array: transformed)
+    blockBounds.append(bounds)
+  }
+  
+  return (transformed, blockBounds)
 }

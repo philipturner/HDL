@@ -65,13 +65,28 @@ final class MatchTests: XCTestCase {
   
   // MARK: - Experiment 2
   //
-  // We will experiment with a 1-level, primitive O(nlog(n)) implementation.
-  // Performance will be benchmarked in FP32 instructions per O(n^2). The
-  // optimizations are as follows:
+  // We will now experiment O(nlog(n)) algorithms. Performance will be
+  // benchmarked in FP32 instructions per O(n^2). The optimizations are as
+  // follows:
   // - Optimization 1: previous experiment
   // - Optimization 2: removing Float16
   // - Optimization 3: condition 1 from the OpenMM algorithm, 8x8 blocks
-  // - Optimization 4: condition 2 and sorting (TODO: prove that neither harms performance)
+  //   - Condition 2 and sorting provided inconsistent results when applied at
+  //     this stage; defer to later. Sorting still needs to be multithreaded.
+  // Optimization 3 |   959 |   269 |   282 | 12.4 | 21.2 | 15.0 |
+  //  cond 2 + sort |                         25.2 | 34.9 | 28.4 |
+  //   sorting only |                         17.8 | 30.5 | 24.5 |
+  //   cond. 2 only |                         16.0 | 27.4 | 18.2 |
+  // Optimization 3 | 58062 |  5397 | 11226 |  2.5 |  7.6 |  5.0 |
+  //  cond. 2 only  |                          3.0 |  8.3 |  5.5 |
+  //  cond 2 + sort |                          3.0 |  5.1 |  3.8 |
+  //  sorting only  |                          2.0 |  4.1 |  2.9 |
+  //   - Changing block size from 8x8 to 8x32 improved performance, but only
+  //     for the largest problem sizes, with sorting enabled. There is not
+  //     sufficient evidence to change the block size.
+  // - Optimization 4: change how the LHS is preprocessed. Although it decreases
+  //   performance for the largest problem sizes, it is a necessary step before
+  //   O(nlogn) and O(n) algorithms can be attempted.
   //
   // lattice size = 6
   // - C-C (1963x1963)
@@ -85,6 +100,7 @@ final class MatchTests: XCTestCase {
   // Optimization 1 |       |       |       |      |      |      |
   // Optimization 2 |  1514 |   311 |   370 | 19.6 | 24.5 | 19.7 |
   // Optimization 3 |   959 |   269 |   282 | 12.4 | 21.2 | 15.0 |
+  // Optimization 4 |   998 |   270 |   286 | 12.9 | 21.3 | 15.2 |
   //
   // lattice size = 16
   // - C-C (34353x34353)
@@ -98,6 +114,7 @@ final class MatchTests: XCTestCase {
   // Optimization 1 |       |       | 34307 |      |      | 15.4 |
   // Optimization 2 |  3e+5 | 11358 | 33417 | 15.0 | 16.0 | 14.9 |
   // Optimization 3 | 58062 |  5397 | 11226 |  2.5 |  7.6 |  5.0 |
+  // Optimization 4 | 71341 |  5612 | 12235 |  3.0 |  7.9 |  5.5 |
   
   func testMatch() {
     // Accumulate statistics and sort by workload (size of a square representing

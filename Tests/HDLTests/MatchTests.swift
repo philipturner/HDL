@@ -13,6 +13,8 @@ final class MatchTests: XCTestCase {
   // acceleration algorithm is working properly. One could imagine subtle bugs
   // that make it incorrect, resulting in O(n^2) scaling.
   
+  // MARK: - Theory
+  //
   // Proven lower bound: >11 scalar instructions per comparison
   // - (FP32) subtract X, Y, Z
   // - (FP16 or FP32) FMA X^2, Y^2, Z^2
@@ -36,6 +38,15 @@ final class MatchTests: XCTestCase {
   //   delta squared to FP16. Compare to the number 1.7 instead of 1.4. Then,
   //   see whether switching to FP16 provides the expected speedup. This is a
   //   critical test of how well the theory matches reality.
+  
+  // MARK: - Experiment
+  //
+  // lattice size = 8, H-C, 856x4413
+  //
+  // Version        | Total Time | Ratio / 17n^2 | Compare % | Sort % |
+  // -------------- | ---------- | ------------- | --------- | ------ |
+  // Original       |       3212 |           5.0 |       59% |    40% |
+  // Optimization 1 |       1316 |           2.0 |       94% |     4% |
   
   func testMatch() {
     // Accumulate statistics and sort by workload (size of a square representing
@@ -144,8 +155,8 @@ final class MatchTests: XCTestCase {
       // Locate the carbons attached to each hydrogen collision site.
       do {
         let start = cross_platform_media_time()
-        _ = hydrogenTopology.match(
-          topology.atoms, algorithm: .absoluteRadius(1.1 * ccBondLength))
+        _ = topology.match(
+          hydrogenTopology.atoms, algorithm: .absoluteRadius(1.1 * ccBondLength))
         let end = cross_platform_media_time()
         summary.hcMetrics.append(
           SIMD3(
@@ -242,13 +253,9 @@ private struct MatchSummary {
     do {
       let padding = UInt(tableWidth - header.count)
       let left = padding / 2
-//      print("---", headerRow)
       headerRow += String(repeating: " ", count: Int(left))
-//      print("---", headerRow, left)
       headerRow += header
-//      print("---", headerRow, header)
       headerRow += String(repeating: " ", count: Int(padding - left))
-//      print("---", headerRow, padding - left)
     }
     
     var output = """

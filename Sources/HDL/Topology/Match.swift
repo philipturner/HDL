@@ -5,6 +5,8 @@
 //  Created by Philip Turner on 12/23/23.
 //
 
+import QuartzCore
+
 #if arch(arm64)
 typealias Half = Float16
 #else
@@ -165,7 +167,25 @@ private func matchImpl(
   var outputRanges: [Range<Int>] = []
   var outputSlices: [ArraySlice<UInt32>] = []
   
-  for vID in 0..<(lhs.count + 7) / 8 {
+  let vectorCount = (lhs.count + 7) / 8
+#if PROFILE_MATCH
+  var profilingOutput = "\(lhs.count) x \(rhs.count)\n"
+  let divisor = vectorCount / 8
+#endif
+  
+  for vID in 0..<vectorCount {
+#if PROFILE_MATCH
+    var checkpoint0: Double = .zero
+    var checkpoint1: Double = .zero
+    var checkpoint2: Double = .zero
+    var checkpoint3: Double = .zero
+    let sample = (vID % divisor == 0)
+    
+    if sample {
+      checkpoint0 = CACurrentMediaTime()
+    }
+#endif
+    
     var lhsX: SIMD8<Float> = .zero
     var lhsY: SIMD8<Float> = .zero
     var lhsZ: SIMD8<Float> = .zero
@@ -200,10 +220,16 @@ private func matchImpl(
     
     // A future optimization may allocate this beforehand. However, doing so
     // complicates the code.
-    var distancesSquared: [SIMD8<Half>] = []
-    var matchMasks: [UInt8] = []
-    distancesSquared.reserveCapacity((lhs.count + 7) / 8)
-    matchMasks.reserveCapacity((lhs.count + 7) / 8)
+    var matches: [[SIMD2<Float>]] = []
+    for _ in 0..<8 {
+      matches.append([])
+    }
+    
+#if PROFILE_MATCH
+    if sample {
+      checkpoint1 = CACurrentMediaTime()
+    }
+#endif
     
     for atomID in rhs.indices {
       // Maybe the loop will be faster if deltaX/deltaY/deltaZ are converted to
@@ -215,63 +241,74 @@ private func matchImpl(
       let deltaZ = lhsZ - atom.z
       let deltaSquared32 = deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ
       let deltaSquared16 = SIMD8<Half>(deltaSquared32)
-      distancesSquared.append(deltaSquared16)
       
       let r = lhsR + Half(atom.w)
       let rSquared = r * r
-      let flags = SIMD8<Half.RawSignificand>(
-        1 << 0, 1 << 1, 1 << 2, 1 << 3,
-        1 << 4, 1 << 5, 1 << 6, 1 << 7)
       
-      var output: SIMD8<Half.RawSignificand> = .zero
-      output.replace(with: flags, where: deltaSquared16 .<= rSquared)
-      let mask16 = output.wrappedSum()
-      let mask8 = UInt8(truncatingIfNeeded: mask16)
-      matchMasks.append(mask8)
-    }
-    
-    distancesSquared.withUnsafeBufferPointer {
-      let opaque = OpaquePointer($0.baseAddress)
-      let casted = UnsafePointer<Half>(opaque).unsafelyUnwrapped
-      var sortedMatches: [SIMD2<Float>] = []
-      
-      for laneID in 0..<validLanes {
-        sortedMatches.removeAll(keepingCapacity: true)
+      let mask = deltaSquared16 .<= rSquared
+      if any(mask) {
+        let atomID32 = UInt32(truncatingIfNeeded: atomID)
+        let deltaSquared32 = SIMD8<Float>(deltaSquared16)
         
-        // Eventually, we will loop over blocks that the previous hierarchy
-        // level marked as candidates. The granularity is per-block instead of
-        // per-atom, so we don't compact the mask list in the O(n^2)
-        // implementation.
-        //
         // If this part is a bottleneck, there may be clever ways to improve the
         // parallelism of conditional writes to a compacted array. 8 arrays can
         // be simultaneously generated in parallel, using zero control flow.
-        let lhsMask = UInt8(1) << laneID
-        for atomID in rhs.indices {
-          let mask = matchMasks[atomID] & lhsMask
-          if mask > 0 {
-            let atomID32 = UInt32(truncatingIfNeeded: atomID)
-            let address = atomID &* 8 &+ laneID
-            let keyValuePair = SIMD2(
-              Float(bitPattern: atomID32),
-              Float(casted[address]))
-            sortedMatches.append(keyValuePair)
+        for laneID in 0..<8 {
+          let keyValuePair = SIMD2(
+            Float(bitPattern: atomID32),
+            Float(deltaSquared32[laneID]))
+          if mask[laneID] {
+            matches[laneID].append(keyValuePair)
           }
         }
-        
-        // Sort the matches in ascending order of distance.
-        sortedMatches.sort { $0.y < $1.y }
-        
-        let rangeStart = outputArray.count
-        for match in sortedMatches {
-          let atomID = match[0].bitPattern
-          outputArray.append(atomID)
-        }
-        let rangeEnd = outputArray.count
-        outputRanges.append(rangeStart..<rangeEnd)
       }
     }
+    
+#if PROFILE_MATCH
+    if sample {
+      checkpoint2 = CACurrentMediaTime()
+    }
+#endif
+    
+    for laneID in 0..<validLanes {
+      var sortedMatches = matches[laneID]
+      
+      // Sort the matches in ascending order of distance.
+      sortedMatches.sort { $0.y < $1.y }
+      
+      let rangeStart = outputArray.count
+      for match in sortedMatches {
+        let atomID = match[0].bitPattern
+        outputArray.append(atomID)
+      }
+      let rangeEnd = outputArray.count
+      outputRanges.append(rangeStart..<rangeEnd)
+    }
+    
+#if PROFILE_MATCH
+    if sample {
+      checkpoint3 = CACurrentMediaTime()
+      
+      let elapsedTimes = SIMD3<Double>(
+        checkpoint1 - checkpoint0,
+        checkpoint2 - checkpoint1,
+        checkpoint3 - checkpoint2)
+      let totalTime = elapsedTimes.sum()
+      let proportions = elapsedTimes / totalTime
+      let percents = SIMD3<Int>(proportions * 100)
+      
+      let output = """
+      \(Int(totalTime * 1e6)) - \
+      \(percents[0])% \(percents[1])% \(percents[2])%
+      """
+      profilingOutput += "vID=\(vID) time=\(output)\n"
+    }
+#endif
   }
+  
+  #if PROFILE_MATCH
+  print(profilingOutput)
+  #endif
   
   for range in outputRanges {
     let slice = outputArray[range]

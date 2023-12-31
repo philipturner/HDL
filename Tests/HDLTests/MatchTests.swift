@@ -87,6 +87,35 @@ final class MatchTests: XCTestCase {
   // - Optimization 4: change how the LHS is preprocessed. Although it decreases
   //   performance for the largest problem sizes, it is a necessary step before
   //   O(nlogn) and O(n) algorithms can be attempted.
+  // - Optimization 5: use a 2nd hierarchy level and always enable sorting.
+  //   Don't remove the code for OpenMM condition 2 yet. A future optimization
+  //   could remove both that and 1/2 the overhead for generating block bounds.
+  // C-C       |
+  // --------- |
+  // size2=8   | 398.9 | 101.4 |  50.8 |  28.8 |  18.8 |  13.0 |  10.2 |   6.9 |   4.2
+  // size2=16  | 387.8 | 114.2 |  46.8 |  25.9 |  17.0 |  11.9 |   8.2 |   5.0 |   1.8
+  // size2=32  | 393.4 | 110.3 |  46.8 |  30.3 |  16.6 |  11.0 |   8.1 |   4.6 |   1.4
+  // size2=64  | 487.5 | 111.6 |  49.3 |  25.8 |  16.7 |  11.3 |   7.8 |   4.3 |   1.3
+  // size2=128 | 404.4 | 111.6 |  47.5 |  26.6 |  16.4 |  10.9 |   7.7 |   4.5 |   1.3
+  // size2=256 | 448.8 | 116.1 |  48.4 |  25.6 |  17.2 |  10.8 |   8.0 |   4.6 |   1.4
+  //
+  // H-H       |
+  // --------- |
+  // size2=8   | 458.8 | 137.3 |  83.9 |  45.1 |  28.9 |  21.3 |  16.7 |  11.7 |   6.1
+  // size2=16  | 415.5 | 172.8 |  79.2 |  45.1 |  27.5 |  19.5 |  14.4 |   9.4 |   3.9
+  // size2=32  | 493.4 | 165.4 |  75.3 |  41.9 |  27.5 |  19.0 |  14.4 |   8.9 |   3.4
+  // size2=64  | 467.5 | 155.1 |  79.6 |  42.7 |  27.4 |  19.1 |  14.0 |   8.7 |   3.4
+  // size2=128 | 441.5 | 175.7 |  73.1 |  39.4 |  29.0 |  18.6 |  14.0 |   8.8 |   3.4
+  // size2=256 | 528.0 | 159.5 |  75.3 |  41.9 |  29.0 |  18.4 |  14.1 |   8.8 |   3.7
+  //
+  // H-C       |
+  // --------- |
+  // size2=8   | 479.2 | 136.4 |  73.2 |  39.8 |  25.3 |  17.5 |  13.8 |   8.9 |   5.3
+  // size2=16  | 416.7 | 146.8 |  67.2 |  35.1 |  23.0 |  15.6 |  11.7 |   7.0 |   2.8
+  // size2=32  | 791.7 | 134.9 |  66.5 |  36.6 |  23.0 |  15.1 |  12.0 |   7.0 |   2.5
+  // size2=64  | 541.7 | 143.8 |  68.4 |  35.4 |  23.4 |  16.0 |  11.9 |   6.9 |   2.5
+  // size2=128 | 458.3 | 139.4 |  68.7 |  36.1 |  23.0 |  15.4 |  11.4 |   6.7 |   2.6
+  // size2=256 | 552.1 | 137.9 |  72.5 |  38.5 |  22.9 |  15.3 |  11.7 |   7.0 |   2.8
   //
   // lattice size = 6
   // - C-C (1963x1963)
@@ -101,6 +130,7 @@ final class MatchTests: XCTestCase {
   // Optimization 2 |  1514 |   311 |   370 | 19.6 | 24.5 | 19.7 |
   // Optimization 3 |   959 |   269 |   282 | 12.4 | 21.2 | 15.0 |
   // Optimization 4 |   998 |   270 |   286 | 12.9 | 21.3 | 15.2 |
+  // Optimization 5 |  1296 |   358 |   418 | 16.8 | 28.3 | 22.2 |
   //
   // lattice size = 16
   // - C-C (34353x34353)
@@ -115,6 +145,7 @@ final class MatchTests: XCTestCase {
   // Optimization 2 |  3e+5 | 11358 | 33417 | 15.0 | 16.0 | 14.9 |
   // Optimization 3 | 58062 |  5397 | 11226 |  2.5 |  7.6 |  5.0 |
   // Optimization 4 | 71341 |  5612 | 12235 |  3.0 |  7.9 |  5.5 |
+  // Optimization 5 | 34044 |  2513 |  5658 |  1.4 |  3.5 |  2.5 |
   
   func testMatch() {
     // Accumulate statistics and sort by workload (size of a square representing
@@ -257,6 +288,7 @@ private struct MatchSummary {
     // MARK: - Gather Column Sizes
     
     var tableRows: [String] = []
+    var tableFooter: [String] = []
     var maxColumnSizes: SIMD8<Int> = .zero
     
     for pass in 0..<2 {
@@ -297,6 +329,7 @@ private struct MatchSummary {
             \(elements[2]) | \(elements[3]) | \
             \(elements[4])
             """)
+          tableFooter.append(elements[4])
         }
       }
     }
@@ -333,6 +366,14 @@ private struct MatchSummary {
     """
     for row in tableRows {
       output += "\n" + row
+    }
+    
+    output += "\n"
+    for i in tableFooter.indices {
+      output += tableFooter[i]
+      if i < tableFooter.count - 1 {
+        output += " | "
+      }
     }
     return output
   }

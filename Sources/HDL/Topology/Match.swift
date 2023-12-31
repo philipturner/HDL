@@ -5,6 +5,8 @@
 //  Created by Philip Turner on 12/23/23.
 //
 
+import Dispatch
+
 // Goals for optimizing this:
 //
 // Higher levels of the hierarchy: recursive bounding box-bounding box test,
@@ -40,14 +42,21 @@ extension Topology {
     // disabled. It would be simple to have just 2 ensemble members:
     // - single-threaded, no sorting
     // - multi-threaded, sorting
-    #if true
+    #if false
     return matchImpl(lhs: input, rhs: atoms, algorithm: algorithm)
     
     #else
-    let lhsGrid = GridSorter(atoms: input)
-    let lhsReordering = lhsGrid.mortonReordering()
-    let rhsGrid = GridSorter(atoms: atoms)
-    let rhsReordering = rhsGrid.mortonReordering()
+    var lhsReordering: [UInt32] = []
+    var rhsReordering: [UInt32] = []
+    DispatchQueue.concurrentPerform(iterations: 2) { z in
+      if z == 0 {
+        let lhsGrid = GridSorter(atoms: input)
+        lhsReordering = lhsGrid.mortonReordering()
+      } else {
+        let rhsGrid = GridSorter(atoms: atoms)
+        rhsReordering = rhsGrid.mortonReordering()
+      }
+    }
     
     let invalidEntity = Entity(storage: .init(repeating: -1))
     var lhs = Array(repeating: invalidEntity, count: input.count)
@@ -108,32 +117,54 @@ extension Topology {
 
 // The lhs and rhs must already be sorted in Morton order.
 private func matchImpl(
-  lhs: [Entity],
-  rhs: [Entity],
+  lhs lhsAtoms: [Entity],
+  rhs rhsAtoms: [Entity],
   algorithm: Topology.MatchAlgorithm
 ) -> [ArraySlice<UInt32>] {
   // MARK: - Prepare LHS and RHS
   
-  let (rhsTransformed, rhsBlockBounds) = transform(rhs, algorithm: algorithm)
-  let (lhsTransformed, lhsBlockBounds) = transform(lhs, algorithm: algorithm)
+  // A future optimization could change the number of hierarchy levels with the
+  // problem size. Perhaps use a ratio over the smallest problem dimension.
+  let size2 = 32
+  let lhsTransformed = transform(lhsAtoms, size: size2, algorithm: algorithm)
+  let rhsTransformed = transform(rhsAtoms, size: size2, algorithm: algorithm)
+  let lhsBlockBounds = blockBounds(lhsTransformed, size: 8)
+  let rhsBlockBounds = blockBounds(rhsTransformed, size: 8)
+  let lhs32 = blockBounds(lhsTransformed, size: size2)
+  let rhs32 = blockBounds(rhsTransformed, size: size2)
+  
+  var mask32: [[Bool]] = []
+  for i in 0..<(lhsAtoms.count + size2 - 1) / size2 {
+    var row: [Bool] = []
+    for j in 0..<(rhsAtoms.count + size2 - 1) / size2 {
+      let lhsBlockBound = lhs32[i]
+      let rhsBlockBound = rhs32[j]
+      row.append(compareBlocks(
+        lhsBlockBound, rhsBlockBound, executeCondition2: false))
+    }
+    mask32.append(row)
+  }
+  
+  let lhs = (transformed: lhsTransformed, blockBounds: lhsBlockBounds)
+  let rhs = (transformed: rhsTransformed, blockBounds: rhsBlockBounds)
   var outputArray: [UInt32] = []
   var outputRanges: [Range<Int>] = []
   var outputSlices: [ArraySlice<UInt32>] = []
   
-  let vectorCount = (lhs.count + 7) / 8
-  for vID in 0..<vectorCount {
+  let vectorCount = (lhsAtoms.count + 7) / 8
+  for vIDi in 0..<vectorCount {
     var lhsX: SIMD8<Float> = .zero
     var lhsY: SIMD8<Float> = .zero
     var lhsZ: SIMD8<Float> = .zero
     var lhsR: SIMD8<Float> = .zero
     for laneID in 0..<8 {
-      let atom = lhsTransformed[vID &* 8 &+ laneID]
+      let atom = lhs.transformed[vIDi &* 8 &+ laneID]
       lhsX[laneID] = atom.x
       lhsY[laneID] = atom.y
       lhsZ[laneID] = atom.z
       lhsR[laneID] = atom.w
     }
-    let lhsBlockBound = lhsBlockBounds[vID]
+    let lhsBlockBound = lhs.blockBounds[vIDi]
     
     // MARK: - Search
     
@@ -144,53 +175,25 @@ private func matchImpl(
       matches.append(array)
     }
     
-    for vID in rhsBlockBounds.indices {
-      let rhsBlockBound = rhsBlockBounds[vID]
+    var vIDj = rhs.blockBounds.startIndex
+    while vIDj < rhs.blockBounds.endIndex {
+      if vIDj % (size2/8) == 0 {
+        let mask8 = mask32[vIDi / (size2/8)][vIDj / (size2/8)]
+        guard mask8 else {
+          vIDj += size2/8
+          continue
+        }
+      }
+      defer { vIDj += 1 }
       
-      /*
-       real4 blockCenterY = sortedBlockCenter[block2];
-//                real3 blockSizeY = sortedBlockBoundingBox[block2];
-       real3 blockSizeY = real3(vloada_half3(block2, sortedBlockBoundingBox));
-       real4 blockDelta = blockCenterX-blockCenterY;
-#ifdef USE_PERIODIC
-       APPLY_PERIODIC_TO_DELTA(blockDelta)
-#endif
-       includeBlock2 &= (blockDelta.x*blockDelta.x+blockDelta.y*blockDelta.y+blockDelta.z*blockDelta.z < (PADDED_CUTOFF+blockCenterX.w+blockCenterY.w)*(PADDED_CUTOFF+blockCenterX.w+blockCenterY.w));
-       blockDelta.x = max((real) 0, fabs(blockDelta.x)-blockSizeX.x-blockSizeY.x);
-       blockDelta.y = max((real) 0, fabs(blockDelta.y)-blockSizeX.y-blockSizeY.y);
-       blockDelta.z = max((real) 0, fabs(blockDelta.z)-blockSizeX.z-blockSizeY.z);
-       includeBlock2 &= (blockDelta.x*blockDelta.x+blockDelta.y*blockDelta.y+blockDelta.z*blockDelta.z < PADDED_CUTOFF_SQUARED);
-       */
-      
-      let blockCenterX = lhsBlockBound.lowHalf
-      let blockCenterY = rhsBlockBound.lowHalf
-      let paddedCutoff = lhsBlockBound[7] + rhsBlockBound[7]
-      let largeCutoff = paddedCutoff + blockCenterX.w + blockCenterY.w
-      let largeCutoffSquared = largeCutoff * largeCutoff
-      
-      var blockDelta = blockCenterX - blockCenterY
-      blockDelta.w = 0
-      let condition1 = (blockDelta * blockDelta).sum() < largeCutoffSquared
-      guard condition1 else {
+      let rhsBlockBound = rhs.blockBounds[vIDj]
+      guard compareBlocks(lhsBlockBound, rhsBlockBound) else {
         continue
       }
-          
-//      let blockSizeX = lhsBlockBound.highHalf
-//      let blockSizeY = rhsBlockBound.highHalf
-//      let paddedCutoffSquared = paddedCutoff * paddedCutoff
-//
-//      blockDelta.replace(with: -blockDelta, where: blockDelta .< 0)
-//      blockDelta = blockDelta - blockSizeX - blockSizeY
-//      blockDelta.replace(with: SIMD4.zero, where: blockDelta .< 0)
-//      blockDelta.w = 0
-//      let condition2 = (blockDelta * blockDelta).sum() < paddedCutoffSquared
-//      guard condition2 else {
-//        continue
-//      }
       
       for lane in 0..<8 {
-        let atomID = vID &* 8 &+ lane
-        let atom = rhsTransformed[atomID]
+        let atomID = vIDj &* 8 &+ lane
+        let atom = rhs.transformed[atomID]
         let deltaX = lhsX - atom.x
         let deltaY = lhsY - atom.y
         let deltaZ = lhsZ - atom.z
@@ -218,11 +221,11 @@ private func matchImpl(
     
     // MARK: - Sort
     
-    let validLanes = min(8, lhs.count - vID * 8)
+    let validLanes = min(8, lhsAtoms.count - vIDi * 8)
     for laneID in 0..<validLanes {
       // Remove bogus matches that result from padding the RHS.
       while let last = matches[laneID].last,
-            last[0].bitPattern >= rhs.count {
+            last[0].bitPattern >= rhsAtoms.count {
         matches[laneID].removeLast()
       }
       
@@ -247,11 +250,15 @@ private func matchImpl(
 }
 
 @inline(__always)
-func createBoundingBox(vID: Int, array: [SIMD4<Float>]) -> SIMD8<Float> {
+func createBoundingBox(
+  vID: Int,
+  size: Int,
+  array: [SIMD4<Float>]
+) -> SIMD8<Float> {
   var minimum = SIMD4<Float>(repeating: .greatestFiniteMagnitude)
   var maximum = -minimum
-  for lane in 0..<8 {
-    let atom = array[vID &* 8 &+ lane]
+  for lane in 0..<size {
+    let atom = array[vID &* size &+ lane]
     minimum.replace(with: atom, where: atom .< minimum)
     maximum.replace(with: atom, where: atom .> maximum)
   }
@@ -262,8 +269,8 @@ func createBoundingBox(vID: Int, array: [SIMD4<Float>]) -> SIMD8<Float> {
   
   // Write the maximum deviation^2 from the center to bounds[3]
   var maxCenterDeviationSq: Float = .zero
-  for lane in 0..<8 {
-    let atom = array[vID &* 8 &+ lane]
+  for lane in 0..<size {
+    let atom = array[vID &* size &+ lane]
     var delta = atom - bounds.lowHalf
     delta.w = 0
     
@@ -278,9 +285,24 @@ func createBoundingBox(vID: Int, array: [SIMD4<Float>]) -> SIMD8<Float> {
 }
 
 @inline(__always)
-func transform(_ atoms: [Entity], algorithm: Topology.MatchAlgorithm) -> (
-  transformed: [SIMD4<Float>], blockBounds: [SIMD8<Float>]
-) {
+func blockBounds(
+  _ transformed: [SIMD4<Float>],
+  size: Int
+) -> [SIMD8<Float>] {
+  var blockBounds: [SIMD8<Float>] = []
+  for vID in 0..<transformed.count/size {
+    let bounds = createBoundingBox(vID: vID, size: size, array: transformed)
+    blockBounds.append(bounds)
+  }
+  return blockBounds
+}
+
+@inline(__always)
+func transform(
+  _ atoms: [Entity],
+  size: Int,
+  algorithm: Topology.MatchAlgorithm
+) -> [SIMD4<Float>] {
   var transformed: [SIMD4<Float>] = []
   for atomID in atoms.indices {
     let atom = atoms[atomID]
@@ -299,16 +321,58 @@ func transform(_ atoms: [Entity], algorithm: Topology.MatchAlgorithm) -> (
   }
   
   // Pad to the granularity of blocks.
-  for _ in atoms.count..<(atoms.count + 7)/8*8 {
+  for _ in atoms.count..<(atoms.count + size - 1)/size*size {
     let original = transformed[atoms.count &- 1]
     transformed.append(original)
   }
   
-  var blockBounds: [SIMD8<Float>] = []
-  for vID in 0..<transformed.count/8 {
-    let bounds = createBoundingBox(vID: vID, array: transformed)
-    blockBounds.append(bounds)
+  return transformed
+}
+
+@inline(__always)
+func compareBlocks(
+  _ lhsBlockBound: SIMD8<Float>,
+  _ rhsBlockBound: SIMD8<Float>,
+  executeCondition2: Bool = false
+) -> Bool {
+  /*
+   real4 blockCenterY = sortedBlockCenter[block2];
+//                real3 blockSizeY = sortedBlockBoundingBox[block2];
+   real3 blockSizeY = real3(vloada_half3(block2, sortedBlockBoundingBox));
+   real4 blockDelta = blockCenterX-blockCenterY;
+#ifdef USE_PERIODIC
+   APPLY_PERIODIC_TO_DELTA(blockDelta)
+#endif
+   includeBlock2 &= (blockDelta.x*blockDelta.x+blockDelta.y*blockDelta.y+blockDelta.z*blockDelta.z < (PADDED_CUTOFF+blockCenterX.w+blockCenterY.w)*(PADDED_CUTOFF+blockCenterX.w+blockCenterY.w));
+   blockDelta.x = max((real) 0, fabs(blockDelta.x)-blockSizeX.x-blockSizeY.x);
+   blockDelta.y = max((real) 0, fabs(blockDelta.y)-blockSizeX.y-blockSizeY.y);
+   blockDelta.z = max((real) 0, fabs(blockDelta.z)-blockSizeX.z-blockSizeY.z);
+   includeBlock2 &= (blockDelta.x*blockDelta.x+blockDelta.y*blockDelta.y+blockDelta.z*blockDelta.z < PADDED_CUTOFF_SQUARED);
+   */
+  
+  let blockCenterX = lhsBlockBound.lowHalf
+  let blockCenterY = rhsBlockBound.lowHalf
+  let paddedCutoff = lhsBlockBound[7] + rhsBlockBound[7]
+  let largeCutoff = paddedCutoff + blockCenterX.w + blockCenterY.w
+  let largeCutoffSquared = largeCutoff * largeCutoff
+  
+  var blockDelta = blockCenterX - blockCenterY
+  blockDelta.w = 0
+  let condition1 = (blockDelta * blockDelta).sum() < largeCutoffSquared
+  if !executeCondition2 {
+    return condition1
+  } else if condition1 {
+    return true
   }
   
-  return (transformed, blockBounds)
+  let blockSizeX = lhsBlockBound.highHalf
+  let blockSizeY = rhsBlockBound.highHalf
+  let paddedCutoffSquared = paddedCutoff * paddedCutoff
+
+  blockDelta.replace(with: -blockDelta, where: blockDelta .< 0)
+  blockDelta = blockDelta - blockSizeX - blockSizeY
+  blockDelta.replace(with: SIMD4.zero, where: blockDelta .< 0)
+  blockDelta.w = 0
+  let condition2 = (blockDelta * blockDelta).sum() < paddedCutoffSquared
+  return condition2
 }

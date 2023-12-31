@@ -39,7 +39,7 @@ final class MatchTests: XCTestCase {
   //   see whether switching to FP16 provides the expected speedup. This is a
   //   critical test of how well the theory matches reality.
   
-  // MARK: - Experiment
+  // MARK: - Experiment 1
   //
   // lattice size = 8, H-C, 856x4413
   //
@@ -48,14 +48,7 @@ final class MatchTests: XCTestCase {
   // Original       |       3212 |           5.0 |       59% |    40% |
   // Optimization 1 |       1316 |           2.0 |       94% |     4% |
   //
-  // lattice size = 16, H-C, 3256x34353
-  //
-  // Version        | Total Time | Ratio / n^2 |
-  // -------------- | ---------- | ----------- |
-  // Optimization 1 |      34307 |        30.8 |
-  // Optimization 2 |      33417 |        29.8 |
-  //
-  // The above measurement proved that Float16 does not improve performance at
+  // Some investigation revealed that Float16 does not improve performance at
   // all. Not even to reduce register pressure in the ISA. Therefore, we will
   // drop the metric of equivalent FP16 instructions. We have >67% ALU
   // utilization at FP32, which is impressive. We are currently at 15 FP32
@@ -69,6 +62,42 @@ final class MatchTests: XCTestCase {
   // - add radii
   // - radius^2
   // - compare + select (2 instructions on CPU)
+  
+  // MARK: - Experiment 2
+  //
+  // We will experiment with a 1-level, primitive O(nlog(n)) implementation.
+  // Performance will be benchmarked in FP32 instructions per O(n^2). The
+  // optimizations are as follows:
+  // - Optimization 1: previous experiment
+  // - Optimization 2: removing Float16
+  // - Optimization 3: condition 1 from the OpenMM algorithm, 8x8 blocks
+  // - Optimization 4: condition 2 and sorting (TODO: prove that neither harms performance)
+  //
+  // lattice size = 6
+  // - C-C (1963x1963)
+  // - H-H (796x796)
+  // - H-C (496x1895)
+  //
+  // Version        | Total Time            | Ratio / n^2        |
+  // -------------- | --------------------- | ------------------ |
+  //                | C-C   | H-H   | H-C   | C-C  | H-H  | H-C  |
+  // -------------- | --------------------- | ------------------ |
+  // Optimization 1 |       |       |       |      |      |      |
+  // Optimization 2 |  1514 |   311 |   370 | 19.6 | 24.5 | 19.7 |
+  // Optimization 3 |   959 |   269 |   282 | 12.4 | 21.2 | 15.0 |
+  //
+  // lattice size = 16
+  // - C-C (34353x34353)
+  // - H-H (5956x5956)
+  // - H-C (3256x34353)
+  //
+  // Version        | Total Time            | Ratio / n^2        |
+  // -------------- | --------------------- | ------------------ |
+  //                | C-C   | H-H   | H-C   | C-C  | H-H  | H-C  |
+  // -------------- | --------------------- | ------------------ |
+  // Optimization 1 |       |       | 34307 |      |      | 15.4 |
+  // Optimization 2 |  3e+5 | 11358 | 33417 | 15.0 | 16.0 | 14.9 |
+  // Optimization 3 | 58062 |  5397 | 11226 |  2.5 |  7.6 |  5.0 |
   
   func testMatch() {
     // Accumulate statistics and sort by workload (size of a square representing

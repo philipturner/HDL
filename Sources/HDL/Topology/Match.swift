@@ -5,7 +5,9 @@
 //  Created by Philip Turner on 12/23/23.
 //
 
+#if PROFILE_MATCH
 import QuartzCore
+#endif
 
 #if arch(arm64)
 typealias Half = Float16

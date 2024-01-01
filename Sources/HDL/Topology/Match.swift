@@ -121,33 +121,74 @@ private func matchImpl(
   // problem size. Perhaps use a ratio over the smallest problem dimension.
   let size2: UInt32 = 32
   let size3: UInt32 = 128
-  let (lhsTransformed, paddedCutoffLHS) =
-  transform(lhsAtoms, size: size3, algorithm: algorithm)
-  let (rhsTransformed, paddedCutoffRHS) =
-  transform(rhsAtoms, size: size3, algorithm: algorithm)
-  let paddedCutoff = paddedCutoffLHS + paddedCutoffRHS
-  
-  let lhsBlockBounds = blockBounds(lhsTransformed, size: 8)
-  let rhsBlockBounds = blockBounds(rhsTransformed, size: 8)
-  let lhs = (transformed: lhsTransformed, blockBounds: lhsBlockBounds)
-  let rhs = (transformed: rhsTransformed, blockBounds: rhsBlockBounds)
-  
+  var lhsTransformed: [SIMD4<Float>] = []
+  var rhsTransformed: [SIMD4<Float>] = []
   var outputMatches: [[SIMD2<Float>]] = []
-  for _ in 0..<UInt32(lhsAtoms.count + 7) / 8 * 8 {
-    var array: [SIMD2<Float>] = []
-    array.reserveCapacity(8)
-    outputMatches.append(array)
+  var paddedCutoffLHS: Float = .zero
+  var paddedCutoffRHS: Float = .zero
+  
+  var lhsBlockBounds: [SIMD4<Float>] = []
+  var rhsBlockBounds: [SIMD4<Float>] = []
+  var lhs32: [SIMD4<Float>] = []
+  var rhs32: [SIMD4<Float>] = []
+  var lhs128: [SIMD4<Float>] = []
+  var rhs128: [SIMD4<Float>] = []
+  
+  DispatchQueue.concurrentPerform(iterations: 3) { z in
+    if z == 0 {
+      (lhsTransformed, paddedCutoffLHS) =
+      transform(lhsAtoms, size: size3, algorithm: algorithm)
+    } else if z == 1 {
+      (rhsTransformed, paddedCutoffRHS) =
+      transform(rhsAtoms, size: size3, algorithm: algorithm)
+    } else if z == 2 {
+      for _ in 0..<UInt32(lhsAtoms.count + 7) / 8 * 8 {
+        var array: [SIMD2<Float>] = []
+        array.reserveCapacity(8)
+        outputMatches.append(array)
+      }
+    }
+    
+    // TODO: Second recursive DispatchQueue.concurrentPerform call after proving
+    // the original one provides a net speedup.
+    if z == 0 {
+      lhsBlockBounds = blockBounds(lhsTransformed, size: 8)
+      lhs32 = blockBounds(lhsTransformed, size: size2)
+      lhs128 = blockBounds(lhsTransformed, size: size3)
+    } else if z == 1 {
+      rhsBlockBounds = blockBounds(rhsTransformed, size: 8)
+      rhs32 = blockBounds(rhsTransformed, size: size2)
+      rhs128 = blockBounds(rhsTransformed, size: size3)
+    }
   }
+  
+//  let (lhsTransformed, paddedCutoffLHS) =
+//  transform(lhsAtoms, size: size3, algorithm: algorithm)
+//  let (rhsTransformed, paddedCutoffRHS) =
+//  transform(rhsAtoms, size: size3, algorithm: algorithm)
+//  
+//  let lhsBlockBounds = blockBounds(lhsTransformed, size: 8)
+//  let rhsBlockBounds = blockBounds(rhsTransformed, size: 8)
+//  let lhs32 = blockBounds(lhsTransformed, size: size2)
+//  let rhs32 = blockBounds(rhsTransformed, size: size2)
+//  let lhs128 = blockBounds(lhsTransformed, size: size3)
+//  let rhs128 = blockBounds(rhsTransformed, size: size3)
+//  
+//  var outputMatches: [[SIMD2<Float>]] = []
+//  for _ in 0..<UInt32(lhsAtoms.count + 7) / 8 * 8 {
+//    var array: [SIMD2<Float>] = []
+//    array.reserveCapacity(8)
+//    outputMatches.append(array)
+//  }
   var outputArray: [UInt32] = []
   var outputRanges: [Range<Int>] = []
   var outputSlices: [ArraySlice<UInt32>] = []
   
   // MARK: - Hierarchy
   
-  let lhs32 = blockBounds(lhsTransformed, size: size2)
-  let rhs32 = blockBounds(rhsTransformed, size: size2)
-  let lhs128 = blockBounds(lhsTransformed, size: size3)
-  let rhs128 = blockBounds(rhsTransformed, size: size3)
+  let lhs = (transformed: lhsTransformed, blockBounds: lhsBlockBounds)
+  let rhs = (transformed: rhsTransformed, blockBounds: rhsBlockBounds)
+  let paddedCutoff = paddedCutoffLHS + paddedCutoffRHS
   
   let loopStartI: UInt32 = 0
   var loopEndI = loopStartI + UInt32(lhsAtoms.count * 2)

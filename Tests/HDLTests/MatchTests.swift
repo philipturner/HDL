@@ -162,37 +162,43 @@ final class MatchTests: XCTestCase {
   // kernel ensembles for different problem sizes.
   // - Optimization 7: change block bounds to a more efficient representation
   // - Optimization 8: use 32-bit integers instead of 64-bit integers
-  // - Optimization 9: use multithreading for all problem sizes
+  // - Optimization 9: 3-way multithread the preparation stage
+  // - Optimization 10: (2->6 + 1)-way multithread the preparation stage
+  // - Optimization 11: multithread the searching and array sorting stages
+  // - Optimization 12: use cutoffs to enable multithreading and pre-sorting
   //
   // lattice size = 3
   //
-  // Version        | Total Time               | Ratio / n^2        |
-  // -------------- | ------------------------ | ------------------ |
-  //                | C-C    | H-H    | H-C    | C-C  | H-H  | H-C  |
-  // -------------- | ------------------------ | ------------------ |
-  // Optimization 6 |    178 |    115 |    115 | 0.64 | 0.62 | 0.63 |
-  // Optimization 7 |    188 |    114 |     94 | 0.67 | 0.62 | 0.51 |
-  // Optimization 8 |    175 |    111 |     92 | 0.62 | 0.60 | 0.50 |
+  // Version        | Total Time               | Ratio / n^2           |
+  // -------------- | ------------------------ | --------------------- |
+  //                | C-C    | H-H    | H-C    | C-C   | H-H   | H-C   |
+  // -------------- | ------------------------ | --------------------- |
+  // Optimization 6 |    178 |    115 |    115 | 0.64  | 0.62  | 0.63  |
+  // Optimization 7 |    188 |    114 |     94 | 0.67  | 0.62  | 0.51  |
+  // Optimization 8 |    175 |    111 |     92 | 0.62  | 0.60  | 0.50  |
+  // Optimization 9 |    180 |    121 |     98 | 0.643 | 0.658 | 0.534 |
   //
   // lattice size = 6
   //
-  // Version        | Total Time               | Ratio / n^2        |
-  // -------------- | ------------------------ | ------------------ |
-  //                | C-C    | H-H    | H-C    | C-C  | H-H  | H-C  |
-  // -------------- | ------------------------ | ------------------ |
-  // Optimization 6 |   1505 |    362 |    474 | 0.77 | 0.45 | 0.49 |
-  // Optimization 7 |   1397 |    381 |    467 | 0.71 | 0.48 | 0.48 |
-  // Optimization 8 |   1394 |    363 |    466 | 0.71 | 0.46 | 0.48 |
+  // Version        | Total Time               | Ratio / n^2           |
+  // -------------- | ------------------------ | --------------------- |
+  //                | C-C    | H-H    | H-C    | C-C   | H-H   | H-C   |
+  // -------------- | ------------------------ | --------------------- |
+  // Optimization 6 |   1505 |    362 |    474 | 0.77  | 0.45  | 0.49  |
+  // Optimization 7 |   1397 |    381 |    467 | 0.71  | 0.48  | 0.48  |
+  // Optimization 8 |   1394 |    363 |    466 | 0.71  | 0.46  | 0.48  |
+  // Optimization 9 |   1287 |    359 |    435 | 0.656 | 0.451 | 0.449 |
   //
   // lattice size = 24
   //
-  // Version        | Total Time               | Ratio / n^2        |
-  // -------------- | ------------------------ | ------------------ |
-  //                | C-C    | H-H    | H-C    | C-C  | H-H  | H-C  |
-  // -------------- | ------------------------ | ------------------ |
-  // Optimization 6 | 128530 |   5680 |  18697 | 1.13 | 0.42 | 0.65 |
-  // Optimization 7 | 113690 |   5379 |  17949 | 1.00 | 0.40 | 0.63 |
-  // Optimization 8 | 109897 |   5121 |  17352 | 0.96 | 0.38 | 0.61 |
+  // Version        | Total Time               | Ratio / n^2           |
+  // -------------- | ------------------------ | --------------------- |
+  //                | C-C    | H-H    | H-C    | C-C   | H-H   | H-C   |
+  // -------------- | ------------------------ | --------------------- |
+  // Optimization 6 | 128530 |   5680 |  18697 | 1.13  | 0.42  | 0.65  |
+  // Optimization 7 | 113690 |   5379 |  17949 | 1.00  | 0.40  | 0.63  |
+  // Optimization 8 | 109897 |   5121 |  17352 | 0.96  | 0.38  | 0.61  |
+  // Optimization 9 | 105642 |   4637 |  17067 | 0.926 | 0.342 | 0.596 |
   
   func testMatch() {
     // Accumulate statistics and sort by workload (size of a square representing
@@ -359,7 +365,7 @@ private struct MatchSummary {
         var rmsAtoms = Float(measurement[0]) * Float(measurement[1])
         rmsAtoms.formSquareRoot()
         let µsPerAtom = Float(measurement[2]) / rmsAtoms
-        element5 = String(format: "%.2f", µsPerAtom)
+        element5 = String(format: "%.3f", µsPerAtom)
         
         var elements = [element1, element2, element3, element4, element5]
         if pass == 0 {
@@ -422,13 +428,13 @@ private struct MatchSummary {
       output += "\n" + row
     }
     
-    output += "\n"
-    for i in tableFooter.indices {
-      output += tableFooter[i]
-      if i < tableFooter.count - 1 {
-        output += " | "
-      }
-    }
+//    output += "\n"
+//    for i in tableFooter.indices {
+//      output += tableFooter[i]
+//      if i < tableFooter.count - 1 {
+//        output += " | "
+//      }
+//    }
     return output
   }
 }

@@ -109,7 +109,6 @@ extension Topology {
   }
 }
 
-// The lhs and rhs must already be sorted in Morton order.
 private func matchImpl(
   lhs lhsAtoms: [Entity],
   rhs rhsAtoms: [Entity],
@@ -117,14 +116,10 @@ private func matchImpl(
 ) -> [ArraySlice<UInt32>] {
   // MARK: - Prepare LHS and RHS
   
-  // A future optimization could change the number of hierarchy levels with the
-  // problem size. Perhaps use a ratio over the smallest problem dimension.
   var lhs: Operand = .init()
   var rhs: Operand = .init()
   var outputMatches: [[SIMD2<Float>]] = []
   
-//  var lhs8: [SIMD4<Float>] = []
-//  var rhs8: [SIMD4<Float>] = []
   var lhs32: [SIMD4<Float>] = []
   var rhs32: [SIMD4<Float>] = []
   var lhs128: [SIMD4<Float>] = []
@@ -152,6 +147,48 @@ private func matchImpl(
     }
   }
   
+//  print("atoms:", lhsAtoms.count, rhsAtoms.count)
+//  print("bounds sizes:", lhs32.count, lhs.blockBounds32.count)
+//  print("bounds sizes:", lhs128.count, lhs.blockBounds128.count)
+//  
+//  for i in 0..<(lhsAtoms.count + 31) / 32 {
+//    let before = lhs32[i]
+//    let after = lhs.blockBounds32[i]
+//    print("hello world", before - after)
+//    precondition(before.x == after.x)
+//    precondition(before.y == after.y)
+//    precondition(before.z == after.z)
+//    precondition(before.w == after.w)
+//  }
+//  for i in 0..<(rhsAtoms.count + 31) / 32 {
+//    let before = rhs32[i]
+//    let after = rhs.blockBounds32[i]
+//    print("hello world", before - after)
+//    precondition(before.x == after.x)
+//    precondition(before.y == after.y)
+//    precondition(before.z == after.z)
+//    precondition(before.w == after.w)
+//  }
+//  
+//  for i in 0..<(lhsAtoms.count + 127) / 128 {
+//    let before = lhs128[i]
+//    let after = lhs.blockBounds128[i]
+//    print("hello world 128", before - after)
+//    precondition(before.x == after.x)
+//    precondition(before.y == after.y)
+//    precondition(before.z == after.z)
+//    precondition(before.w == after.w)
+//  }
+//  for i in 0..<(rhsAtoms.count + 127) / 128 {
+//    let before = rhs128[i]
+//    let after = rhs.blockBounds128[i]
+//    print("hello world 128", before - after)
+//    precondition(before.x == after.x)
+//    precondition(before.y == after.y)
+//    precondition(before.z == after.z)
+//    precondition(before.w == after.w)
+//  }
+  
   let paddedCutoff = lhs.paddedCutoff + rhs.paddedCutoff
   
   var outputArray: [UInt32] = []
@@ -161,17 +198,20 @@ private func matchImpl(
   // MARK: - Hierarchy
   
   let loopStartI: UInt32 = 0
-  var loopEndI = loopStartI + UInt32(lhsAtoms.count * 2)
+  var loopEndI = loopStartI + UInt32(lhsAtoms.count * 2) + 256
   loopEndI = min(loopEndI, UInt32(lhsAtoms.count + 127) / 128)
   
   let loopStartJ: UInt32 = 0
-  var loopEndJ = loopStartJ + UInt32(rhsAtoms.count * 2)
+  var loopEndJ = loopStartJ + UInt32(rhsAtoms.count * 2) + 256
   loopEndJ = min(loopEndJ, UInt32(rhsAtoms.count + 127) / 128)
   
   for vIDi3 in loopStartI..<loopEndI {
     for vIDj3 in loopStartJ..<loopEndJ {
-      let lhsBlockBound = lhs128[Int(vIDi3)]
-      let rhsBlockBound = rhs128[Int(vIDj3)]
+      var lhsBlockBound = lhs.blockBounds128[Int(vIDi3)]
+      var rhsBlockBound = rhs.blockBounds128[Int(vIDj3)]
+      lhsBlockBound.w = lhs128[Int(vIDi3)].w
+      rhsBlockBound.w = rhs128[Int(vIDj3)].w
+      
       let mask = compareBlocks(
         lhsBlockBound, rhsBlockBound, paddedCutoff: paddedCutoff)
       if mask {
@@ -191,8 +231,11 @@ private func matchImpl(
     
     for vIDi2 in loopStartI..<loopEndI {
       for vIDj2 in loopStartJ..<loopEndJ {
-        let lhsBlockBound = lhs32[Int(vIDi2)]
-        let rhsBlockBound = rhs32[Int(vIDj2)]
+        var lhsBlockBound = lhs.blockBounds32[Int(vIDi2)]
+        var rhsBlockBound = rhs.blockBounds32[Int(vIDj2)]
+        lhsBlockBound.w = lhs32[Int(vIDi2)].w
+        rhsBlockBound.w = rhs32[Int(vIDj2)].w
+        
         let mask = compareBlocks(
           lhsBlockBound, rhsBlockBound, paddedCutoff: paddedCutoff)
         if mask {
@@ -239,9 +282,6 @@ private func matchImpl(
           let r = lhsR + atom.w
           let mask = deltaSquared .<= r * r
           if any(mask) {
-            // If this part is a bottleneck, there may be clever ways to improve
-            // the parallelism of conditional writes to a compacted array. 8
-            // arrays can be generated concurrently, using zero control flow.
             for laneID in 0..<UInt32(8) {
               let keyValuePair = SIMD2(
                 Float(bitPattern: atomID), deltaSquared[Int(laneID)])
@@ -330,15 +370,22 @@ private func transform8(
   _ atoms: [Entity],
   algorithm: Topology.MatchAlgorithm
 ) -> Operand {
-  // One could even modify the function to generate block bounds on the fly.
-  // However, that task should be addressed in a separate optimization.
   var output = Operand()
   let paddedAtomCount = (atoms.count + 127) / 128 * 128
   output.transformed8.reserveCapacity(4 * paddedAtomCount / 8)
   output.transformed4.reserveCapacity(paddedAtomCount)
   output.blockBounds8.reserveCapacity(paddedAtomCount / 8)
+  output.blockBounds32.reserveCapacity(paddedAtomCount / 32)
+  output.blockBounds128.reserveCapacity(paddedAtomCount / 128)
   
-  for vID in 0..<(UInt32(atoms.count) + 7) / 8 {
+  // Accumulate data at the 32-atom granularity. At the same time, generate most
+  // of the other per-operand data.
+  var currentBlockBox32: SIMD8<Float> = .zero
+  var blockBoxes32: [SIMD8<Float>] = []
+  blockBoxes32.reserveCapacity(paddedAtomCount / 32)
+  
+  let vIDEnd = (UInt32(atoms.count) + 7) / 8
+  for vID in 0..<vIDEnd {
     var vecX: SIMD8<Float> = .zero
     var vecY: SIMD8<Float> = .zero
     var vecZ: SIMD8<Float> = .zero
@@ -392,9 +439,9 @@ private func transform8(
     output.transformed8.append(vecR)
     output.paddedCutoff = max(output.paddedCutoff, vecR.max())
     
-    let minimum = SIMD3(vecX.min(), vecY.min(), vecZ.min())
-    let maximum = SIMD3(vecX.max(), vecY.max(), vecZ.max())
-    var bounds = SIMD4((minimum + maximum) / 2, .zero)
+    let minimum = SIMD4(vecX.min(), vecY.min(), vecZ.min(), 0)
+    let maximum = SIMD4(vecX.max(), vecY.max(), vecZ.max(), 0)
+    var bounds = (minimum + maximum) / 2
     
     // Find the maximum deviation from the center.
     let deltaX = vecX - bounds.x
@@ -403,52 +450,76 @@ private func transform8(
     let deltaSq = deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ
     bounds.w = deltaSq.max().squareRoot()
     output.blockBounds8.append(bounds)
+    
+    if (vID % 4 == 0) {
+      currentBlockBox32 = SIMD8(lowHalf: minimum, highHalf: maximum)
+    } else {
+      currentBlockBox32.lowHalf.replace(
+        with: minimum, where: minimum .< currentBlockBox32.lowHalf)
+      currentBlockBox32.highHalf.replace(
+        with: maximum, where: maximum .> currentBlockBox32.highHalf)
+    }
+    if (vID % 4 == 3) || (vID == vIDEnd &- 1) {
+      let bounds = (currentBlockBox32.lowHalf + currentBlockBox32.highHalf) / 2
+      output.blockBounds32.append(bounds)
+      blockBoxes32.append(currentBlockBox32)
+    }
   }
   
+  // Pad the smaller arrays to the granularity of 128 atoms.
   do {
     let vID8End = (UInt32(atoms.count) + 7) / 8
+    let vID32End = (UInt32(atoms.count) + 31) / 32
     let vID128End = (UInt32(atoms.count) + 127) / 128
+    
+    let last4 = output.transformed4.last ?? .zero
+    for _ in vID8End * 8..<vID128End * 128 {
+      output.transformed4.append(last4)
+    }
+    
     let vecX = output.transformed8[Int(vID8End &* 4 &- 4)]
     let vecY = output.transformed8[Int(vID8End &* 4 &- 3)]
     let vecZ = output.transformed8[Int(vID8End &* 4 &- 2)]
     let vecR = output.transformed8[Int(vID8End &* 4 &- 1)]
-    let bounds = output.blockBounds8[Int(vID8End &- 1)]
-    
+    let bound8 = output.blockBounds8[Int(vID8End &- 1)]
     for _ in vID8End..<vID128End * 16 {
       output.transformed8.append(vecX)
       output.transformed8.append(vecY)
       output.transformed8.append(vecZ)
       output.transformed8.append(vecR)
-      output.blockBounds8.append(bounds)
+      output.blockBounds8.append(bound8)
     }
-    let last = output.transformed4.last ?? .zero
-    for _ in vID8End * 8..<vID128End * 128 {
-      output.transformed4.append(last)
+    
+    let box32 = blockBoxes32.last ?? .zero
+    let bound32 = output.blockBounds32.last ?? .zero
+    for _ in vID32End..<vID128End * 4 {
+      blockBoxes32.append(box32)
+      output.blockBounds32.append(bound32)
     }
   }
   
-  // Start by merging centers from this block bounds finder with the existing
-  // one. Assert that both results are the exact same, and print out a few pairs
-  // of old + new centers.
-  //
-  // Then, proceed with pre-computing the distance of each atom from the center.
-  output.blockBounds32.reserveCapacity(paddedAtomCount / 32)
-  output.blockBounds128.reserveCapacity(paddedAtomCount / 128)
-  for vID128 in 0..<UInt32(paddedAtomCount / 8) {
-    // We lose information about the actual block bounds, instead going with a
-    // sphere around a block center. This provides a more conservative estimate
-    // of the bounding box. However, the final number - maximum atom distance -
-    // is computed using the information of every atom.
-    //
-    // Using SIMD8<Float>, we store the full bounding box at the 32-atom
-    // granularity. Thus, the bounding box information is only destroyed and
-    // recreated during the vec8 -> vec32 stage.
-    //
-    // TODO: - Better idea - keep a running sum of the current 32-element
-    // bounding box while making the first pass through the atoms. The avoids
-    // the destruction of information. It also allows for the idea of debugging
-    // - checking that centers are exactly the same before and after the code
-    // change.
+  // Generate the centers at 128-atom granularity in a standalone pass. Then,
+  // the array for 'blockBoxes32' should be released.
+  for vID128 in 0..<UInt32(paddedAtomCount / 128) {
+    var blockBox128: SIMD8<Float> = .zero
+    blockBox128 = blockBoxes32[Int(vID128 &* 4)]
+    
+    for laneID in 1..<UInt32(4) {
+      let vID32 = vID128 &* 4 &+ laneID
+      let blockBox32 = blockBoxes32[Int(vID32)]
+      let (minimum, maximum) = (blockBox32.lowHalf, blockBox32.highHalf)
+      blockBox128.lowHalf.replace(
+        with: minimum, where: minimum .< blockBox128.lowHalf)
+      blockBox128.highHalf.replace(
+        with: maximum, where: maximum .> blockBox128.highHalf)
+    }
+    
+    let bounds = (blockBox128.lowHalf + blockBox128.highHalf) / 2
+    output.blockBounds128.append(bounds)
+  }
+  
+  // Pre-compute the distance of each atom from the center.
+  for vID128 in 0..<UInt32(paddedAtomCount / 128) {
 //    withUnsafeTemporaryAllocation(of: SIMD8<Float>.self, capacity: 4) {
 //      let blockBounds32 = $0.baseAddress.unsafelyUnwrapped
 //      
@@ -502,4 +573,3 @@ private func compareBlocks(
   blockDelta.w = 0
   return (blockDelta * blockDelta).sum() < largeCutoffSquared
 }
-

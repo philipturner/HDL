@@ -166,12 +166,8 @@ final class MatchTests: XCTestCase {
   // - Optimization 10: use 4 x SIMD8<Float> as the transformed format
   // - Optimization 11: fully optimize the preparation stage
   // - Optimization 12: multithread the searching stage
-  // - Optimization 13: better work distribution for multithreading
-  //   - measure time in each stage of match(), with/without multithreading
-  //   - small systems: skip the 128 level, divide work at the 32 level
-  //   - large systems: periodically synchronize to avoid cache thrashing
-  // - Optimization 14: multithread the array sorting stage
-  // - Optimization 15: use cutoffs to selectively enable pre-sorting
+  // - Optimization 13: fuse Morton order mapping with preparation
+  // - Optimization 14: fuse Morton order de-mapping with array sorting
   //
   // lattice size = 3
   //
@@ -473,13 +469,55 @@ private struct MatchSummary {
       output += "\n" + row
     }
     
-    output += "\n"
-    for i in tableFooter.indices {
-      output += tableFooter[i]
-      if i < tableFooter.count - 1 {
-        output += " | "
-      }
-    }
+//    output += "\n"
+//    for i in tableFooter.indices {
+//      output += tableFooter[i]
+//      if i < tableFooter.count - 1 {
+//        output += " | "
+//      }
+//    }
     return output
   }
 }
+
+// MARK: - Raw Data
+
+// With the match stage on single-core:
+//
+// atoms: 280 x 280
+// total | sort | prepare | match | sort | map
+// ----- | ---- | ------- | ----- | ---- | ---
+//  100% |  31% |     16% |   35% |   9% |  9%
+//   159 |   49 |      26 |    56 |   14 |  15
+//
+// atoms: 1963 x 1963
+// total | sort | prepare | match | sort | map
+// ----- | ---- | ------- | ----- | ---- | ---
+//  100% |  12% |     10% |   62% |   8% |  8%
+//  1237 |  153 |     120 |   765 |   96 | 101
+//
+// atoms: 114121 x 114121
+// total | sort | prepare | match | sort |  map
+// ----- | ---- | ------- | ----- | ---- | ----
+//  100% |   7% |      5% |   76% |   6% |   7%
+// 99795 | 6581 |    5180 | 75581 | 5881 | 6572
+
+// With task=128 multithreading:
+//
+// atoms: 280 x 280
+// total | sort | prepare | match | sort | map
+// ----- | ---- | ------- | ----- | ---- | ---
+//  100% |  38% |     16% |   22% |  12% | 11%
+//   155 |   59 |      25 |    34 |   19 |  17
+//
+// atoms: 1963 x 1963
+// total | sort | prepare | match | sort | map
+// ----- | ---- | ------- | ----- | ---- | ---
+//  100% |  23% |     18% |   26% |  16% | 16%
+//   696 |  160 |     127 |   184 |  115 | 110
+//
+// atoms: 114121 x 114121
+// total | sort | prepare | match | sort |  map
+// ----- | ---- | ------- | ----- | ---- | ----
+//  100% |  17% |     15% |   31% |  17% |  19%
+// 36354 | 6325 |    5421 | 11406 | 6354 | 6849

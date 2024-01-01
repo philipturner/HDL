@@ -6,6 +6,9 @@
 //
 
 import Dispatch
+#if PROFILE_MATCH
+import QuartzCore
+#endif
 
 extension Topology {
   public enum MatchAlgorithm {
@@ -30,6 +33,10 @@ extension Topology {
     return matchImpl(lhs: input, rhs: atoms, algorithm: algorithm)
     
     #else
+#if PROFILE_MATCH
+    let checkpoint0 = CACurrentMediaTime()
+#endif
+    
     var lhsReordering: [UInt32] = []
     var rhsReordering: [UInt32] = []
     DispatchQueue.concurrentPerform(iterations: 2) { z in
@@ -60,8 +67,14 @@ extension Topology {
     precondition(
       !rhsReorderedMap.contains(.max), "RHS indices were mapped incorrectly.")
     
+#if PROFILE_MATCH
+    let checkpoint1 = CACurrentMediaTime()
+#endif
+    
     // Call the actual matching function.
-    let slicesReordered = matchImpl(lhs: lhs, rhs: rhs, algorithm: algorithm)
+    var statistics: [Double] = []
+    let slicesReordered = matchImpl(
+      lhs: lhs, rhs: rhs, algorithm: algorithm, statistics: &statistics)
     precondition(
       input.count == slicesReordered.count, "Incorrect number of match slices.")
     
@@ -86,6 +99,74 @@ extension Topology {
       outputSlices.append(slice)
     }
     
+#if PROFILE_MATCH
+    let checkpoint5 = CACurrentMediaTime()
+    let checkpoints = [checkpoint0, checkpoint1] + statistics + [checkpoint5]
+    do {
+      //             0-1      1-2        2-3      3-4    4-5
+      var labels = ["sort", "prepare", "match", "sort", "map"]
+      var durations: [Double] = []
+      for i in labels.indices {
+        let duration = checkpoints[i + 1] - checkpoints[i]
+        durations.append(duration)
+      }
+      
+      let sum = durations.reduce(0, +)
+      let proportions = durations.map { $0 / sum }
+      var percents = proportions.map { Int(($0 * 100).rounded(.toNearestOrEven)) }
+      
+      labels = ["total"] + labels
+      percents = [100] + percents
+      durations = [checkpoint5 - checkpoint0] + durations
+      
+      var outputLine1 = " "
+      var outputMiddle = " "
+      var outputLine2 = " "
+      var outputLine3 = " "
+      for i in labels.indices {
+        var string1 = labels[i]
+        var string2 = "\(percents[i])%"
+        var string3 = "\(Int((durations[i] * 1e6).rounded(.toNearestOrEven)))"
+        let maxCount = max(max(string1.count, string2.count), string3.count)
+        
+        while maxCount > string1.count {
+          string1 = " " + string1
+        }
+        while maxCount > string2.count {
+          string2 = " " + string2
+        }
+        while maxCount > string3.count {
+          string3 = " " + string3
+        }
+        let stringMiddle = String(repeating: "-", count: string1.count)
+        
+        outputLine1 += string1
+        outputMiddle += stringMiddle
+        outputLine2 += string2
+        outputLine3 += string3
+        
+        if i < labels.count - 1 {
+          outputLine1 += " | "
+          outputMiddle += " | "
+          outputLine2 += " | "
+          outputLine3 += " | "
+        }
+      }
+      
+      if lhs.count == rhs.count {
+        if lhs.count == 280 || lhs.count == 1963 || lhs.count == 114121 {
+          print()
+          print(" atoms:", lhs.count, "x", rhs.count)
+          print(outputLine1)
+          print(outputMiddle)
+          print(outputLine2)
+          print(outputLine3)
+        }
+      }
+      
+    }
+#endif
+    
     // WARNING: This code assumes the array slices are contiguous.
     guard input.count > 0 else {
       return []
@@ -102,7 +183,8 @@ extension Topology {
 private func matchImpl(
   lhs lhsAtoms: [Entity],
   rhs rhsAtoms: [Entity],
-  algorithm: Topology.MatchAlgorithm
+  algorithm: Topology.MatchAlgorithm,
+  statistics: inout [Double]
 ) -> [ArraySlice<UInt32>] {
   // MARK: - Prepare LHS and RHS
   
@@ -124,6 +206,10 @@ private func matchImpl(
     }
   }
   
+#if PROFILE_MATCH
+    let checkpoint2 = CACurrentMediaTime()
+#endif
+  
   let paddedCutoff = lhs.paddedCutoff + rhs.paddedCutoff
   
   var outputArray: [UInt32] = []
@@ -140,22 +226,15 @@ private func matchImpl(
   var loopEndJ = loopStartJ + UInt32(rhsAtoms.count * 2) + 256
   loopEndJ = min(loopEndJ, UInt32(rhsAtoms.count + 127) / 128)
   
-  let taskMultiplier: UInt32 = 1
-  let taskCount = (loopEndI - loopStartI + taskMultiplier - 1) / taskMultiplier
+  let taskCount = loopEndI - loopStartI
   if taskCount == 0 {
     // We should check how the compiler behaves when it receives an empty array,
     // without adding any special checks/early returns for edge cases.
   } else if taskCount == 1 {
-    for vIDi3 in loopStartI..<loopEndI {
-      innerLoop3(vIDi3)
-    }
+    innerLoop3(0)
   } else {
     DispatchQueue.concurrentPerform(iterations: Int(taskCount)) { z in
-      let taskStart = UInt32(z) * taskMultiplier
-      let taskEnd = min(taskStart + taskMultiplier, loopEndI)
-      for vIDi3 in taskStart..<taskEnd {
-        innerLoop3(vIDi3)
-      }
+      innerLoop3(UInt32(z))
     }
   }
   
@@ -247,6 +326,10 @@ private func matchImpl(
   
   // MARK: - Sort
   
+#if PROFILE_MATCH
+    let checkpoint3 = CACurrentMediaTime()
+#endif
+  
   for laneID in lhsAtoms.indices {
     // Remove bogus matches that result from padding the RHS.
     while let last = outputMatches[laneID].last,
@@ -270,6 +353,11 @@ private func matchImpl(
     let slice = outputArray[range]
     outputSlices.append(slice)
   }
+  
+#if PROFILE_MATCH
+    let checkpoint4 = CACurrentMediaTime()
+  statistics = [checkpoint2, checkpoint3, checkpoint4]
+#endif
   
   return outputSlices
 }

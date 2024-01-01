@@ -90,6 +90,12 @@ final class MatchTests: XCTestCase {
   // - Optimization 5: use a 2nd hierarchy level and always enable sorting.
   //   Don't remove the code for OpenMM condition 2 yet. A future optimization
   //   could remove both that and 1/2 the overhead for generating block bounds.
+  // - Optimization 6: added a 3rd hierarchy level, which required some major
+  //   code changes. I have proven a small but measurable speedup for extremely
+  //   large problem sizes. The code restructuring slightly slowed down smaller
+  //   problems. For the largest problem sizes, we clearly have O(n) scaling.
+  //   Going higher than 128x128 seems unnecessary.
+  //
   // C-C       |
   // --------- |
   // size2=8   | 398.9 | 101.4 |  50.8 |  28.8 |  18.8 |  13.0 |  10.2 |   6.9 |   4.2
@@ -147,6 +153,12 @@ final class MatchTests: XCTestCase {
   // Optimization 4 | 71341 |  5612 | 12235 |  3.0 |  7.9 |  5.5 |
   // Optimization 5 | 34044 |  2513 |  5658 |  1.4 |  3.5 |  2.5 |
   
+  // MARK: - Experiment 3
+  //
+  // This is the final round of optimization. Switch to an O(n) metric:
+  // microseconds per RMS atom. This round will include kernel ensembles for
+  // different problems sizes and multithreading.
+  
   func testMatch() {
     // Accumulate statistics and sort by workload (size of a square representing
     // the number of comparisons). Also, report statistics for each problem
@@ -166,7 +178,7 @@ final class MatchTests: XCTestCase {
     
     // Compute cost scales with the sixth power of lattice width.
     #if RELEASE
-    let latticeSizes: [Float] = [2, 3, 4, 5, 6, 7, 8, 10, 16]
+    let latticeSizes: [Float] = [2, 3, 4, 5, 6, 7, 8, 10, 16, 24]
     #else
     let latticeSizes: [Float] = [2, 3]
     #endif

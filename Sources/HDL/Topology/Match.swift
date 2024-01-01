@@ -30,13 +30,7 @@ extension Topology {
     _ input: [Entity],
     algorithm: MatchAlgorithm = .covalentBondLength(1.5)
   ) -> [ArraySlice<UInt32>] {
-    // There is already some inherent order to atoms, since they originate from
-    // spatially local and semi-Z-curve unit cells. Therefore, sorting should
-    // be explored only as an optimization over an O(n)/O(nlogn) algorithm. We
-    // should quantify how much it speeds up performance. Try different test
-    // cases with truly random shuffling of data.
-    //
-    // You could also create a cutoff. For very small structures, sorting may
+    // Try creating a cutoff. For very small structures, sorting may
     // harm performance more than it helps. Multithreading also harms
     // performance for small-enough problem sizes and must be selectively
     // disabled. It would be simple to have just 2 ensemble members:
@@ -126,120 +120,153 @@ private func matchImpl(
   // A future optimization could change the number of hierarchy levels with the
   // problem size. Perhaps use a ratio over the smallest problem dimension.
   let size2 = 32
-  let lhsTransformed = transform(lhsAtoms, size: size2, algorithm: algorithm)
-  let rhsTransformed = transform(rhsAtoms, size: size2, algorithm: algorithm)
+  let size3 = 128
+  let lhsTransformed = transform(lhsAtoms, size: size3, algorithm: algorithm)
+  let rhsTransformed = transform(rhsAtoms, size: size3, algorithm: algorithm)
   let lhsBlockBounds = blockBounds(lhsTransformed, size: 8)
   let rhsBlockBounds = blockBounds(rhsTransformed, size: 8)
-  let lhs32 = blockBounds(lhsTransformed, size: size2)
-  let rhs32 = blockBounds(rhsTransformed, size: size2)
-  
-  var mask32: [[Bool]] = []
-  for i in 0..<(lhsAtoms.count + size2 - 1) / size2 {
-    var row: [Bool] = []
-    for j in 0..<(rhsAtoms.count + size2 - 1) / size2 {
-      let lhsBlockBound = lhs32[i]
-      let rhsBlockBound = rhs32[j]
-      row.append(compareBlocks(
-        lhsBlockBound, rhsBlockBound, executeCondition2: false))
-    }
-    mask32.append(row)
-  }
-  
   let lhs = (transformed: lhsTransformed, blockBounds: lhsBlockBounds)
   let rhs = (transformed: rhsTransformed, blockBounds: rhsBlockBounds)
+  
+  var outputMatches: [[SIMD2<Float>]] = []
+  for _ in 0..<(lhsAtoms.count + 7) / 8 * 8 {
+    var array: [SIMD2<Float>] = []
+    array.reserveCapacity(8)
+    outputMatches.append(array)
+  }
   var outputArray: [UInt32] = []
   var outputRanges: [Range<Int>] = []
   var outputSlices: [ArraySlice<UInt32>] = []
   
-  let vectorCount = (lhsAtoms.count + 7) / 8
-  for vIDi in 0..<vectorCount {
-    var lhsX: SIMD8<Float> = .zero
-    var lhsY: SIMD8<Float> = .zero
-    var lhsZ: SIMD8<Float> = .zero
-    var lhsR: SIMD8<Float> = .zero
-    for laneID in 0..<8 {
-      let atom = lhs.transformed[vIDi &* 8 &+ laneID]
-      lhsX[laneID] = atom.x
-      lhsY[laneID] = atom.y
-      lhsZ[laneID] = atom.z
-      lhsR[laneID] = atom.w
+  // MARK: - Hierarchy
+  
+  let lhs32 = blockBounds(lhsTransformed, size: size2)
+  let rhs32 = blockBounds(rhsTransformed, size: size2)
+  let lhs128 = blockBounds(lhsTransformed, size: size3)
+  let rhs128 = blockBounds(rhsTransformed, size: size3)
+  
+  let loopStartI = 0
+  var loopEndI = loopStartI + lhsAtoms.count * 2
+  loopEndI = min(loopEndI, (lhsAtoms.count + 127) / 128)
+  
+  let loopStartJ = 0
+  var loopEndJ = loopStartJ + rhsAtoms.count * 2
+  loopEndJ = min(loopEndJ, (rhsAtoms.count + 127) / 128)
+  
+  for vIDi3 in loopStartI..<loopEndI {
+    for vIDj3 in loopStartJ..<loopEndJ {
+      let lhsBlockBound = lhs128[vIDi3]
+      let rhsBlockBound = rhs128[vIDj3]
+      let mask = compareBlocks(
+        lhsBlockBound, rhsBlockBound, executeCondition2: true)
+      if mask {
+        innerLoop2(vIDi3, vIDj3)
+      }
     }
-    let lhsBlockBound = lhs.blockBounds[vIDi]
+  }
+  
+  func innerLoop2(_ vIDi3: Int, _ vIDj3: Int) {
+    let loopStartI = vIDi3 * 4
+    var loopEndI = loopStartI + 4
+    loopEndI = min(loopEndI, (lhsAtoms.count + 31) / 32)
     
-    // MARK: - Search
+    let loopStartJ = vIDj3 * 4
+    var loopEndJ = loopStartJ + 4
+    loopEndJ = min(loopEndJ, (rhsAtoms.count + 31) / 32)
     
-    var matches: [[SIMD2<Float>]] = []
-    for _ in 0..<8 {
-      var array: [SIMD2<Float>] = []
-      array.reserveCapacity(8)
-      matches.append(array)
-    }
-    
-    var vIDj = rhs.blockBounds.startIndex
-    while vIDj < rhs.blockBounds.endIndex {
-      if vIDj % (size2/8) == 0 {
-        let mask8 = mask32[vIDi / (size2/8)][vIDj / (size2/8)]
-        guard mask8 else {
-          vIDj += size2/8
-          continue
+    for vIDi2 in loopStartI..<loopEndI {
+      for vIDj2 in loopStartJ..<loopEndJ {
+        let lhsBlockBound = lhs32[vIDi2]
+        let rhsBlockBound = rhs32[vIDj2]
+        let mask = compareBlocks(
+          lhsBlockBound, rhsBlockBound, executeCondition2: false)
+        if mask {
+          innerLoop1(vIDi2, vIDj2)
         }
       }
-      defer { vIDj += 1 }
-      
-      let rhsBlockBound = rhs.blockBounds[vIDj]
-      guard compareBlocks(lhsBlockBound, rhsBlockBound) else {
-        continue
+    }
+  }
+  
+  // MARK: - Search
+  
+  func innerLoop1(_ vIDi2: Int, _ vIDj2: Int) {
+    let loopStartI = vIDi2 * 4
+    var loopEndI = loopStartI + 4
+    loopEndI = min(loopEndI, (lhsAtoms.count + 7) / 8)
+    
+    let loopStartJ = vIDj2 * 4
+    var loopEndJ = loopStartJ + 4
+    loopEndJ = min(loopEndJ, (rhsAtoms.count + 7) / 8)
+    
+    for vIDi in loopStartI..<loopEndI {
+      var lhsX: SIMD8<Float> = .zero
+      var lhsY: SIMD8<Float> = .zero
+      var lhsZ: SIMD8<Float> = .zero
+      var lhsR: SIMD8<Float> = .zero
+      for laneID in 0..<8 {
+        let atom = lhs.transformed[vIDi &* 8 &+ laneID]
+        lhsX[laneID] = atom.x
+        lhsY[laneID] = atom.y
+        lhsZ[laneID] = atom.z
+        lhsR[laneID] = atom.w
       }
+      let lhsBlockBound = lhs.blockBounds[vIDi]
       
-      for lane in 0..<8 {
-        let atomID = vIDj &* 8 &+ lane
-        let atom = rhs.transformed[atomID]
-        let deltaX = lhsX - atom.x
-        let deltaY = lhsY - atom.y
-        let deltaZ = lhsZ - atom.z
-        let deltaSquared = deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ
+      for vIDj in loopStartJ..<loopEndJ {
+        let rhsBlockBound = rhs.blockBounds[vIDj]
+        guard compareBlocks(lhsBlockBound, rhsBlockBound) else {
+          continue
+        }
         
-        let r = lhsR + atom.w
-        let mask = deltaSquared .<= r * r
-        if any(mask) {
-          let atomID32 = UInt32(truncatingIfNeeded: atomID)
+        for lane in 0..<8 {
+          let atomID = vIDj &* 8 &+ lane
+          let atom = rhs.transformed[atomID]
+          let deltaX = lhsX - atom.x
+          let deltaY = lhsY - atom.y
+          let deltaZ = lhsZ - atom.z
+          let deltaSquared = deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ
           
-          // If this part is a bottleneck, there may be clever ways to improve
-          // the parallelism of conditional writes to a compacted array. 8
-          // arrays can be generated concurrently, using zero control flow.
-          for laneID in 0..<8 {
-            let keyValuePair = SIMD2(
-              Float(bitPattern: atomID32),
-              Float(deltaSquared[laneID]))
-            if mask[laneID] {
-              matches[laneID].append(keyValuePair)
+          let r = lhsR + atom.w
+          let mask = deltaSquared .<= r * r
+          if any(mask) {
+            let atomID32 = UInt32(truncatingIfNeeded: atomID)
+            
+            // If this part is a bottleneck, there may be clever ways to improve
+            // the parallelism of conditional writes to a compacted array. 8
+            // arrays can be generated concurrently, using zero control flow.
+            for laneID in 0..<8 {
+              let keyValuePair = SIMD2(
+                Float(bitPattern: atomID32),
+                Float(deltaSquared[laneID]))
+              if mask[laneID] {
+                outputMatches[vIDi &* 8 &+ laneID].append(keyValuePair)
+              }
             }
           }
         }
       }
     }
-    
-    // MARK: - Sort
-    
-    let validLanes = min(8, lhsAtoms.count - vIDi * 8)
-    for laneID in 0..<validLanes {
-      // Remove bogus matches that result from padding the RHS.
-      while let last = matches[laneID].last,
-            last[0].bitPattern >= rhsAtoms.count {
-        matches[laneID].removeLast()
-      }
-      
-      // Sort the matches in ascending order of distance.
-      matches[laneID].sort { $0.y < $1.y }
-      
-      let rangeStart = outputArray.count
-      for match in matches[laneID] {
-        let atomID = match[0].bitPattern
-        outputArray.append(atomID)
-      }
-      let rangeEnd = outputArray.count
-      outputRanges.append(rangeStart..<rangeEnd)
+  }
+  
+  // MARK: - Sort
+  
+  for laneID in lhsAtoms.indices {
+    // Remove bogus matches that result from padding the RHS.
+    while let last = outputMatches[laneID].last,
+          last[0].bitPattern >= rhsAtoms.count {
+      outputMatches[laneID].removeLast()
     }
+    
+    // Sort the matches in ascending order of distance.
+    outputMatches[laneID].sort { $0.y < $1.y }
+    
+    let rangeStart = outputArray.count
+    for match in outputMatches[laneID] {
+      let atomID = match[0].bitPattern
+      outputArray.append(atomID)
+    }
+    let rangeEnd = outputArray.count
+    outputRanges.append(rangeStart..<rangeEnd)
   }
   
   for range in outputRanges {

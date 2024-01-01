@@ -161,7 +161,8 @@ final class MatchTests: XCTestCase {
   // microseconds per RMS atom. This round will include multithreading and
   // kernel ensembles for different problem sizes.
   // - Optimization 7: change block bounds to a more efficient representation
-  // - Optimization 8: problem size cutoff for sorting, add multithreading
+  // - Optimization 8: use 32-bit integers instead of 64-bit integers
+  // - Optimization 9: use multithreading for all problem sizes
   //
   // lattice size = 3
   //
@@ -171,6 +172,7 @@ final class MatchTests: XCTestCase {
   // -------------- | ------------------------ | ------------------ |
   // Optimization 6 |    178 |    115 |    115 | 0.64 | 0.62 | 0.63 |
   // Optimization 7 |    188 |    114 |     94 | 0.67 | 0.62 | 0.51 |
+  // Optimization 8 |    175 |    111 |     92 | 0.62 | 0.60 | 0.50 |
   //
   // lattice size = 6
   //
@@ -180,7 +182,7 @@ final class MatchTests: XCTestCase {
   // -------------- | ------------------------ | ------------------ |
   // Optimization 6 |   1505 |    362 |    474 | 0.77 | 0.45 | 0.49 |
   // Optimization 7 |   1397 |    381 |    467 | 0.71 | 0.48 | 0.48 |
-  //
+  // Optimization 8 |   1394 |    363 |    466 | 0.71 | 0.46 | 0.48 |
   //
   // lattice size = 24
   //
@@ -190,6 +192,7 @@ final class MatchTests: XCTestCase {
   // -------------- | ------------------------ | ------------------ |
   // Optimization 6 | 128530 |   5680 |  18697 | 1.13 | 0.42 | 0.65 |
   // Optimization 7 | 113690 |   5379 |  17949 | 1.00 | 0.40 | 0.63 |
+  // Optimization 8 | 109897 |   5121 |  17352 | 0.96 | 0.38 | 0.61 |
   
   func testMatch() {
     // Accumulate statistics and sort by workload (size of a square representing

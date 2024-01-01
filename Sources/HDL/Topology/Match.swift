@@ -119,8 +119,8 @@ private func matchImpl(
   
   // A future optimization could change the number of hierarchy levels with the
   // problem size. Perhaps use a ratio over the smallest problem dimension.
-  let size2 = 32
-  let size3 = 128
+  let size2: UInt32 = 32
+  let size3: UInt32 = 128
   let (lhsTransformed, paddedCutoffLHS) =
   transform(lhsAtoms, size: size3, algorithm: algorithm)
   let (rhsTransformed, paddedCutoffRHS) =
@@ -133,7 +133,7 @@ private func matchImpl(
   let rhs = (transformed: rhsTransformed, blockBounds: rhsBlockBounds)
   
   var outputMatches: [[SIMD2<Float>]] = []
-  for _ in 0..<(lhsAtoms.count + 7) / 8 * 8 {
+  for _ in 0..<UInt32(lhsAtoms.count + 7) / 8 * 8 {
     var array: [SIMD2<Float>] = []
     array.reserveCapacity(8)
     outputMatches.append(array)
@@ -149,18 +149,18 @@ private func matchImpl(
   let lhs128 = blockBounds(lhsTransformed, size: size3)
   let rhs128 = blockBounds(rhsTransformed, size: size3)
   
-  let loopStartI = 0
-  var loopEndI = loopStartI + lhsAtoms.count * 2
-  loopEndI = min(loopEndI, (lhsAtoms.count + 127) / 128)
+  let loopStartI: UInt32 = 0
+  var loopEndI = loopStartI + UInt32(lhsAtoms.count * 2)
+  loopEndI = min(loopEndI, UInt32(lhsAtoms.count + 127) / 128)
   
-  let loopStartJ = 0
-  var loopEndJ = loopStartJ + rhsAtoms.count * 2
-  loopEndJ = min(loopEndJ, (rhsAtoms.count + 127) / 128)
+  let loopStartJ: UInt32 = 0
+  var loopEndJ = loopStartJ + UInt32(rhsAtoms.count * 2)
+  loopEndJ = min(loopEndJ, UInt32(rhsAtoms.count + 127) / 128)
   
   for vIDi3 in loopStartI..<loopEndI {
     for vIDj3 in loopStartJ..<loopEndJ {
-      let lhsBlockBound = lhs128[vIDi3]
-      let rhsBlockBound = rhs128[vIDj3]
+      let lhsBlockBound = lhs128[Int(vIDi3)]
+      let rhsBlockBound = rhs128[Int(vIDj3)]
       let mask = compareBlocks(
         lhsBlockBound, rhsBlockBound, paddedCutoff: paddedCutoff)
       if mask {
@@ -169,19 +169,19 @@ private func matchImpl(
     }
   }
   
-  func innerLoop2(_ vIDi3: Int, _ vIDj3: Int) {
+  func innerLoop2(_ vIDi3: UInt32, _ vIDj3: UInt32) {
     let loopStartI = vIDi3 * 4
     var loopEndI = loopStartI + 4
-    loopEndI = min(loopEndI, (lhsAtoms.count + 31) / 32)
+    loopEndI = min(loopEndI, UInt32(lhsAtoms.count + 31) / 32)
     
     let loopStartJ = vIDj3 * 4
     var loopEndJ = loopStartJ + 4
-    loopEndJ = min(loopEndJ, (rhsAtoms.count + 31) / 32)
+    loopEndJ = min(loopEndJ, UInt32(rhsAtoms.count + 31) / 32)
     
     for vIDi2 in loopStartI..<loopEndI {
       for vIDj2 in loopStartJ..<loopEndJ {
-        let lhsBlockBound = lhs32[vIDi2]
-        let rhsBlockBound = rhs32[vIDj2]
+        let lhsBlockBound = lhs32[Int(vIDi2)]
+        let rhsBlockBound = rhs32[Int(vIDj2)]
         let mask = compareBlocks(
           lhsBlockBound, rhsBlockBound, paddedCutoff: paddedCutoff)
         if mask {
@@ -193,39 +193,39 @@ private func matchImpl(
   
   // MARK: - Search
   
-  func innerLoop1(_ vIDi2: Int, _ vIDj2: Int) {
+  func innerLoop1(_ vIDi2: UInt32, _ vIDj2: UInt32) {
     let loopStartI = vIDi2 * 4
     var loopEndI = loopStartI + 4
-    loopEndI = min(loopEndI, (lhsAtoms.count + 7) / 8)
+    loopEndI = min(loopEndI, UInt32(lhsAtoms.count + 7) / 8)
     
     let loopStartJ = vIDj2 * 4
     var loopEndJ = loopStartJ + 4
-    loopEndJ = min(loopEndJ, (rhsAtoms.count + 7) / 8)
+    loopEndJ = min(loopEndJ, UInt32(rhsAtoms.count + 7) / 8)
     
     for vIDi in loopStartI..<loopEndI {
       var lhsX: SIMD8<Float> = .zero
       var lhsY: SIMD8<Float> = .zero
       var lhsZ: SIMD8<Float> = .zero
       var lhsR: SIMD8<Float> = .zero
-      for laneID in 0..<8 {
-        let atom = lhs.transformed[vIDi &* 8 &+ laneID]
-        lhsX[laneID] = atom.x
-        lhsY[laneID] = atom.y
-        lhsZ[laneID] = atom.z
-        lhsR[laneID] = atom.w
+      for laneID in 0..<UInt32(8) {
+        let atom = lhs.transformed[Int(vIDi &* 8 &+ laneID)]
+        lhsX[Int(laneID)] = atom.x
+        lhsY[Int(laneID)] = atom.y
+        lhsZ[Int(laneID)] = atom.z
+        lhsR[Int(laneID)] = atom.w
       }
-      let lhsBlockBound = lhs.blockBounds[vIDi]
+      let lhsBlockBound = lhs.blockBounds[Int(vIDi)]
       
       for vIDj in loopStartJ..<loopEndJ {
-        let rhsBlockBound = rhs.blockBounds[vIDj]
+        let rhsBlockBound = rhs.blockBounds[Int(vIDj)]
         guard compareBlocks(
           lhsBlockBound, rhsBlockBound, paddedCutoff: paddedCutoff) else {
           continue
         }
         
-        for lane in 0..<8 {
+        for lane in 0..<UInt32(8) {
           let atomID = vIDj &* 8 &+ lane
-          let atom = rhs.transformed[atomID]
+          let atom = rhs.transformed[Int(atomID)]
           let deltaX = lhsX - atom.x
           let deltaY = lhsY - atom.y
           let deltaZ = lhsZ - atom.z
@@ -234,17 +234,14 @@ private func matchImpl(
           let r = lhsR + atom.w
           let mask = deltaSquared .<= r * r
           if any(mask) {
-            let atomID32 = UInt32(truncatingIfNeeded: atomID)
-            
             // If this part is a bottleneck, there may be clever ways to improve
             // the parallelism of conditional writes to a compacted array. 8
             // arrays can be generated concurrently, using zero control flow.
-            for laneID in 0..<8 {
+            for laneID in 0..<UInt32(8) {
               let keyValuePair = SIMD2(
-                Float(bitPattern: atomID32),
-                Float(deltaSquared[laneID]))
-              if mask[laneID] {
-                outputMatches[vIDi &* 8 &+ laneID].append(keyValuePair)
+                Float(bitPattern: atomID), deltaSquared[Int(laneID)])
+              if mask[Int(laneID)] {
+                outputMatches[Int(vIDi &* 8 &+ laneID)].append(keyValuePair)
               }
             }
           }
@@ -278,19 +275,20 @@ private func matchImpl(
     let slice = outputArray[range]
     outputSlices.append(slice)
   }
+  
   return outputSlices
 }
 
 @inline(__always)
 func createBoundingBox(
-  vID: Int,
-  size: Int,
+  vID: UInt32,
+  size: UInt32,
   array: [SIMD4<Float>]
 ) -> SIMD4<Float> {
   var minimum = SIMD4<Float>(repeating: .greatestFiniteMagnitude)
   var maximum = -minimum
   for lane in 0..<size {
-    let atom = array[vID &* size &+ lane]
+    let atom = array[Int(vID &* size &+ lane)]
     minimum.replace(with: atom, where: atom .< minimum)
     maximum.replace(with: atom, where: atom .> maximum)
   }
@@ -299,7 +297,7 @@ func createBoundingBox(
   // Write the maximum deviation^2 from the center to bounds[3]
   var maxCenterDeviationSq: Float = .zero
   for lane in 0..<size {
-    let atom = array[vID &* size &+ lane]
+    let atom = array[Int(vID &* size &+ lane)]
     var delta = atom - bounds
     delta.w = 0
     
@@ -314,10 +312,10 @@ func createBoundingBox(
 @inline(__always)
 func blockBounds(
   _ transformed: [SIMD4<Float>],
-  size: Int
+  size: UInt32
 ) -> [SIMD4<Float>] {
   var blockBounds: [SIMD4<Float>] = []
-  for vID in 0..<transformed.count/size {
+  for vID in 0..<UInt32(transformed.count) / size {
     let bounds = createBoundingBox(vID: vID, size: size, array: transformed)
     blockBounds.append(bounds)
   }
@@ -327,13 +325,13 @@ func blockBounds(
 @inline(__always)
 func transform(
   _ atoms: [Entity],
-  size: Int,
+  size: UInt32,
   algorithm: Topology.MatchAlgorithm
 ) -> ([SIMD4<Float>], Float) {
   var transformed: [SIMD4<Float>] = []
   var paddedCutoff: Float = .zero
-  for atomID in atoms.indices {
-    let atom = atoms[atomID]
+  for atomID in 0..<UInt32(atoms.count) {
+    let atom = atoms[Int(atomID)]
     let atomicNumber = Int(atom.storage.w)
     var rhsR = Element.covalentRadii[atomicNumber]
     
@@ -350,8 +348,9 @@ func transform(
   }
   
   // Pad to the granularity of blocks.
-  for _ in atoms.count..<(atoms.count + size - 1)/size*size {
-    let original = transformed[atoms.count &- 1]
+  let atomCount = UInt32(atoms.count)
+  for _ in atomCount..<(atomCount &+ size &- 1)/size*size {
+    let original = transformed[Int(atomCount &- 1)]
     transformed.append(original)
   }
   
@@ -389,3 +388,4 @@ func compareBlocks(
   blockDelta.w = 0
   return (blockDelta * blockDelta).sum() < largeCutoffSquared
 }
+

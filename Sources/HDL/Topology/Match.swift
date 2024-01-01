@@ -71,10 +71,27 @@ extension Topology {
     let checkpoint1 = CACurrentMediaTime()
 #endif
     
+    var lhsOperand: Operand = .init(atomCount: 0)
+    var rhsOperand: Operand = .init(atomCount: 0)
+    
+    DispatchQueue.concurrentPerform(iterations: 3) { z in
+      // TODO: Move this back into the main function once it's all optimized.
+      // That way, the output matches can be generated in parallel without
+      // causing issues in the compiler.
+      if z == 0 {
+        lhsOperand = transform8(lhs, algorithm: algorithm)
+      } else if z == 1 {
+        rhsOperand = transform8(rhs, algorithm: algorithm)
+      }
+    }
+    
     // Call the actual matching function.
     var statistics: [Double] = []
     let slicesReordered = matchImpl(
-      lhs: lhs, rhs: rhs, algorithm: algorithm, statistics: &statistics)
+      lhs: &lhsOperand,
+      rhs: &rhsOperand,
+      algorithm: algorithm,
+      statistics: &statistics)
     precondition(
       input.count == slicesReordered.count, "Incorrect number of match slices.")
     
@@ -163,7 +180,6 @@ extension Topology {
           print(outputLine3)
         }
       }
-      
     }
 #endif
     
@@ -180,37 +196,26 @@ extension Topology {
   }
 }
 
+// MARK: - Match
+
 private func matchImpl(
-  lhs lhsAtoms: [Entity],
-  rhs rhsAtoms: [Entity],
+  lhs: inout Operand,
+  rhs: inout Operand,
   algorithm: Topology.MatchAlgorithm,
   statistics: inout [Double]
 ) -> [ArraySlice<UInt32>] {
-  // MARK: - Prepare LHS and RHS
+  let paddedCutoff = lhs.paddedCutoff + rhs.paddedCutoff
   
-  var lhs: Operand = .init()
-  var rhs: Operand = .init()
   var outputMatches: [[SIMD2<Float>]] = []
-  
-  DispatchQueue.concurrentPerform(iterations: 3) { z in
-    if z == 0 {
-      lhs = transform8(lhsAtoms, algorithm: algorithm)
-    } else if z == 1 {
-      rhs = transform8(rhsAtoms, algorithm: algorithm)
-    } else if z == 2 {
-      for _ in 0..<UInt32(lhsAtoms.count + 7) / 8 * 8 {
-        var array: [SIMD2<Float>] = []
-        array.reserveCapacity(8)
-        outputMatches.append(array)
-      }
-    }
+  for _ in 0..<UInt32(lhs.atomCount + 7) / 8 * 8 {
+    var array: [SIMD2<Float>] = []
+    array.reserveCapacity(8)
+    outputMatches.append(array)
   }
   
 #if PROFILE_MATCH
     let checkpoint2 = CACurrentMediaTime()
 #endif
-  
-  let paddedCutoff = lhs.paddedCutoff + rhs.paddedCutoff
   
   var outputArray: [UInt32] = []
   var outputRanges: [Range<Int>] = []
@@ -218,13 +223,18 @@ private func matchImpl(
   
   // MARK: - Hierarchy
   
+  let lhsSize32 = UInt32(truncatingIfNeeded: lhs.atomCount &+ 31) / 32
+  let rhsSize32 = UInt32(truncatingIfNeeded: rhs.atomCount &+ 31) / 32
+  let lhsSize8 = UInt32(truncatingIfNeeded: lhs.atomCount &+ 7) / 8
+  let rhsSize8 = UInt32(truncatingIfNeeded: rhs.atomCount &+ 7) / 8
+  
   let loopStartI: UInt32 = 0
-  var loopEndI = loopStartI + UInt32(lhsAtoms.count * 2) + 256
-  loopEndI = min(loopEndI, UInt32(lhsAtoms.count + 127) / 128)
+  var loopEndI = loopStartI + UInt32(lhs.atomCount * 2) + 256
+  loopEndI = min(loopEndI, UInt32(lhs.atomCount + 127) / 128)
   
   let loopStartJ: UInt32 = 0
-  var loopEndJ = loopStartJ + UInt32(rhsAtoms.count * 2) + 256
-  loopEndJ = min(loopEndJ, UInt32(rhsAtoms.count + 127) / 128)
+  var loopEndJ = loopStartJ + UInt32(rhs.atomCount * 2) + 256
+  loopEndJ = min(loopEndJ, UInt32(rhs.atomCount + 127) / 128)
   
   let taskCount = loopEndI - loopStartI
   if taskCount == 0 {
@@ -254,11 +264,11 @@ private func matchImpl(
   func innerLoop2(_ vIDi3: UInt32, _ vIDj3: UInt32) {
     let loopStartI = vIDi3 * 4
     var loopEndI = loopStartI + 4
-    loopEndI = min(loopEndI, UInt32(lhsAtoms.count + 31) / 32)
+    loopEndI = min(loopEndI, lhsSize32)
     
     let loopStartJ = vIDj3 * 4
     var loopEndJ = loopStartJ + 4
-    loopEndJ = min(loopEndJ, UInt32(rhsAtoms.count + 31) / 32)
+    loopEndJ = min(loopEndJ, rhsSize32)
     
     for vIDi2 in loopStartI..<loopEndI {
       for vIDj2 in loopStartJ..<loopEndJ {
@@ -279,11 +289,11 @@ private func matchImpl(
   func innerLoop1(_ vIDi2: UInt32, _ vIDj2: UInt32) {
     let loopStartI = vIDi2 * 4
     var loopEndI = loopStartI + 4
-    loopEndI = min(loopEndI, UInt32(lhsAtoms.count + 7) / 8)
+    loopEndI = min(loopEndI, lhsSize8)
     
     let loopStartJ = vIDj2 * 4
     var loopEndJ = loopStartJ + 4
-    loopEndJ = min(loopEndJ, UInt32(rhsAtoms.count + 7) / 8)
+    loopEndJ = min(loopEndJ, rhsSize8)
     
     for vIDi in loopStartI..<loopEndI {
       let pointer = Int(vIDi &* 4)
@@ -330,10 +340,10 @@ private func matchImpl(
     let checkpoint3 = CACurrentMediaTime()
 #endif
   
-  for laneID in lhsAtoms.indices {
+  for laneID in 0..<lhs.atomCount {
     // Remove bogus matches that result from padding the RHS.
     while let last = outputMatches[laneID].last,
-          last[0].bitPattern >= rhsAtoms.count {
+          last[0].bitPattern >= rhs.atomCount {
       outputMatches[laneID].removeLast()
     }
     
@@ -365,6 +375,7 @@ private func matchImpl(
 // MARK: - Block Comparison
 
 private struct Operand {
+  var atomCount: Int
   var paddedCutoff: Float = .zero
   var transformed4: [SIMD4<Float>] = []
   var transformed8: [SIMD8<Float>] = []
@@ -377,7 +388,7 @@ private func transform8(
   _ atoms: [Entity],
   algorithm: Topology.MatchAlgorithm
 ) -> Operand {
-  var output = Operand()
+  var output = Operand(atomCount: atoms.count)
   let paddedAtomCount = (atoms.count + 127) / 128 * 128
   output.transformed8.reserveCapacity(4 * paddedAtomCount / 8)
   output.transformed4.reserveCapacity(paddedAtomCount)

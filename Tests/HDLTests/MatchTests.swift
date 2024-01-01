@@ -180,6 +180,7 @@ final class MatchTests: XCTestCase {
   // Optimization 8  |    175 |    111 |     92 | 0.62  | 0.60  | 0.50  |
   // Optimization 9  |    180 |    121 |     98 | 0.643 | 0.658 | 0.534 |
   // Optimization 10 |    172 |    114 |    100 | 0.614 | 0.620 | 0.545 |
+  // Optimization 11 |    184 |    110 |     96 | 0.657 | 0.598 | 0.523 |
   //
   // lattice size = 6
   //
@@ -192,6 +193,7 @@ final class MatchTests: XCTestCase {
   // Optimization 8  |   1394 |    363 |    466 | 0.71  | 0.46  | 0.48  |
   // Optimization 9  |   1287 |    359 |    435 | 0.656 | 0.451 | 0.449 |
   // Optimization 10 |   1277 |    354 |    449 | 0.651 | 0.445 | 0.463 |
+  // Optimization 11 |   1252 |    349 |    464 | 0.638 | 0.438 | 0.479 |
   //
   // lattice size = 24
   //
@@ -204,6 +206,7 @@ final class MatchTests: XCTestCase {
   // Optimization 8  | 109897 |   5121 |  17352 | 0.96  | 0.38  | 0.61  |
   // Optimization 9  | 105642 |   4637 |  17067 | 0.926 | 0.342 | 0.596 |
   // Optimization 10 | 102438 |   4503 |  16733 | 0.898 | 0.333 | 0.585 |
+  // Optimization 11 | 101426 |   4566 |  16673 | 0.889 | 0.337 | 0.583 |
   
   func testMatch() {
     // Accumulate statistics and sort by workload (size of a square representing

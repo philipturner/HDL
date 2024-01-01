@@ -7,22 +7,12 @@
 
 import Dispatch
 
-// Goals for optimizing this:
-//
-// Higher levels of the hierarchy: recursive bounding box-bounding box test,
-// also with search radius in the same manner as OpenMM PADDED_CUTOFF. Store
-// block position as 3 x SIMD8<Float>, block bounds as 3 x SIMD8<Half>, block
-// radii as SIMD8<Half>.
-// - use FloatingPoint.nextUp to round toward positive infinity
-// - make the two halves of each SIMD8 independent, so they can be paged into
-//   ISA registers without spilling
-
 extension Topology {
   public enum MatchAlgorithm {
-    // Search for neighbors within a fixed radius (in nanometers).
+    /// Search for neighbors within a fixed radius (in nanometers).
     case absoluteRadius(Float)
     
-    // Search for neighbors within a multiple of covalent bond length.
+    /// Search for neighbors within a multiple of covalent bond length.
     case covalentBondLength(Float)
   }
   
@@ -120,11 +110,6 @@ private func matchImpl(
   var rhs: Operand = .init()
   var outputMatches: [[SIMD2<Float>]] = []
   
-  var lhs32: [SIMD4<Float>] = []
-  var rhs32: [SIMD4<Float>] = []
-  var lhs128: [SIMD4<Float>] = []
-  var rhs128: [SIMD4<Float>] = []
-  
   DispatchQueue.concurrentPerform(iterations: 3) { z in
     if z == 0 {
       lhs = transform8(lhsAtoms, algorithm: algorithm)
@@ -137,57 +122,7 @@ private func matchImpl(
         outputMatches.append(array)
       }
     }
-    
-    if z == 0 {
-      lhs32 = blockBounds(lhs.transformed4, size: 32)
-      lhs128 = blockBounds(lhs.transformed4, size: 128)
-    } else if z == 1 {
-      rhs32 = blockBounds(rhs.transformed4, size: 32)
-      rhs128 = blockBounds(rhs.transformed4, size: 128)
-    }
   }
-  
-//  print("atoms:", lhsAtoms.count, rhsAtoms.count)
-//  print("bounds sizes:", lhs32.count, lhs.blockBounds32.count)
-//  print("bounds sizes:", lhs128.count, lhs.blockBounds128.count)
-//  
-//  for i in 0..<(lhsAtoms.count + 31) / 32 {
-//    let before = lhs32[i]
-//    let after = lhs.blockBounds32[i]
-//    print("hello world", before - after)
-//    precondition(before.x == after.x)
-//    precondition(before.y == after.y)
-//    precondition(before.z == after.z)
-//    precondition(before.w == after.w)
-//  }
-//  for i in 0..<(rhsAtoms.count + 31) / 32 {
-//    let before = rhs32[i]
-//    let after = rhs.blockBounds32[i]
-//    print("hello world", before - after)
-//    precondition(before.x == after.x)
-//    precondition(before.y == after.y)
-//    precondition(before.z == after.z)
-//    precondition(before.w == after.w)
-//  }
-//  
-//  for i in 0..<(lhsAtoms.count + 127) / 128 {
-//    let before = lhs128[i]
-//    let after = lhs.blockBounds128[i]
-//    print("hello world 128", before - after)
-//    precondition(before.x == after.x)
-//    precondition(before.y == after.y)
-//    precondition(before.z == after.z)
-//    precondition(before.w == after.w)
-//  }
-//  for i in 0..<(rhsAtoms.count + 127) / 128 {
-//    let before = rhs128[i]
-//    let after = rhs.blockBounds128[i]
-//    print("hello world 128", before - after)
-//    precondition(before.x == after.x)
-//    precondition(before.y == after.y)
-//    precondition(before.z == after.z)
-//    precondition(before.w == after.w)
-//  }
   
   let paddedCutoff = lhs.paddedCutoff + rhs.paddedCutoff
   
@@ -207,11 +142,8 @@ private func matchImpl(
   
   for vIDi3 in loopStartI..<loopEndI {
     for vIDj3 in loopStartJ..<loopEndJ {
-      var lhsBlockBound = lhs.blockBounds128[Int(vIDi3)]
-      var rhsBlockBound = rhs.blockBounds128[Int(vIDj3)]
-      lhsBlockBound.w = lhs128[Int(vIDi3)].w
-      rhsBlockBound.w = rhs128[Int(vIDj3)].w
-      
+      let lhsBlockBound = lhs.blockBounds128[Int(vIDi3)]
+      let rhsBlockBound = rhs.blockBounds128[Int(vIDj3)]
       let mask = compareBlocks(
         lhsBlockBound, rhsBlockBound, paddedCutoff: paddedCutoff)
       if mask {
@@ -231,11 +163,8 @@ private func matchImpl(
     
     for vIDi2 in loopStartI..<loopEndI {
       for vIDj2 in loopStartJ..<loopEndJ {
-        var lhsBlockBound = lhs.blockBounds32[Int(vIDi2)]
-        var rhsBlockBound = rhs.blockBounds32[Int(vIDj2)]
-        lhsBlockBound.w = lhs32[Int(vIDi2)].w
-        rhsBlockBound.w = rhs32[Int(vIDj2)].w
-        
+        let lhsBlockBound = lhs.blockBounds32[Int(vIDi2)]
+        let rhsBlockBound = rhs.blockBounds32[Int(vIDj2)]
         let mask = compareBlocks(
           lhsBlockBound, rhsBlockBound, paddedCutoff: paddedCutoff)
         if mask {
@@ -324,38 +253,7 @@ private func matchImpl(
   return outputSlices
 }
 
-private func blockBounds(
-  _ transformed: [SIMD4<Float>],
-  size: UInt32
-) -> [SIMD4<Float>] {
-  var blockBounds: [SIMD4<Float>] = []
-  // some scratch arrays for storing 16 partial reductions in local memory
-  
-  for vID in 0..<UInt32(transformed.count) / size {
-    var minimum = SIMD4<Float>(repeating: .greatestFiniteMagnitude)
-    var maximum = -minimum
-    for lane in 0..<size {
-      let atom = transformed[Int(vID &* size &+ lane)]
-      minimum.replace(with: atom, where: atom .< minimum)
-      maximum.replace(with: atom, where: atom .> maximum)
-    }
-    var bounds = (minimum + maximum) / 2
-    
-    // Write the maximum deviation^2 from the center to bounds[3]
-    var maxCenterDeviationSq: Float = .zero
-    for lane in 0..<size {
-      let atom = transformed[Int(vID &* size &+ lane)]
-      var delta = atom - bounds
-      delta.w = 0
-      
-      let deviationSq = (delta * delta).sum()
-      maxCenterDeviationSq = max(maxCenterDeviationSq, deviationSq)
-    }
-    bounds[3] = maxCenterDeviationSq.squareRoot()
-    blockBounds.append(bounds)
-  }
-  return blockBounds
-}
+// MARK: - Block Comparison
 
 private struct Operand {
   var paddedCutoff: Float = .zero
@@ -520,23 +418,46 @@ private func transform8(
   
   // Pre-compute the distance of each atom from the center.
   for vID128 in 0..<UInt32(paddedAtomCount / 128) {
-//    withUnsafeTemporaryAllocation(of: SIMD8<Float>.self, capacity: 4) {
-//      let blockBounds32 = $0.baseAddress.unsafelyUnwrapped
-//      
-//      let vID32Start = vID128 &* 4
-//      for lane32 in 0..<UInt32(4) {
-//        let vID32 = vID32Start &+ lane32
-//        var min32 = SIMD4<Float>(repeating: .greatestFiniteMagnitude)
-//        var max32 = -min32
-//        
-//        let vID8Start = vID32 &* 4
-//        for lane8 in 0..<UInt32(4) {
-//          let vID8 = vID8Start &+ lane8
-//          let bound8 = output.blockBounds8[Int(vID8)]
-//          let min8 = bound8
-//        }
-//      }
-//    }
+    let center128 = output.blockBounds128[Int(vID128)]
+    var distance32: SIMD4<Float> = .zero
+    var distance128: SIMD4<Float> = .zero
+    
+    for laneID in 0..<UInt32(4) {
+      let vID32 = vID128 &* 4 &+ laneID
+      let center32 = output.blockBounds32[Int(vID32)]
+      var distance32Cache: SIMD4<Float> = .zero
+      var distance128Cache: SIMD4<Float> = .zero
+      
+      for laneID in 0..<UInt32(4) {
+        let vID8 = vID32 &* 4 &+ laneID
+        let vecX = output.transformed8[Int(vID8 &* 4 &+ 0)]
+        let vecY = output.transformed8[Int(vID8 &* 4 &+ 1)]
+        let vecZ = output.transformed8[Int(vID8 &* 4 &+ 2)]
+        
+        // Find the maximum deviation from the center.
+        @inline(__always)
+        func createDistanceSq(_ center: SIMD4<Float>) -> Float {
+          let deltaX = vecX - center.x
+          let deltaY = vecY - center.y
+          let deltaZ = vecZ - center.z
+          let deltaSq = deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ
+          return deltaSq.max()
+        }
+        distance32Cache[Int(laneID)] = createDistanceSq(center32)
+        distance128Cache[Int(laneID)] = createDistanceSq(center128)
+      }
+      distance32[Int(laneID)] = distance32Cache.max()
+      distance128[Int(laneID)] = distance128Cache.max()
+    }
+    
+    distance32.formSquareRoot()
+    distance128.formSquareRoot()
+    for laneID in 0..<UInt32(4) {
+      let vID32 = vID128 &* 4 &+ laneID
+      let distance = distance32[Int(laneID)]
+      output.blockBounds32[Int(vID32)].w = distance
+    }
+    output.blockBounds128[Int(vID128)].w = distance128.max()
   }
   
   return output

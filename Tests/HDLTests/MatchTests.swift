@@ -166,8 +166,12 @@ final class MatchTests: XCTestCase {
   // - Optimization 10: use 4 x SIMD8<Float> as the transformed format
   // - Optimization 11: fully optimize the preparation stage
   // - Optimization 12: multithread the searching stage
-  // - Optimization 13: multithread the array sorting stage
-  // - Optimization 14: use cutoffs to enable multithreading and pre-sorting
+  // - Optimization 13: better work distribution for multithreading
+  //   - measure time in each stage of match(), with/without multithreading
+  //   - small systems: skip the 128 level, divide work at the 32 level
+  //   - large systems: periodically synchronize to avoid cache thrashing
+  // - Optimization 14: multithread the array sorting stage
+  // - Optimization 15: use cutoffs to selectively enable pre-sorting
   //
   // lattice size = 3
   //
@@ -181,6 +185,7 @@ final class MatchTests: XCTestCase {
   // Optimization 9  |    180 |    121 |     98 | 0.643 | 0.658 | 0.534 |
   // Optimization 10 |    172 |    114 |    100 | 0.614 | 0.620 | 0.545 |
   // Optimization 11 |    184 |    110 |     96 | 0.657 | 0.598 | 0.523 |
+  // Optimization 12 |    142 |    112 |    100 | 0.507 | 0.609 | 0.545 |
   //
   // lattice size = 6
   //
@@ -194,6 +199,7 @@ final class MatchTests: XCTestCase {
   // Optimization 9  |   1287 |    359 |    435 | 0.656 | 0.451 | 0.449 |
   // Optimization 10 |   1277 |    354 |    449 | 0.651 | 0.445 | 0.463 |
   // Optimization 11 |   1252 |    349 |    464 | 0.638 | 0.438 | 0.479 |
+  // Optimization 12 |    699 |    295 |    383 | 0.356 | 0.371 | 0.395 |
   //
   // lattice size = 24
   //
@@ -207,6 +213,37 @@ final class MatchTests: XCTestCase {
   // Optimization 9  | 105642 |   4637 |  17067 | 0.926 | 0.342 | 0.596 |
   // Optimization 10 | 102438 |   4503 |  16733 | 0.898 | 0.333 | 0.585 |
   // Optimization 11 | 101426 |   4566 |  16673 | 0.889 | 0.337 | 0.583 |
+  // Optimization 12 |  36676 |   3037 |  10749 | 0.321 | 0.224 | 0.376 |
+  //
+  // C-C       |
+  // --------- |
+  // task=64   |
+  // task=128  | 0.716 | 0.543 | 0.440 | 0.417 | 0.361 | 0.318 | 0.321 | 0.314 | 0.315 | 0.318
+  // task=256  | 0.695 | 0.600 | 0.517 | 0.388 | 0.368 | 0.335 | 0.320 | 0.313 | 0.310 | 0.317
+  // task=512  | 0.726 | 0.586 | 0.572 | 0.474 | 0.388 | 0.346 | 0.332 | 0.311 | 0.322 | 0.324
+  // task=1024 | 0.705 | 0.586 | 0.625 | 0.569 | 0.471 | 0.391 | 0.365 | 0.337 | 0.314 | 0.318
+  // task=2048 | 0.695 | 0.582 | 0.605 | 0.607 | 0.648 | 0.534 | 0.452 | 0.361 | 0.317 | 0.318
+  // task=4096 | 0.747 | 0.604 | 0.614 | 0.615 | 0.643 | 0.671 | 0.645 | 0.477 | 0.329 | 0.331
+  //
+  // H-H       |
+  // --------- |
+  // task=64   |
+  // task=128  | 0.671 | 0.603 | 0.512 | 0.434 | 0.394 | 0.330 | 0.333 | 0.279 | 0.236 | 0.224
+  // task=256  | 0.684 | 0.609 | 0.485 | 0.421 | 0.391 | 0.332 | 0.303 | 0.283 | 0.238 | 0.221
+  // task=512  | 0.658 | 0.636 | 0.515 | 0.458 | 0.388 | 0.356 | 0.319 | 0.285 | 0.260 | 0.223
+  // task=1024 | 0.592 | 0.598 | 0.500 | 0.441 | 0.425 | 0.378 | 0.342 | 0.313 | 0.245 | 0.222
+  // task=2048 | 0.618 | 0.592 | 0.521 | 0.436 | 0.412 | 0.389 | 0.386 | 0.361 | 0.259 | 0.229
+  // task=4096 | 0.592 | 0.500 | 0.485 | 0.445 | 0.428 | 0.387 | 0.371 | 0.373 | 0.311 | 0.243
+  //
+  // H-C       |
+  // --------- |
+  // task=64   |
+  // task=128  | 0.664 | 0.446 | 0.528 | 0.429 | 0.392 | 0.331 | 0.323 | 0.308 | 0.318 | 0.372
+  // task=256  | 0.606 | 0.528 | 0.528 | 0.440 | 0.397 | 0.357 | 0.356 | 0.312 | 0.337 | 0.379
+  // task=512  | 0.606 | 0.528 | 0.547 | 0.474 | 0.456 | 0.429 | 0.398 | 0.351 | 0.336 | 0.389
+  // task=1024 | 0.577 | 0.555 | 0.549 | 0.469 | 0.461 | 0.459 | 0.456 | 0.437 | 0.376 | 0.390
+  // task=2048 | 0.635 | 0.528 | 0.528 | 0.467 | 0.458 | 0.457 | 0.464 | 0.486 | 0.451 | 0.428
+  // task=4096 | 0.664 | 0.550 | 0.533 | 0.480 | 0.485 | 0.465 | 0.479 | 0.476 | 0.530 | 0.483
   
   func testMatch() {
     // Accumulate statistics and sort by workload (size of a square representing
@@ -436,13 +473,13 @@ private struct MatchSummary {
       output += "\n" + row
     }
     
-//    output += "\n"
-//    for i in tableFooter.indices {
-//      output += tableFooter[i]
-//      if i < tableFooter.count - 1 {
-//        output += " | "
-//      }
-//    }
+    output += "\n"
+    for i in tableFooter.indices {
+      output += tableFooter[i]
+      if i < tableFooter.count - 1 {
+        output += " | "
+      }
+    }
     return output
   }
 }

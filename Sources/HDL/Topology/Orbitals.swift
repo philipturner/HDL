@@ -51,7 +51,7 @@ extension Topology {
       case .sulfur: valence = 2
       case .germanium: valence = 4
       case .gold: valence = 0
-      case .none:
+      case nil:
         fatalError("Invalid atomic number.")
       }
       let sigmaBondCount = valence - hybridization.piBondCount

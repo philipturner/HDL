@@ -140,7 +140,26 @@ private func matchImpl(
   var loopEndJ = loopStartJ + UInt32(rhsAtoms.count * 2) + 256
   loopEndJ = min(loopEndJ, UInt32(rhsAtoms.count + 127) / 128)
   
-  for vIDi3 in loopStartI..<loopEndI {
+  let taskMultiplier: UInt32 = 1
+  let taskCount = (loopEndI - loopStartI + taskMultiplier - 1) / taskMultiplier
+  if taskCount == 0 {
+    // We should check how the compiler behaves when it receives an empty array,
+    // without adding any special checks/early returns for edge cases.
+  } else if taskCount == 1 {
+    for vIDi3 in loopStartI..<loopEndI {
+      innerLoop3(vIDi3)
+    }
+  } else {
+    DispatchQueue.concurrentPerform(iterations: Int(taskCount)) { z in
+      let taskStart = UInt32(z) * taskMultiplier
+      let taskEnd = min(taskStart + taskMultiplier, loopEndI)
+      for vIDi3 in taskStart..<taskEnd {
+        innerLoop3(vIDi3)
+      }
+    }
+  }
+  
+  func innerLoop3(_ vIDi3: UInt32) {
     for vIDj3 in loopStartJ..<loopEndJ {
       let lhsBlockBound = lhs.blockBounds128[Int(vIDi3)]
       let rhsBlockBound = rhs.blockBounds128[Int(vIDj3)]
@@ -152,6 +171,7 @@ private func matchImpl(
     }
   }
   
+  @inline(__always)
   func innerLoop2(_ vIDi3: UInt32, _ vIDj3: UInt32) {
     let loopStartI = vIDi3 * 4
     var loopEndI = loopStartI + 4
@@ -176,6 +196,7 @@ private func matchImpl(
   
   // MARK: - Search
   
+  @inline(__always)
   func innerLoop1(_ vIDi2: UInt32, _ vIDj2: UInt32) {
     let loopStartI = vIDi2 * 4
     var loopEndI = loopStartI + 4

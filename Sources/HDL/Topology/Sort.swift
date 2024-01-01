@@ -5,21 +5,6 @@
 //  Created by Philip Turner on 12/2/23.
 //
 
-// Notes for when you get around to optimizing this:
-//
-// A test should compare the grid sorter to an alternative, recursive
-// implementation. It first measures cold-start speed, then speed once the
-// grid sorter can take advantage of the set already being sorted.
-//
-// The eventually chosen implementation might be a hybrid of these. It might
-// temporarily generate Morton indices to check whether segments of the atoms
-// are already sorted. It could also switch between different methods at
-// different levels of the hierarchy.
-//
-// Note: random shuffling creates a different data distribution than the
-// typical distribution from Lattice. It may unfairly increase execution time
-// of the grid sorter.
-
 import Dispatch
 
 extension Topology {
@@ -28,17 +13,18 @@ extension Topology {
     let grid = GridSorter(atoms: atoms)
     let reordering = grid.mortonReordering()
     let previousAtoms = atoms
-    for originalID in reordering.indices {
-      let reorderedID32 = reordering[originalID]
-      let reorderedID = Int(truncatingIfNeeded: reorderedID32)
-      atoms[reorderedID] = previousAtoms[originalID]
+    
+    for i in reordering.indices {
+      let mortonIndex = reordering[i]
+      atoms[i] = previousAtoms[Int(mortonIndex)]
     }
     
+    let inverted = grid.invertOrder(reordering)
     for i in bonds.indices {
       let bond = SIMD2<Int>(truncatingIfNeeded: bonds[i])
       var newBond: SIMD2<UInt32> = .zero
-      newBond[0] = reordering[bond[0]]
-      newBond[1] = reordering[bond[1]]
+      newBond[0] = inverted[bond[0]]
+      newBond[1] = inverted[bond[1]]
       newBond = SIMD2(newBond.min(), newBond.max())
       bonds[i] = newBond
     }
@@ -49,7 +35,7 @@ extension Topology {
         return $0.y < $1.y
       }
     }
-    return reordering
+    return inverted
   }
 }
 
@@ -88,6 +74,21 @@ struct GridSorter {
 // MARK: - Morton Reordering
 
 extension GridSorter {
+  func invertOrder(_ input: [UInt32]) -> [UInt32] {
+    if input.count == 0 {
+      return []
+    }
+    return [UInt32](unsafeUninitializedCapacity: input.count) {
+      $1 = input.count
+      let baseAddress = $0.baseAddress.unsafelyUnwrapped
+      
+      for reorderedID in input.indices {
+        let originalID = Int(truncatingIfNeeded: input[reorderedID])
+        baseAddress[originalID] = UInt32(truncatingIfNeeded: reorderedID)
+      }
+    }
+  }
+  
   func mortonReordering() -> [UInt32] {
     var gridData: [UInt32] = []
     var gridCells: [(Range<Int>, SIMD3<Float>, Float)] = []
@@ -193,9 +194,9 @@ extension GridSorter {
       }
     }
     
-    let finalOutput: UnsafeMutablePointer<UInt32> =
-      .allocate(capacity: atoms.count)
-    defer { finalOutput.deallocate() }
+    var finalOutput = [UInt32](unsafeUninitializedCapacity: atoms.count) {
+      $1 = atoms.count
+    }
     
     var maxCellSize = 0
     var largeGridCellCount = 0
@@ -315,26 +316,13 @@ extension GridSorter {
           levelSize: levelSize)
       }
       
-      let startPointer = finalOutput.advanced(by: gridCell.0.startIndex)
-      output.withUnsafeBufferPointer {
-        startPointer.initialize(from: $0.baseAddress!, count: $0.count)
+      let finalStartI = gridCell.0.startIndex
+      for outputI in output.indices {
+        let finalI = finalStartI + outputI
+        finalOutput[finalI] = output[outputI]
       }
     }
     
-    var output: [UInt32] = []
-    for i in atoms.indices {
-      output.append(finalOutput[i])
-    }
-    precondition(output.count == atoms.count)
-    
-    var reordering = [UInt32](repeating: .max, count: atoms.count)
-    for reorderedID in output.indices {
-      let originalID32 = output[reorderedID]
-      let originalID = Int(truncatingIfNeeded: originalID32)
-      let reorderedID32 = UInt32(truncatingIfNeeded: reorderedID)
-      reordering[originalID] = reorderedID32
-    }
-    precondition(!reordering.contains(.max))
-    return reordering
+    return finalOutput
   }
 }

@@ -19,6 +19,7 @@ extension Topology {
     case covalentBondLength(Float)
   }
   
+  // TODO: Add an argument for maximum number of results returned.
   public func match(
     _ input: [Entity],
     algorithm: MatchAlgorithm = .covalentBondLength(1.5)
@@ -37,53 +38,29 @@ extension Topology {
     let checkpoint0 = CACurrentMediaTime()
 #endif
     
-    var lhsReordering: [UInt32] = []
+    var lhsReorderingInverted: [UInt32] = []
     var rhsReordering: [UInt32] = []
+    var lhsOperand: Operand = .init(atomCount: 0)
+    var rhsOperand: Operand = .init(atomCount: 0)
+    
     DispatchQueue.concurrentPerform(iterations: 2) { z in
       if z == 0 {
         let lhsGrid = GridSorter(atoms: input)
-        lhsReordering = lhsGrid.mortonReordering()
-      } else {
+        let lhsReordering = lhsGrid.mortonReordering()
+        lhsReorderingInverted = lhsGrid.invertOrder(lhsReordering)
+        lhsOperand = transform8(
+          input, lhsReordering, include4: false, algorithm: algorithm)
+      } else if z == 1 {
         let rhsGrid = GridSorter(atoms: atoms)
         rhsReordering = rhsGrid.mortonReordering()
+        rhsOperand = transform8(
+          atoms, rhsReordering, include4: true, algorithm: algorithm)
       }
     }
-    
-    let invalidEntity = Entity(storage: .init(repeating: -1))
-    var lhs = Array(repeating: invalidEntity, count: input.count)
-    var rhs = Array(repeating: invalidEntity, count: atoms.count)
-    var rhsReorderedMap = [UInt32](repeating: .max, count: rhsReordering.count)
-    for i in lhsReordering.indices {
-      let reordered = Int(truncatingIfNeeded: lhsReordering[i])
-      let entity = input[i]
-      lhs[reordered] = entity
-    }
-    for i in rhsReordering.indices {
-      let reordered = Int(truncatingIfNeeded: rhsReordering[i])
-      let entity = atoms[i]
-      rhs[reordered] = entity
-      rhsReorderedMap[reordered] = UInt32(truncatingIfNeeded: i)
-    }
-    precondition(
-      !rhsReorderedMap.contains(.max), "RHS indices were mapped incorrectly.")
     
 #if PROFILE_MATCH
     let checkpoint1 = CACurrentMediaTime()
 #endif
-    
-    var lhsOperand: Operand = .init(atomCount: 0)
-    var rhsOperand: Operand = .init(atomCount: 0)
-    
-    DispatchQueue.concurrentPerform(iterations: 3) { z in
-      // TODO: Move this back into the main function once it's all optimized.
-      // That way, the output matches can be generated in parallel without
-      // causing issues in the compiler.
-      if z == 0 {
-        lhsOperand = transform8(lhs, algorithm: algorithm)
-      } else if z == 1 {
-        rhsOperand = transform8(rhs, algorithm: algorithm)
-      }
-    }
     
     // Call the actual matching function.
     var statistics: [Double] = []
@@ -99,13 +76,13 @@ extension Topology {
     var outputRanges: [Range<Int>] = []
     var outputSlices: [ArraySlice<UInt32>] = []
     for lhsID in input.indices {
-      let lhsReordered = Int(truncatingIfNeeded: lhsReordering[lhsID])
+      let lhsReordered = Int(truncatingIfNeeded: lhsReorderingInverted[lhsID])
       let sliceReordered = slicesReordered[lhsReordered]
       
       let rangeStart = outputArray.count
       for rhsReorderedID32 in sliceReordered {
         let rhsReorderedID = Int(truncatingIfNeeded: rhsReorderedID32)
-        let rhsID = rhsReorderedMap[rhsReorderedID]
+        let rhsID = rhsReordering[rhsReorderedID]
         outputArray.append(rhsID)
       }
       let rangeEnd = outputArray.count
@@ -170,10 +147,10 @@ extension Topology {
         }
       }
       
-      if lhs.count == rhs.count {
-        if lhs.count == 280 || lhs.count == 1963 || lhs.count == 114121 {
+      if input.count == atoms.count {
+        if input.count == 280 || input.count == 1963 || input.count == 114121 {
           print()
-          print(" atoms:", lhs.count, "x", rhs.count)
+          print(" atoms:", input.count, "x", input.count)
           print(outputLine1)
           print(outputMiddle)
           print(outputLine2)
@@ -204,14 +181,14 @@ private func matchImpl(
   algorithm: Topology.MatchAlgorithm,
   statistics: inout [Double]
 ) -> [ArraySlice<UInt32>] {
+  let lhsSize32 = UInt32(truncatingIfNeeded: lhs.atomCount &+ 31) / 32
+  let rhsSize32 = UInt32(truncatingIfNeeded: rhs.atomCount &+ 31) / 32
+  let lhsSize8 = UInt32(truncatingIfNeeded: lhs.atomCount &+ 7) / 8
+  let rhsSize8 = UInt32(truncatingIfNeeded: rhs.atomCount &+ 7) / 8
   let paddedCutoff = lhs.paddedCutoff + rhs.paddedCutoff
   
   var outputMatches: [[SIMD2<Float>]] = []
-  for _ in 0..<UInt32(lhs.atomCount + 7) / 8 * 8 {
-    var array: [SIMD2<Float>] = []
-    array.reserveCapacity(8)
-    outputMatches.append(array)
-  }
+  outputMatches = Array(repeating: [], count: Int(lhsSize8 * 8))
   
 #if PROFILE_MATCH
     let checkpoint2 = CACurrentMediaTime()
@@ -220,13 +197,6 @@ private func matchImpl(
   var outputArray: [UInt32] = []
   var outputRanges: [Range<Int>] = []
   var outputSlices: [ArraySlice<UInt32>] = []
-  
-  // MARK: - Hierarchy
-  
-  let lhsSize32 = UInt32(truncatingIfNeeded: lhs.atomCount &+ 31) / 32
-  let rhsSize32 = UInt32(truncatingIfNeeded: rhs.atomCount &+ 31) / 32
-  let lhsSize8 = UInt32(truncatingIfNeeded: lhs.atomCount &+ 7) / 8
-  let rhsSize8 = UInt32(truncatingIfNeeded: rhs.atomCount &+ 7) / 8
   
   let loopStartI: UInt32 = 0
   var loopEndI = loopStartI + UInt32(lhs.atomCount * 2) + 256
@@ -249,6 +219,14 @@ private func matchImpl(
   }
   
   func innerLoop3(_ vIDi3: UInt32) {
+    let scalarStart = vIDi3 * 128
+    let scalarEnd = min(scalarStart + 128, lhsSize8 * 8)
+    for scalarID in scalarStart..<scalarEnd {
+      // TODO: Use a different format for the very inner loop that writes to
+      // these temporary allocations more efficiently.
+      outputMatches[Int(scalarID)].reserveCapacity(8)
+    }
+    
     for vIDj3 in loopStartJ..<loopEndJ {
       let lhsBlockBound = lhs.blockBounds128[Int(vIDi3)]
       let rhsBlockBound = rhs.blockBounds128[Int(vIDj3)]
@@ -384,14 +362,19 @@ private struct Operand {
   var blockBounds128: [SIMD4<Float>] = []
 }
 
+@inline(__always)
 private func transform8(
   _ atoms: [Entity],
+  _ reordering: [UInt32],
+  include4: Bool,
   algorithm: Topology.MatchAlgorithm
 ) -> Operand {
   var output = Operand(atomCount: atoms.count)
   let paddedAtomCount = (atoms.count + 127) / 128 * 128
   output.transformed8.reserveCapacity(4 * paddedAtomCount / 8)
-  output.transformed4.reserveCapacity(paddedAtomCount)
+  if include4 {
+    output.transformed4.reserveCapacity(paddedAtomCount)
+  }
   output.blockBounds8.reserveCapacity(paddedAtomCount / 8)
   output.blockBounds32.reserveCapacity(paddedAtomCount / 32)
   output.blockBounds128.reserveCapacity(paddedAtomCount / 128)
@@ -411,19 +394,23 @@ private func transform8(
     
     if vID &* 8 &+ 8 < UInt32(truncatingIfNeeded: atoms.count) {
       for laneID in 0..<UInt32(8) {
-        let atom = atoms[Int(vID &* 8 &+ laneID)].storage
+        let mortonIndex = reordering[Int(vID &* 8 &+ laneID)]
+        let atom = atoms[Int(mortonIndex)].storage
         vecX[Int(laneID)] = atom.x
         vecY[Int(laneID)] = atom.y
         vecZ[Int(laneID)] = atom.z
         
         let atomicNumber = Int(atom.w)
         vecR[Int(laneID)] = Element.covalentRadii[atomicNumber]
-        output.transformed4.append(atom)
+        if include4 {
+          output.transformed4.append(atom)
+        }
       }
     } else {
       let validLanes = UInt32(truncatingIfNeeded: atoms.count) &- vID &* 8
       for laneID in 0..<validLanes {
-        let atom = atoms[Int(vID &* 8 &+ laneID)].storage
+        let mortonIndex = reordering[Int(vID &* 8 &+ laneID)]
+        let atom = atoms[Int(mortonIndex)].storage
         vecX[Int(laneID)] = atom.x
         vecY[Int(laneID)] = atom.y
         vecZ[Int(laneID)] = atom.z
@@ -447,8 +434,10 @@ private func transform8(
     case .covalentBondLength(let scale):
       vecR *= scale
     }
-    for laneID in 0..<UInt32(8) {
-      output.transformed4[Int(vID &* 8 &+ laneID)].w = vecR[Int(laneID)]
+    if include4 {
+      for laneID in 0..<UInt32(8) {
+        output.transformed4[Int(vID &* 8 &+ laneID)].w = vecR[Int(laneID)]
+      }
     }
     
     output.transformed8.append(vecX)
@@ -490,9 +479,11 @@ private func transform8(
     let vID32End = (UInt32(atoms.count) + 31) / 32
     let vID128End = (UInt32(atoms.count) + 127) / 128
     
-    let last4 = output.transformed4.last ?? .zero
-    for _ in vID8End * 8..<vID128End * 128 {
-      output.transformed4.append(last4)
+    if include4 {
+      let last4 = output.transformed4.last ?? .zero
+      for _ in vID8End * 8..<vID128End * 128 {
+        output.transformed4.append(last4)
+      }
     }
     
     let vecX = output.transformed8[Int(vID8End &* 4 &- 4)]

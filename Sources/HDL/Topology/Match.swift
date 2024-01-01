@@ -121,14 +121,16 @@ private func matchImpl(
   // problem size. Perhaps use a ratio over the smallest problem dimension.
   let size2: UInt32 = 32
   let size3: UInt32 = 128
-  var lhsTransformed: [SIMD4<Float>] = []
-  var rhsTransformed: [SIMD4<Float>] = []
+  var lhsTransformed8: [SIMD8<Float>] = []
+  var rhsTransformed8: [SIMD8<Float>] = []
+  var lhsTransformed4: [SIMD4<Float>] = []
+  var rhsTransformed4: [SIMD4<Float>] = []
   var outputMatches: [[SIMD2<Float>]] = []
   var paddedCutoffLHS: Float = .zero
   var paddedCutoffRHS: Float = .zero
   
-  var lhsBlockBounds: [SIMD4<Float>] = []
-  var rhsBlockBounds: [SIMD4<Float>] = []
+  var lhs8: [SIMD4<Float>] = []
+  var rhs8: [SIMD4<Float>] = []
   var lhs32: [SIMD4<Float>] = []
   var rhs32: [SIMD4<Float>] = []
   var lhs128: [SIMD4<Float>] = []
@@ -136,11 +138,11 @@ private func matchImpl(
   
   DispatchQueue.concurrentPerform(iterations: 3) { z in
     if z == 0 {
-      (lhsTransformed, paddedCutoffLHS) =
-      transform(lhsAtoms, size: size3, algorithm: algorithm)
+      (lhsTransformed8, lhsTransformed4, paddedCutoffLHS) =
+      transform8(lhsAtoms, size: size3, algorithm: algorithm)
     } else if z == 1 {
-      (rhsTransformed, paddedCutoffRHS) =
-      transform(rhsAtoms, size: size3, algorithm: algorithm)
+      (rhsTransformed8, rhsTransformed4, paddedCutoffRHS) =
+      transform8(rhsAtoms, size: size3, algorithm: algorithm)
     } else if z == 2 {
       for _ in 0..<UInt32(lhsAtoms.count + 7) / 8 * 8 {
         var array: [SIMD2<Float>] = []
@@ -149,45 +151,23 @@ private func matchImpl(
       }
     }
     
-    // TODO: Second recursive DispatchQueue.concurrentPerform call after proving
-    // the original one provides a net speedup.
     if z == 0 {
-      lhsBlockBounds = blockBounds(lhsTransformed, size: 8)
-      lhs32 = blockBounds(lhsTransformed, size: size2)
-      lhs128 = blockBounds(lhsTransformed, size: size3)
+      lhs8 = blockBounds(lhsTransformed4, size: 8)
+      lhs32 = blockBounds(lhsTransformed4, size: size2)
+      lhs128 = blockBounds(lhsTransformed4, size: size3)
     } else if z == 1 {
-      rhsBlockBounds = blockBounds(rhsTransformed, size: 8)
-      rhs32 = blockBounds(rhsTransformed, size: size2)
-      rhs128 = blockBounds(rhsTransformed, size: size3)
+      rhs8 = blockBounds(rhsTransformed4, size: 8)
+      rhs32 = blockBounds(rhsTransformed4, size: size2)
+      rhs128 = blockBounds(rhsTransformed4, size: size3)
     }
   }
   
-//  let (lhsTransformed, paddedCutoffLHS) =
-//  transform(lhsAtoms, size: size3, algorithm: algorithm)
-//  let (rhsTransformed, paddedCutoffRHS) =
-//  transform(rhsAtoms, size: size3, algorithm: algorithm)
-//  
-//  let lhsBlockBounds = blockBounds(lhsTransformed, size: 8)
-//  let rhsBlockBounds = blockBounds(rhsTransformed, size: 8)
-//  let lhs32 = blockBounds(lhsTransformed, size: size2)
-//  let rhs32 = blockBounds(rhsTransformed, size: size2)
-//  let lhs128 = blockBounds(lhsTransformed, size: size3)
-//  let rhs128 = blockBounds(rhsTransformed, size: size3)
-//  
-//  var outputMatches: [[SIMD2<Float>]] = []
-//  for _ in 0..<UInt32(lhsAtoms.count + 7) / 8 * 8 {
-//    var array: [SIMD2<Float>] = []
-//    array.reserveCapacity(8)
-//    outputMatches.append(array)
-//  }
   var outputArray: [UInt32] = []
   var outputRanges: [Range<Int>] = []
   var outputSlices: [ArraySlice<UInt32>] = []
   
   // MARK: - Hierarchy
   
-  let lhs = (transformed: lhsTransformed, blockBounds: lhsBlockBounds)
-  let rhs = (transformed: rhsTransformed, blockBounds: rhsBlockBounds)
   let paddedCutoff = paddedCutoffLHS + paddedCutoffRHS
   
   let loopStartI: UInt32 = 0
@@ -244,21 +224,15 @@ private func matchImpl(
     loopEndJ = min(loopEndJ, UInt32(rhsAtoms.count + 7) / 8)
     
     for vIDi in loopStartI..<loopEndI {
-      var lhsX: SIMD8<Float> = .zero
-      var lhsY: SIMD8<Float> = .zero
-      var lhsZ: SIMD8<Float> = .zero
-      var lhsR: SIMD8<Float> = .zero
-      for laneID in 0..<UInt32(8) {
-        let atom = lhs.transformed[Int(vIDi &* 8 &+ laneID)]
-        lhsX[Int(laneID)] = atom.x
-        lhsY[Int(laneID)] = atom.y
-        lhsZ[Int(laneID)] = atom.z
-        lhsR[Int(laneID)] = atom.w
-      }
-      let lhsBlockBound = lhs.blockBounds[Int(vIDi)]
+      let pointer = Int(vIDi &* 4)
+      let lhsX = lhsTransformed8[pointer &+ 0]
+      let lhsY = lhsTransformed8[pointer &+ 1]
+      let lhsZ = lhsTransformed8[pointer &+ 2]
+      let lhsR = lhsTransformed8[pointer &+ 3]
+      let lhsBlockBound = lhs8[Int(vIDi)]
       
       for vIDj in loopStartJ..<loopEndJ {
-        let rhsBlockBound = rhs.blockBounds[Int(vIDj)]
+        let rhsBlockBound = rhs8[Int(vIDj)]
         guard compareBlocks(
           lhsBlockBound, rhsBlockBound, paddedCutoff: paddedCutoff) else {
           continue
@@ -266,7 +240,7 @@ private func matchImpl(
         
         for lane in 0..<UInt32(8) {
           let atomID = vIDj &* 8 &+ lane
-          let atom = rhs.transformed[Int(atomID)]
+          let atom = rhsTransformed4[Int(atomID)]
           let deltaX = lhsX - atom.x
           let deltaY = lhsY - atom.y
           let deltaZ = lhsZ - atom.z
@@ -320,50 +294,60 @@ private func matchImpl(
   return outputSlices
 }
 
-@inline(__always)
-func createBoundingBox(
-  vID: UInt32,
-  size: UInt32,
-  array: [SIMD4<Float>]
-) -> SIMD4<Float> {
-  var minimum = SIMD4<Float>(repeating: .greatestFiniteMagnitude)
-  var maximum = -minimum
-  for lane in 0..<size {
-    let atom = array[Int(vID &* size &+ lane)]
-    minimum.replace(with: atom, where: atom .< minimum)
-    maximum.replace(with: atom, where: atom .> maximum)
-  }
-  var bounds = (minimum + maximum) / 2
-  
-  // Write the maximum deviation^2 from the center to bounds[3]
-  var maxCenterDeviationSq: Float = .zero
-  for lane in 0..<size {
-    let atom = array[Int(vID &* size &+ lane)]
-    var delta = atom - bounds
-    delta.w = 0
-    
-    let deviationSq = (delta * delta).sum()
-    maxCenterDeviationSq = max(maxCenterDeviationSq, deviationSq)
-  }
-  bounds[3] = maxCenterDeviationSq.squareRoot()
-  
-  return bounds
-}
-
-@inline(__always)
 func blockBounds(
   _ transformed: [SIMD4<Float>],
   size: UInt32
 ) -> [SIMD4<Float>] {
   var blockBounds: [SIMD4<Float>] = []
+  // some scratch arrays for storing 16 partial reductions in local memory
+  
   for vID in 0..<UInt32(transformed.count) / size {
-    let bounds = createBoundingBox(vID: vID, size: size, array: transformed)
+    var minimum = SIMD4<Float>(repeating: .greatestFiniteMagnitude)
+    var maximum = -minimum
+    for lane in 0..<size {
+      let atom = transformed[Int(vID &* size &+ lane)]
+      minimum.replace(with: atom, where: atom .< minimum)
+      maximum.replace(with: atom, where: atom .> maximum)
+    }
+    var bounds = (minimum + maximum) / 2
+    
+    // Write the maximum deviation^2 from the center to bounds[3]
+    var maxCenterDeviationSq: Float = .zero
+    for lane in 0..<size {
+      let atom = transformed[Int(vID &* size &+ lane)]
+      var delta = atom - bounds
+      delta.w = 0
+      
+      let deviationSq = (delta * delta).sum()
+      maxCenterDeviationSq = max(maxCenterDeviationSq, deviationSq)
+    }
+    bounds[3] = maxCenterDeviationSq.squareRoot()
     blockBounds.append(bounds)
   }
   return blockBounds
 }
 
-@inline(__always)
+func blockBounds3(
+  _ transformed: [SIMD4<Float>],
+  size: UInt32
+) {
+  // TODO: Swizzle into the format of 4 x SIMD8<Float> for the "transformed"
+  // format before fixing up this function. It should reduce the overhead of
+  // swizzling on-the-spot during the search function.
+//  for blockID128 in 0..<UInt32(transformed.count) / 128 {
+//    let blockID32Start = blockID128 &* 4
+//    let blockID32End = blockID32Start &+ 4
+//    for blockID32 in blockID32Start..<blockID32End {
+//      let vIDStart = blockID32 &* 4
+//      let vIDEnd = blockID32 &+ 4
+//      for vID in vIDStart..<vIDEnd {
+//        let atomIDStart = vID &* 8
+//        let atomIDEnd = atomIDStart &+ 8
+//      }
+//    }
+//  }
+}
+
 func transform(
   _ atoms: [Entity],
   size: UInt32,
@@ -396,6 +380,99 @@ func transform(
   }
   
   return (transformed, paddedCutoff)
+}
+
+// Start off by using the outputs of this function, just to substitute the
+// swizzling part of the inner loop. See whether that is correct, and how it
+// changes performance (2x overhead, but lower cost for the bulk of compute).
+// Then, proceed with rewriting the functions for generating block bounds, and
+// unrolling the inner loop of this function.
+func transform8(
+  _ atoms: [Entity],
+  size: UInt32,
+  algorithm: Topology.MatchAlgorithm
+) -> ([SIMD8<Float>], [SIMD4<Float>], Float) {
+  // This function has two parts: the vectorized part and the scalarized part.
+  // The code for them could be de-duplicated by force-inlining and having
+  // constant folding only for the first invocation. For debugging, start out
+  // with a function that isn't modified to have force-inlined parts.
+  //
+  // One could even modify the function to generate block bounds on the fly.
+  // However, that task should be addressed in a separate optimization.
+  var output: [SIMD8<Float>] = []
+  var expectedCapacity = (atoms.count + 127) / 128
+  expectedCapacity *= 16 // 16 vectors per 128
+  expectedCapacity *= 4 // 4 vectors interleaved in proximity
+  output.reserveCapacity(Int(expectedCapacity))
+  var paddedCutoff: Float = .zero
+  
+  var transformed4: [SIMD4<Float>] = []
+  transformed4.reserveCapacity((atoms.count + 127) / 128 * 128)
+  
+  for vID in 0..<(UInt32(atoms.count) + 7) / 8 {
+    var vecX: SIMD8<Float> = .zero
+    var vecY: SIMD8<Float> = .zero
+    var vecZ: SIMD8<Float> = .zero
+    var vecR: SIMD8<Float> = .zero
+    
+    // Perhaps just make a simple branch here, instead of an inlined function.
+    // If the branch is true, it activates the unrolled fast-path. Defer this
+    // optimization until after the bulk of compute is multithreaded.
+    let validLanes = min(8, UInt32(atoms.count) &- vID &* 8)
+    for laneID in 0..<UInt32(validLanes) {
+      let atom = atoms[Int(vID &* 8 &+ laneID)].storage
+      vecX[Int(laneID)] = atom.x
+      vecY[Int(laneID)] = atom.y
+      vecZ[Int(laneID)] = atom.z
+      
+      let atomicNumber = Int(atom.w)
+      vecR[Int(laneID)] = Element.covalentRadii[atomicNumber]
+      transformed4.append(atom)
+    }
+    for laneID in UInt32(validLanes)..<8 {
+      vecX[Int(laneID)] = vecX[Int(validLanes &- 1)]
+      vecY[Int(laneID)] = vecY[Int(validLanes &- 1)]
+      vecZ[Int(laneID)] = vecZ[Int(validLanes &- 1)]
+      vecR[Int(laneID)] = vecR[Int(validLanes &- 1)]
+      transformed4.append(transformed4.last!)
+    }
+    switch algorithm {
+    case .absoluteRadius(let radius):
+      vecR = SIMD8(repeating: radius / 2)
+    case .covalentBondLength(let scale):
+      vecR *= scale
+    }
+    for laneID in 0..<UInt32(8) {
+      transformed4[Int(vID &* 8 &+ laneID)].w = vecR[Int(laneID)]
+    }
+    
+    output.append(vecX)
+    output.append(vecY)
+    output.append(vecZ)
+    output.append(vecR)
+    paddedCutoff = max(paddedCutoff, vecR.max())
+  }
+  
+  do {
+    let vID8End = (UInt32(atoms.count) + 7) / 8
+    let vID128End = (UInt32(atoms.count) + 127) / 128
+    let vecX = output[Int(vID8End &* 4 &- 4)]
+    let vecY = output[Int(vID8End &* 4 &- 3)]
+    let vecZ = output[Int(vID8End &* 4 &- 2)]
+    let vecR = output[Int(vID8End &* 4 &- 1)]
+    for _ in vID8End..<vID128End * 16 {
+      output.append(vecX)
+      output.append(vecY)
+      output.append(vecZ)
+      output.append(vecR)
+    }
+    let last = transformed4.last ?? .zero
+    for _ in vID8End * 8..<vID128End * 128 {
+      transformed4.append(last)
+    }
+  }
+  
+  return (output, transformed4, paddedCutoff)
 }
 
 @inline(__always)

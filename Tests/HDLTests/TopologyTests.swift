@@ -293,7 +293,8 @@ final class TopologyTests: XCTestCase {
     var topology = Topology()
     topology.insert(atoms: lattice.atoms)
     let matches = topology.match(
-      lattice.atoms, algorithm: .covalentBondLength(2.1))
+      lattice.atoms, algorithm: .covalentBondLength(2.1),
+      maximumNeighborCount: 50)
     XCTAssertEqual(matches.indices, lattice.atoms.indices)
     
     for i in matches.indices {

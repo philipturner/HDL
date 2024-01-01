@@ -22,7 +22,8 @@ extension Topology {
   // TODO: Add an argument for maximum number of results returned.
   public func match(
     _ input: [Entity],
-    algorithm: MatchAlgorithm = .covalentBondLength(1.5)
+    algorithm: MatchAlgorithm = .covalentBondLength(1.5),
+    maximumNeighborCount: Int = 8
   ) -> [ArraySlice<UInt32>] {
     // Try creating a cutoff. For very small structures, sorting may
     // harm performance more than it helps. Multithreading also harms
@@ -68,6 +69,7 @@ extension Topology {
       lhs: &lhsOperand,
       rhs: &rhsOperand,
       algorithm: algorithm,
+      maximumNeighborCount: maximumNeighborCount,
       statistics: &statistics)
     precondition(
       input.count == slicesReordered.count, "Incorrect number of match slices.")
@@ -179,6 +181,7 @@ private func matchImpl(
   lhs: inout Operand,
   rhs: inout Operand,
   algorithm: Topology.MatchAlgorithm,
+  maximumNeighborCount: Int,
   statistics: inout [Double]
 ) -> [ArraySlice<UInt32>] {
   let lhsSize32 = UInt32(truncatingIfNeeded: lhs.atomCount &+ 31) / 32
@@ -327,6 +330,10 @@ private func matchImpl(
     
     // Sort the matches in ascending order of distance.
     outputMatches[laneID].sort { $0.y < $1.y }
+    
+    while outputMatches[laneID].count > maximumNeighborCount {
+      outputMatches[laneID].removeLast()
+    }
     
     let rangeStart = outputArray.count
     for match in outputMatches[laneID] {

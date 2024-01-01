@@ -202,7 +202,8 @@ extension Topology {
 
 func match(
   _ input: [Entity], 
-  algorithm: MatchAlgorithm = .covalentBondLength(1.5)
+  algorithm: MatchAlgorithm = .covalentBondLength(1.5),
+  maximumNeighborCount: Int = 8
 ) -> [ArraySlice<UInt32>]
 
 // Example of usage.
@@ -217,7 +218,13 @@ let angstromMatches = topology.match(
 
 Reports nearby atoms using an $O(n)$ algorithm.
 
+If the total number of atoms within the search radius exceeds the `maximumNeighborCount`, results are undefined. The internal matching algorithm relies on a given amount of memory being allocated. This memory temporarily holds references to other atoms. After all qualifying atoms are found, they are sorted in order of descending distance. If the memory capacity is exceeded, there is nowhere to store the remaining references, even if one contains the closest atom.
+
+If you specify a specific search radius, you should be able to calculate the expected neighbor count. Each material has a finite number of atoms per cubic nanometer. The density in atoms/nm<sup>3</sup> can be multiplied by the volume of a sphere with the given radius. If you are unsure exactly how many atoms to expect, you can provide a generous upper bound for memory capacity.
+
 For `covalentBondScale`, bond length is determined by summing the covalent radii. The pairwise sum does not always equal the bond length from `MM4Parameters`; add some tolerance for such error. The default value of 1.5 provides enough tolerance for 50% error in approximated bond length.
+
+`maximumNeighborCount` is 8 by default. This means most `match()` invocations searching beyond a single covalent bond length will fail. You may increase the limit for returned matches, but doing so may increase compile time.
 
 ```swift
 mutating func insert(atoms: [Entity])

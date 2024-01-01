@@ -121,8 +121,12 @@ private func matchImpl(
   // problem size. Perhaps use a ratio over the smallest problem dimension.
   let size2 = 32
   let size3 = 128
-  let lhsTransformed = transform(lhsAtoms, size: size3, algorithm: algorithm)
-  let rhsTransformed = transform(rhsAtoms, size: size3, algorithm: algorithm)
+  let (lhsTransformed, paddedCutoffLHS) =
+  transform(lhsAtoms, size: size3, algorithm: algorithm)
+  let (rhsTransformed, paddedCutoffRHS) =
+  transform(rhsAtoms, size: size3, algorithm: algorithm)
+  let paddedCutoff = paddedCutoffLHS + paddedCutoffRHS
+  
   let lhsBlockBounds = blockBounds(lhsTransformed, size: 8)
   let rhsBlockBounds = blockBounds(rhsTransformed, size: 8)
   let lhs = (transformed: lhsTransformed, blockBounds: lhsBlockBounds)
@@ -158,7 +162,7 @@ private func matchImpl(
       let lhsBlockBound = lhs128[vIDi3]
       let rhsBlockBound = rhs128[vIDj3]
       let mask = compareBlocks(
-        lhsBlockBound, rhsBlockBound, executeCondition2: true)
+        lhsBlockBound, rhsBlockBound, paddedCutoff: paddedCutoff)
       if mask {
         innerLoop2(vIDi3, vIDj3)
       }
@@ -179,7 +183,7 @@ private func matchImpl(
         let lhsBlockBound = lhs32[vIDi2]
         let rhsBlockBound = rhs32[vIDj2]
         let mask = compareBlocks(
-          lhsBlockBound, rhsBlockBound, executeCondition2: false)
+          lhsBlockBound, rhsBlockBound, paddedCutoff: paddedCutoff)
         if mask {
           innerLoop1(vIDi2, vIDj2)
         }
@@ -214,7 +218,8 @@ private func matchImpl(
       
       for vIDj in loopStartJ..<loopEndJ {
         let rhsBlockBound = rhs.blockBounds[vIDj]
-        guard compareBlocks(lhsBlockBound, rhsBlockBound) else {
+        guard compareBlocks(
+          lhsBlockBound, rhsBlockBound, paddedCutoff: paddedCutoff) else {
           continue
         }
         
@@ -281,7 +286,7 @@ func createBoundingBox(
   vID: Int,
   size: Int,
   array: [SIMD4<Float>]
-) -> SIMD8<Float> {
+) -> SIMD4<Float> {
   var minimum = SIMD4<Float>(repeating: .greatestFiniteMagnitude)
   var maximum = -minimum
   for lane in 0..<size {
@@ -289,16 +294,13 @@ func createBoundingBox(
     minimum.replace(with: atom, where: atom .< minimum)
     maximum.replace(with: atom, where: atom .> maximum)
   }
-  var bounds = SIMD8(
-    lowHalf: minimum + maximum,
-    highHalf: maximum - minimum)
-  bounds /= 2
+  var bounds = (minimum + maximum) / 2
   
   // Write the maximum deviation^2 from the center to bounds[3]
   var maxCenterDeviationSq: Float = .zero
   for lane in 0..<size {
     let atom = array[vID &* size &+ lane]
-    var delta = atom - bounds.lowHalf
+    var delta = atom - bounds
     delta.w = 0
     
     let deviationSq = (delta * delta).sum()
@@ -306,8 +308,6 @@ func createBoundingBox(
   }
   bounds[3] = maxCenterDeviationSq.squareRoot()
   
-  // Write the maximum radius to bounds[7]
-  bounds[7] = maximum.w
   return bounds
 }
 
@@ -315,8 +315,8 @@ func createBoundingBox(
 func blockBounds(
   _ transformed: [SIMD4<Float>],
   size: Int
-) -> [SIMD8<Float>] {
-  var blockBounds: [SIMD8<Float>] = []
+) -> [SIMD4<Float>] {
+  var blockBounds: [SIMD4<Float>] = []
   for vID in 0..<transformed.count/size {
     let bounds = createBoundingBox(vID: vID, size: size, array: transformed)
     blockBounds.append(bounds)
@@ -329,8 +329,9 @@ func transform(
   _ atoms: [Entity],
   size: Int,
   algorithm: Topology.MatchAlgorithm
-) -> [SIMD4<Float>] {
+) -> ([SIMD4<Float>], Float) {
   var transformed: [SIMD4<Float>] = []
+  var paddedCutoff: Float = .zero
   for atomID in atoms.indices {
     let atom = atoms[atomID]
     let atomicNumber = Int(atom.storage.w)
@@ -345,6 +346,7 @@ func transform(
     var rhs = atom.storage
     rhs.w = rhsR
     transformed.append(rhs)
+    paddedCutoff = max(paddedCutoff, rhs.w)
   }
   
   // Pad to the granularity of blocks.
@@ -353,15 +355,16 @@ func transform(
     transformed.append(original)
   }
   
-  return transformed
+  return (transformed, paddedCutoff)
 }
 
 @inline(__always)
 func compareBlocks(
-  _ lhsBlockBound: SIMD8<Float>,
-  _ rhsBlockBound: SIMD8<Float>,
-  executeCondition2: Bool = false
+  _ lhsBlockBound: SIMD4<Float>,
+  _ rhsBlockBound: SIMD4<Float>,
+  paddedCutoff: Float
 ) -> Bool {
+  // Code from the OpenMM GPU shader for finding interacting blocks.
   /*
    real4 blockCenterY = sortedBlockCenter[block2];
 //                real3 blockSizeY = sortedBlockBoundingBox[block2];
@@ -377,29 +380,12 @@ func compareBlocks(
    includeBlock2 &= (blockDelta.x*blockDelta.x+blockDelta.y*blockDelta.y+blockDelta.z*blockDelta.z < PADDED_CUTOFF_SQUARED);
    */
   
-  let blockCenterX = lhsBlockBound.lowHalf
-  let blockCenterY = rhsBlockBound.lowHalf
-  let paddedCutoff = lhsBlockBound[7] + rhsBlockBound[7]
+  let blockCenterX = lhsBlockBound
+  let blockCenterY = rhsBlockBound
   let largeCutoff = paddedCutoff + blockCenterX.w + blockCenterY.w
   let largeCutoffSquared = largeCutoff * largeCutoff
   
   var blockDelta = blockCenterX - blockCenterY
   blockDelta.w = 0
-  let condition1 = (blockDelta * blockDelta).sum() < largeCutoffSquared
-  if !executeCondition2 {
-    return condition1
-  } else if condition1 {
-    return true
-  }
-  
-  let blockSizeX = lhsBlockBound.highHalf
-  let blockSizeY = rhsBlockBound.highHalf
-  let paddedCutoffSquared = paddedCutoff * paddedCutoff
-
-  blockDelta.replace(with: -blockDelta, where: blockDelta .< 0)
-  blockDelta = blockDelta - blockSizeX - blockSizeY
-  blockDelta.replace(with: SIMD4.zero, where: blockDelta .< 0)
-  blockDelta.w = 0
-  let condition2 = (blockDelta * blockDelta).sum() < paddedCutoffSquared
-  return condition2
+  return (blockDelta * blockDelta).sum() < largeCutoffSquared
 }

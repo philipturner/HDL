@@ -762,12 +762,14 @@ final class TopologyTests: XCTestCase {
   //
   // For performance tests, profile variable sizes of cubic diamond crystal.
   // The following match operations are plausible during (100) reconstruction.
-  // - match carbons against carbons
-  // - match a large number of duplicated hydrogens against each other
-  //   - uses a small absolute radius
-  // - match colliding hydrogens against each other and nearby carbons
-  //   - not actually used, but a good test of asymmetry
+  // - match carbons against carbons ✅
+  // - match a large number of duplicated hydrogens against each other ✅
+  //   - uses a small absolute radius ✅
+  // - match colliding hydrogens against each other and nearby carbons ✅
+  //   - not actually used, but a good test of asymmetry ✅
   //
   // Finally, a performance test of the nanofactory backboard that reports the
   // time spent in each stage. This includes sorting.
+  // - gather quantitative statistics of how long it took to generate with the
+  //   old Diamondoid API
 }

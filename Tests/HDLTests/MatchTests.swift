@@ -137,6 +137,7 @@ final class MatchTests: XCTestCase {
   // Optimization 3 |   959 |   269 |   282 | 12.4 | 21.2 | 15.0 |
   // Optimization 4 |   998 |   270 |   286 | 12.9 | 21.3 | 15.2 |
   // Optimization 5 |  1296 |   358 |   418 | 16.8 | 28.3 | 22.2 |
+  // Optimization 6 |  1411 |   384 |   449 | 18.3 | 30.3 | 23.9 |
   //
   // lattice size = 16
   // - C-C (34353x34353)
@@ -152,12 +153,43 @@ final class MatchTests: XCTestCase {
   // Optimization 3 | 58062 |  5397 | 11226 |  2.5 |  7.6 |  5.0 |
   // Optimization 4 | 71341 |  5612 | 12235 |  3.0 |  7.9 |  5.5 |
   // Optimization 5 | 34044 |  2513 |  5658 |  1.4 |  3.5 |  2.5 |
+  // Optimization 6 | 32265 |  2476 |  6012 |  1.4 |  3.5 |  2.7 |
   
   // MARK: - Experiment 3
   //
   // This is the final round of optimization. Switch to an O(n) metric:
-  // microseconds per RMS atom. This round will include kernel ensembles for
-  // different problems sizes and multithreading.
+  // microseconds per RMS atom. This round will include multithreading and
+  // kernel ensembles for different problem sizes.
+  // - Optimization 7: change block bounds to a more efficient representation
+  // - Optimization 8: problem size cutoff for sorting, add multithreading
+  //
+  // lattice size = 3
+  //
+  // Version        | Total Time               | Ratio / n^2        |
+  // -------------- | ------------------------ | ------------------ |
+  //                | C-C    | H-H    | H-C    | C-C  | H-H  | H-C  |
+  // -------------- | ------------------------ | ------------------ |
+  // Optimization 6 |    178 |    115 |    115 | 0.64 | 0.62 | 0.63 |
+  // Optimization 7 |    188 |    114 |     94 | 0.67 | 0.62 | 0.51 |
+  //
+  // lattice size = 6
+  //
+  // Version        | Total Time               | Ratio / n^2        |
+  // -------------- | ------------------------ | ------------------ |
+  //                | C-C    | H-H    | H-C    | C-C  | H-H  | H-C  |
+  // -------------- | ------------------------ | ------------------ |
+  // Optimization 6 |   1505 |    362 |    474 | 0.77 | 0.45 | 0.49 |
+  // Optimization 7 |   1397 |    381 |    467 | 0.71 | 0.48 | 0.48 |
+  //
+  //
+  // lattice size = 24
+  //
+  // Version        | Total Time               | Ratio / n^2        |
+  // -------------- | ------------------------ | ------------------ |
+  //                | C-C    | H-H    | H-C    | C-C  | H-H  | H-C  |
+  // -------------- | ------------------------ | ------------------ |
+  // Optimization 6 | 128530 |   5680 |  18697 | 1.13 | 0.42 | 0.65 |
+  // Optimization 7 | 113690 |   5379 |  17949 | 1.00 | 0.40 | 0.63 |
   
   func testMatch() {
     // Accumulate statistics and sort by workload (size of a square representing
@@ -267,7 +299,8 @@ final class MatchTests: XCTestCase {
       do {
         let start = cross_platform_media_time()
         _ = topology.match(
-          hydrogenTopology.atoms, algorithm: .absoluteRadius(1.1 * ccBondLength))
+          hydrogenTopology.atoms,
+          algorithm: .absoluteRadius(1.1 * ccBondLength))
         let end = cross_platform_media_time()
         summary.hcMetrics.append(
           SIMD3(
@@ -317,7 +350,13 @@ private struct MatchSummary {
         let element2 = String(describing: measurement[1])
         let element3 = String(describing: measurement[2])
         let element4 = String(describing: Int(expected))
-        let element5 = String(format: "%.1f", instructions)
+        var element5 = String(format: "%.1f", instructions)
+        
+        // Revise so the output is µs/atom.
+        var rmsAtoms = Float(measurement[0]) * Float(measurement[1])
+        rmsAtoms.formSquareRoot()
+        let µsPerAtom = Float(measurement[2]) / rmsAtoms
+        element5 = String(format: "%.2f", µsPerAtom)
         
         var elements = [element1, element2, element3, element4, element5]
         if pass == 0 {

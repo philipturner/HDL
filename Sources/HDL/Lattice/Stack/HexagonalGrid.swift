@@ -116,7 +116,27 @@ struct HexagonalMask: LatticeMask {
     // the cost of hexagonal plane intersections. Provided that multithreading
     // is enabled.
     
-    let largeBlockSize: Int32 = 32
+    let dimensions4 = dimensions.replacing(with: 4, where: 4 .> dimensions)
+    let dimensions8 = dimensions.replacing(with: 8, where: 8 .> dimensions)
+    let dimensions16 = dimensions.replacing(with: 16, where: 16 .> dimensions)
+    let dimensions32 = dimensions.replacing(with: 32, where: 32 .> dimensions)
+    let voxelCount4 = dimensions4[0] * dimensions4[1] * dimensions4[2]
+    let voxelCount8 = dimensions8[0] * dimensions8[1] * dimensions8[2]
+    let voxelCount16 = dimensions16[0] * dimensions16[1] * dimensions16[2]
+    let voxelCount32 = dimensions32[0] * dimensions32[1] * dimensions32[2]
+    
+    var largeBlockSize: Int32
+    if voxelCount32 >= 8 {
+      largeBlockSize = 32
+    } else if voxelCount16 >= 8 {
+      largeBlockSize = 16
+    } else if voxelCount8 >= 8 {
+      largeBlockSize = 8
+    } else if voxelCount4 >= 4 {
+      largeBlockSize = 4
+    } else {
+      largeBlockSize = 1024
+    }
     let boundsBlock = (dimensions &+ largeBlockSize &- 1) / largeBlockSize
     
     func execute(block: SIMD3<Int32>) {

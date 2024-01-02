@@ -392,8 +392,7 @@ private func matchImpl(
   statistics = [checkpoint2, checkpoint3, checkpoint4]
 #endif
   
-  
-  return unsafeBitCast(outRangeBuffer, to: [ArraySlice<UInt32>].self)
+  return unsafeBitCast(outRangeBuffer, to: [_].self)
 }
 
 // MARK: - Block Comparison

@@ -772,4 +772,6 @@ final class TopologyTests: XCTestCase {
   // time spent in each stage. This includes sorting.
   // - gather quantitative statistics of how long it took to generate with the
   //   old Diamondoid API
+  // - unit test the performance of all 3 pieces: the monolithic piece before
+  //   the design change, and the 2 pieces after the design change
 }

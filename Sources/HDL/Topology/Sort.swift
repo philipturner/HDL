@@ -96,6 +96,25 @@ extension GridSorter {
     let volume = dimensions.x * dimensions.y * dimensions.z
     let chunkVolume = volume / 27
     let highestLevelSize = 2 * pow(chunkVolume, 1.0 / 3)
+    var octreeStartSize = highestLevelSize
+    
+    // If the grid has dimensions that vary wildly, 'highestLevelSize' does not
+    // provide an accurate center. Increase it by powers of 2 until it at least
+    // reaches 51% of each dimension.
+    var iterationCount = 0
+    while true {
+      iterationCount += 1
+      if iterationCount > 100 {
+        fatalError("Too many iterations.")
+      }
+      
+      let targetDimension = dimensions.max() * 0.51
+      if octreeStartSize < targetDimension {
+        octreeStartSize *= 2
+      } else {
+        break
+      }
+    }
     
     do {
       let dictionary: UnsafeMutablePointer<UInt32> =
@@ -184,7 +203,7 @@ extension GridSorter {
         }
       }
       
-      let levelOrigin = SIMD3<Float>(repeating: highestLevelSize)
+      let levelOrigin = SIMD3<Float>(repeating: octreeStartSize)
       let initialArray = atoms.indices.map(UInt32.init(truncatingIfNeeded:))
       initialArray.withUnsafeBufferPointer { bufferPointer in
         traverseGrid(

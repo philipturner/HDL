@@ -137,7 +137,7 @@ extension Topology {
       }
       
       if input.count == atoms.count {
-        if input.count == 280 || input.count == 1963 || input.count == 114121 {
+        if input.count == 280 || input.count == 1963 || input.count > 100_000 {
           print()
           print(" atoms:", input.count, "x", input.count)
           print(outputLine1)

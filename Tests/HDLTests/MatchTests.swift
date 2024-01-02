@@ -234,7 +234,7 @@ final class MatchTests: XCTestCase {
   // Optimization 16 |  17869 |   1621 |   9247 | 0.157 | 0.120 | 0.323 |
   // Optimization 17 |  17830 |   1715 |   9386 | 0.156 | 0.127 | 0.328 |
   
-  func testMatch() {
+  func testMatch() throws {
     // Accumulate statistics and sort by workload (size of a square representing
     // the number of comparisons). Also, report statistics for each problem
     // shape separately.
@@ -355,7 +355,98 @@ final class MatchTests: XCTestCase {
       }
     }
   }
+  
+  #if RELEASE
+  func testFlatSheetScaling() {
+    func reprUsPerAtom(_ microseconds: Int, _ atoms: Int) -> String {
+      let units = "µs/atom"
+      let value = Double(microseconds) / Double(atoms)
+      let sigFigs = String(format: "%.3f", value)
+      return sigFigs + " " + units
+    }
+    
+    let sheetSizes: [Float] = [100, 200, 300]
+    var atomCountStats: [String] = []
+    var sortStats: [String] = []
+    var matchStats: [String] = []
+    
+    /* before fixing a bug in sorting:
+     - atoms: 286000
+     - atoms: 286000
+     - atoms: 286000
+     - sort: 21363
+     - sort: 20396
+     - sort: 20551
+     - match: 280725
+     - match: 280097
+     - match: 281574
+     */
+    
+    /* after fixing a bug in sorting:
+     - atoms: 286000
+     - atoms: 286000
+     - atoms: 286000
+     - sort: 20264
+     - sort: 19232
+     - sort: 19423
+     - match: 61688
+     - match: 61266
+     - match: 61623
+     */
+    
+    for sheetSize in sheetSizes {
+      let lattice = Lattice<Hexagonal> { h, k, l in
+        let h2k = h + 2 * k
+        Bounds { sheetSize * h + 100 * h2k + 1 * l }
+        Material { .elemental(.carbon) }
+      }
+      atomCountStats.append("- atoms: \(lattice.atoms.count)")
+      
+      do {
+        let start = cross_platform_media_time()
+        var topology = Topology()
+        topology.insert(atoms: lattice.atoms)
+        topology.sort()
+        let end = cross_platform_media_time()
+        
+        let microseconds = Int((end - start) * 1e6)
+        let repr = reprUsPerAtom(microseconds, lattice.atoms.count)
+        sortStats.append("- sort: \(repr)")
+      }
+      do {
+        let start = cross_platform_media_time()
+        var topology = Topology()
+        topology.insert(atoms: lattice.atoms)
+        let matches = topology.match(topology.atoms)
+        let end = cross_platform_media_time()
+        
+        let microseconds = Int((end - start) * 1e6)
+        let repr = reprUsPerAtom(microseconds, lattice.atoms.count)
+        matchStats.append("- match: \(repr)")
+        
+        var averageMatchCount: Double = 0
+        var maxMatchCount: Double = 0
+        for matchRange in matches {
+          averageMatchCount += Double(matchRange.count)
+          maxMatchCount = max(maxMatchCount, Double(matchRange.count))
+        }
+        averageMatchCount /= Double(topology.atoms.count)
+        XCTAssertGreaterThan(averageMatchCount, 4)
+        XCTAssertEqual(maxMatchCount, 5)
+      }
+    }
+    
+    if Self.printPerformanceSummary {
+      print()
+      for line in atomCountStats + sortStats + matchStats {
+        print(line)
+      }
+    }
+  }
+  #endif
 }
+
+// MARK: - Performance Summary
 
 private struct MatchSummary {
   var ccMetrics: [SIMD3<Int>] = []

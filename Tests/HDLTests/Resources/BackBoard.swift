@@ -12,6 +12,9 @@ import XCTest
 protocol BackBoardComponent {
   var topology: Topology { get set }
   
+  // Decreases overhead from fetching object references to orbital arrays.
+  var neighborCounts: [UInt32] { get set }
+  
   // The expected atom and bond count at each stage of compilation.
   static var expectedTopologyState: [Int: SIMD2<Int>] { get }
   
@@ -24,20 +27,63 @@ extension BackBoardComponent {
     
     var removedAtoms: [UInt32] = []
     var insertedBonds: [SIMD2<UInt32>] = []
+    var neighborList: [SIMD4<Int32>] = []
+    
     for i in topology.atoms.indices {
       let matchRange = matches[i]
       if matchRange.count <= 2 {
-        removedAtoms.append(UInt32(i))
+        removedAtoms.append(UInt32(truncatingIfNeeded: i))
       } else if matchRange.count <= 5 {
         for j in matchRange where i < j {
-          insertedBonds.append(SIMD2(UInt32(i), UInt32(j)))
+          insertedBonds.append(SIMD2(UInt32(truncatingIfNeeded: i),
+                                     UInt32(truncatingIfNeeded: j)))
         }
       } else {
         fatalError("More than 5 matches.")
       }
+      
+      var output = SIMD4<Int32>(repeating: -1)
+      for jIndex in matchRange.indices
+      where jIndex > matchRange.startIndex {
+        output[jIndex - matchRange.startIndex] = Int32(matchRange[jIndex])
+      }
+      neighborList.append(output)
     }
+    
+    var marks = [Bool](repeating: true, count: topology.atoms.count)
+    for removedAtomID in removedAtoms {
+      marks[Int(removedAtomID)] = false
+      let list = neighborList[Int(removedAtomID)]
+      for lane in 0..<4 where list[lane] != -1 {
+        let otherID = Int(list[lane])
+        var otherList = neighborList[otherID]
+        var indexInList = -1
+        for lane in 0..<4 where otherList[lane] == otherID {
+          indexInList = lane
+        }
+        precondition(indexInList != -1)
+        
+        otherList[indexInList] = -1
+        neighborList[otherID] = otherList
+      }
+    }
+    
+    var neighborCounts: [UInt32] = []
+    for atomID in topology.atoms.indices {
+      guard marks[atomID] else {
+        continue
+      }
+      let list = neighborList[atomID]
+      var zero = SIMD4<Int32>.zero
+      let one = SIMD4<Int32>(repeating: 1)
+      zero.replace(with: one, where: list .!= -1)
+      let count = zero.wrappedSum()
+      neighborCounts.append(UInt32(truncatingIfNeeded: count))
+    }
+    
     topology.insert(bonds: insertedBonds)
     topology.remove(atoms: removedAtoms)
+    self.neighborCounts = neighborCounts
   }
   
   mutating func compilationPass2() {
@@ -47,8 +93,14 @@ extension BackBoardComponent {
     
     var insertedAtoms: [Entity] = []
     var insertedBonds: [SIMD2<UInt32>] = []
+    let neighborCounts = self.neighborCounts
     for i in topology.atoms.indices {
       let atom = topology.atoms[i]
+      let neighborCount = neighborCounts[i]
+      guard neighborCount == 2 || neighborCount == 3 else {
+        continue
+      }
+      
       for orbital in orbitals[i] {
         let position = atom.position + orbital * chBondLength
         let hydrogen = Entity(position: position, type: .atom(.hydrogen))
@@ -122,6 +174,8 @@ extension BackBoardComponent {
 struct BackBoardSmallLeft: BackBoardComponent {
   var topology: Topology = .init()
   
+  var neighborCounts: [UInt32] = []
+  
   static let expectedTopologyState: [Int: SIMD2<Int>] = [
     0: [23492, 0],
     1: [23488, 40643],
@@ -178,6 +232,8 @@ struct BackBoardSmallLeft: BackBoardComponent {
 
 struct BackBoardSmallRight: BackBoardComponent {
   var topology: Topology = .init()
+  
+  var neighborCounts: [UInt32] = []
   
   static let expectedTopologyState: [Int: SIMD2<Int>] = [
     0: [13638, 0],
@@ -249,6 +305,8 @@ struct BackBoardSmallRight: BackBoardComponent {
 
 struct BackBoardLarge: BackBoardComponent {
   var topology: Topology = .init()
+  
+  var neighborCounts: [UInt32] = []
   
   static let expectedTopologyState: [Int: SIMD2<Int>] = [
     0: [237706, 0],

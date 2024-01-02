@@ -700,5 +700,24 @@ final class PerformanceTests: XCTestCase {
   // -    match: 40.2 ms
   // - orbitals: 19.2 ms
   // -    total: 74.5 ms
+  
+  // After the third round of optimizations to 'orbitals':
+  // -    atoms: 36,154
+  // -  lattice:  4.0 ms
+  // -    match:  3.8 ms
+  // - orbitals:  1.7 ms
+  // -    total:  9.6 ms
+  //
+  // -    atoms: 21,324
+  // -  lattice:  8.3 ms
+  // -    match:  2.3 ms
+  // - orbitals:  1.0 ms
+  // -    total: 11.7 ms
+  //
+  // -    atoms: 360,350
+  // -  lattice: 15.0 ms
+  // -    match: 39.9 ms
+  // - orbitals: 18.1 ms
+  // -    total: 73.1 ms
 #endif
 }

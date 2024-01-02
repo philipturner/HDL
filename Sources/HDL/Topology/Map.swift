@@ -5,7 +5,8 @@
 //  Created by Philip Turner on 1/2/24.
 //
 
-import Foundation
+import Atomics
+import Dispatch
 
 extension Topology {
   public enum MapType {
@@ -79,29 +80,69 @@ extension Topology {
   func createConnnectionsMap(secondaryType: MapType) -> [SIMD8<Int32>] {
     var connectionsMap = [SIMD8<Int32>](
       repeating: .init(repeating: -1), count: atoms.count)
-    bonds.withUnsafeBufferPointer {
-      let opaque = OpaquePointer($0.baseAddress.unsafelyUnwrapped)
-      let casted = UnsafePointer<UInt32>(opaque)
-      for i in 0..<2 * bonds.count {
-        let atomID = Int(truncatingIfNeeded: casted[i])
-        var idToWrite: Int32
-        if secondaryType == .atoms {
-          let otherID = (i % 2 == 0) ? casted[i &+ 1] : casted[i &- 1]
-          idToWrite = Int32(truncatingIfNeeded: otherID)
-        } else {
-          idToWrite = Int32(truncatingIfNeeded: i / 2)
-        }
+    guard atoms.count > 0 else {
+      return []
+    }
+    
+    // Optimization: try atomics with smaller numbers of bits
+    let atomicPointer: UnsafeMutablePointer<Int16.AtomicRepresentation> =
+      .allocate(capacity: atoms.count)
+    do {
+      let opaque = OpaquePointer(atomicPointer)
+      let casted = UnsafeMutablePointer<Int16>(opaque)
+      casted.initialize(repeating: .zero, count: atoms.count)
+    }
+    
+    connectionsMap.withUnsafeMutableBufferPointer {
+      let connectionsPointer = $0.baseAddress.unsafelyUnwrapped
+      let connectionsOpaque = OpaquePointer(connectionsPointer)
+      let connectionsCasted = UnsafeMutablePointer<Int32>(connectionsOpaque)
+      
+      bonds.withUnsafeBufferPointer {
+        let opaque = OpaquePointer($0.baseAddress.unsafelyUnwrapped)
+        let casted = UnsafePointer<UInt32>(opaque)
         
-        var element = connectionsMap[atomID]
-        for lane in 0..<8 {
-          if element[lane] == -1 {
-            element[lane] = idToWrite
-            break
+        let taskSize: Int = 5_000
+        let taskCount = (2 * bonds.count + taskSize - 1) / taskSize
+        
+        func execute(taskID: Int) {
+          let scalarStart = taskID &* taskSize
+          let scalarEnd = min(scalarStart &+ taskSize, 2 * bonds.count)
+          
+          for i in scalarStart..<scalarEnd {
+            let atomID = Int(truncatingIfNeeded: casted[i])
+            var idToWrite: Int32
+            if secondaryType == .atoms {
+              let otherID = (i % 2 == 0) ? casted[i &+ 1] : casted[i &- 1]
+              idToWrite = Int32(truncatingIfNeeded: otherID)
+            } else {
+              idToWrite = Int32(truncatingIfNeeded: i / 2)
+            }
+            
+            let pointer = atomicPointer.advanced(by: atomID)
+            let atomic = UnsafeAtomic<Int16>(at: pointer)
+            let lane = atomic.loadThenWrappingIncrement(ordering: .relaxed)
+            let lane64 = Int(truncatingIfNeeded: lane)
+            
+            if lane < 8 {
+              connectionsCasted[atomID &* 8 &+ lane64] = Int32(
+                truncatingIfNeeded: idToWrite)
+            }
           }
         }
-        connectionsMap[atomID] = element
+        
+        if taskCount <= 1 {
+          for taskID in 0..<taskCount {
+            execute(taskID: taskID)
+          }
+        } else {
+          DispatchQueue.concurrentPerform(iterations: taskCount) { z in
+            execute(taskID: z)
+          }
+        }
       }
     }
+    atomicPointer.deallocate()
     return connectionsMap
   }
 }

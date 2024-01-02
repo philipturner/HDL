@@ -6,6 +6,7 @@
 //
 
 import Dispatch
+import QuartzCore
 
 extension Topology {
   public enum OrbitalHybridization {
@@ -39,10 +40,16 @@ extension Topology {
     
     let connectionsMap = createConnnectionsMap(secondaryType: .atoms)
     
+   
+    
+    
+    
     var outRangeBuffer = [ArraySlice<SIMD3<Float>>?](
       unsafeUninitializedCapacity: atoms.count
     ) { $1 = atoms.count }
     let outRangePointer = outRangeBuffer.withUnsafeMutableBufferPointer { $0 }
+    
+    
     
     var orbitalCounts: [Int] = Array(repeating: 0, count: atoms.count)
     let outputArray = [SIMD3<Float>](

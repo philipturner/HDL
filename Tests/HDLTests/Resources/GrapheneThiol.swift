@@ -9,11 +9,7 @@ import HDL
 import Numerics
 
 struct GrapheneThiol {
-  var topology: Topology
-  
-  init() {
-    self.topology = Topology()
-  }
+  var topology: Topology = .init()
   
   mutating func compilationPass0() {
     let lattice = Lattice<Hexagonal> { h, k, l in

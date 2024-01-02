@@ -744,11 +744,11 @@ final class TopologyTests: XCTestCase {
   //          HAbst tripods with the new compiler. ✅
   // - 3) Optimize the compiler.
   //   - 3.1) Add performance test cases for some snippets of real-world code
-  //          from these experiments.
+  //          from these experiments. ✅
   //   - 3.2) Enumerate the time spent on different stages of compilation.
   //   - 3.3) Create an optimized match(), tuned against both extremes of search
-  //          radius and asymmetry.
-  // - 4) Add performance test for the infamous back board from the nanofactory.
+  //          radius and asymmetry. ✅
+  // - 4) Add performance test for the infamous nanofactory back board.
   
   // Elaboration on sections 2, 3, and 4:
   //
@@ -771,7 +771,11 @@ final class TopologyTests: XCTestCase {
   // Finally, a performance test of the nanofactory backboard that reports the
   // time spent in each stage. This includes sorting.
   // - gather quantitative statistics of how long it took to generate with the
-  //   old Diamondoid API
+  //   old Diamondoid API ✅
+  // - create a unit test that would be adversely affected by a hypothesized
+  //   bug. This bug arises when we optimize Lattice<Hexagonal>. One of the
+  //   dimensions is handled incorrectly by the recursive O(nlogn) volume
+  //   narrowing algorithm. ✅
   // - unit test the performance of all 3 pieces: the monolithic piece before
   //   the design change, and the 2 pieces after the design change
 }

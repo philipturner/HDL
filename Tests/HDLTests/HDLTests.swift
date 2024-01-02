@@ -142,9 +142,6 @@ final class HDLTests: XCTestCase {
     }
   }
   
-  // TODO: Enable this in debug mode once the matching algorithm has been
-  // sped up.
-  #if RELEASE
   func testShellStructure() throws {
     var elements: [Element] = []
     elements.append(.silicon)
@@ -177,7 +174,6 @@ final class HDLTests: XCTestCase {
       }
     }
   }
-  #endif
   
   func testGrapheneThiol() throws {
     var structure = GrapheneThiol()
@@ -275,4 +271,17 @@ final class HDLTests: XCTestCase {
     XCTAssertEqual(atomRecord[14], 3)
     XCTAssertEqual(atomRecord[32], 1)
   }
+  
+  // TODO: Enable this test in debug mode once plane intersections are sped up.
+  #if RELEASE
+  // This test is to ensure there are no bugs, if one attempts to optimize
+  // intersections in 'Lattice<Hexagonal>'.
+  func testRodLogicHousing() throws {
+    var housing = RodLogicHousing()
+    XCTAssertEqual(housing.topology.atoms.count, 0)
+    
+    housing.compilationPass0()
+    XCTAssertEqual(housing.topology.atoms.count, 14454)
+  }
+  #endif
 }

@@ -778,11 +778,4 @@ final class TopologyTests: XCTestCase {
   //   narrowing algorithm. ✅
   // - unit test the performance of all 3 pieces: the monolithic piece before
   //   the design change, and the 2 pieces after the design change ✅
-  
-  // TODO: Replicate the flat sheet scaling test in performance tests, to
-  // benchmark performance of multithreading hexagonal lattices? Or just use a
-  // conservative task size that doesn't decrease performance for large problem
-  // sizes. Characteristics are different than Lattice<Cubic> because the
-  // work is dense, not sparse. Smaller cells may be acceptable.
-  
 }

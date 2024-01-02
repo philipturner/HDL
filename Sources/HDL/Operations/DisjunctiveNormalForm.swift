@@ -1,6 +1,6 @@
 //
 //  DisjunctiveNormalForm.swift
-//  MolecularRenderer
+//  HDL
 //
 //  Created by Philip Turner on 10/29/23.
 //

@@ -1,9 +1,11 @@
 //
 //  HexagonalGrid.swift
-//  MolecularRenderer
+//  HDL
 //
 //  Created by Philip Turner on 10/22/23.
 //
+
+import Dispatch
 
 struct HexagonalCell {
   // Multiply the plane's origin by [3, 3, 8] and direction by [8, 8, 3].
@@ -103,28 +105,67 @@ struct HexagonalMask: LatticeMask {
     }
     
     // Hexagonal masks are not hyper-optimized like cubic masks. There hasn't
-    // yet been a use case that requires such optimization.
-    for z in 0..<dimensions.z {
-      // Note that the 'y' coordinate here starts at zero, while the actual
-      // floating-point value should start at -0.5.
-      for y in 0..<dimensions.y {
-        let parityOffset: Float = (y & 1 == 0) ? 1.5 : 0.0
-        let loopOffset: Int32 = (y & 1 == 0) ? -1 : 0
-        var baseAddress = (z &* dimensions.y &+ y)
-        baseAddress = baseAddress &* dimensions.x
-        
-        for x in 0..<dimensions.x + loopOffset {
-          var lowerCorner = SIMD3(Float(x) * 3 + parityOffset,
-                                  Float(y) - 1,
-                                  Float(z))
-          lowerCorner.y /= 2
-          lowerCorner = transformHH2KLtoHKL(lowerCorner)
+    // yet been a use case that requires such optimization. There is only
+    // multithreading and dense, vectorized intersection tests.
+    //
+    // With cubic grids, there are use cases where the dimension of interest
+    // is diagonal to the cardinal directions. A very large amount of voxels
+    // are allocated and then unused. With hexagonal grids, that is rarely the
+    // case. Therefore, there is less need for such drastic optimizations. For
+    // a typical nano-part, the cost of matching should exceed or roughly equal
+    // the cost of hexagonal plane intersections. Provided that multithreading
+    // is enabled.
+    
+    let largeBlockSize: Int32 = 32
+    let boundsBlock = (dimensions &+ largeBlockSize &- 1) / largeBlockSize
+    
+    func execute(block: SIMD3<Int32>) {
+      let start = block &* largeBlockSize
+      let end = start &+ largeBlockSize
+      
+      for z in start.z..<min(end.z, dimensions.z) {
+        // Note that the 'y' coordinate here starts at zero, while the
+        // actual floating-point value should start at -0.5.
+        for y in start.y..<min(end.y, dimensions.y) {
+          let parityOffset: Float = (y & 1 == 0) ? 1.5 : 0.0
+          let loopOffset: Int32 = (y & 1 == 0) ? -1 : 0
+          var baseAddress = (z &* dimensions.y &+ y)
+          baseAddress = baseAddress &* dimensions.x
           
-          let cellMask = HexagonalCell.intersect(
-            origin: origin - lowerCorner,
-            normal: normal)
-          mask[Int(baseAddress &+ x)] = cellMask
+          for x in start.x..<min(end.x, dimensions.x + loopOffset) {
+            var lowerCorner = SIMD3(Float(x) * 3 + parityOffset,
+                                    Float(y) - 1,
+                                    Float(z))
+            lowerCorner.y /= 2
+            lowerCorner = transformHH2KLtoHKL(lowerCorner)
+            
+            let cellMask = HexagonalCell.intersect(
+              origin: origin - lowerCorner,
+              normal: normal)
+            mask[Int(baseAddress &+ x)] = cellMask
+          }
         }
+      }
+    }
+    
+    let start: SIMD3<Int32> = .zero
+    let end = boundsBlock
+    var tasks: [SIMD3<Int32>] = []
+    for sectorZ in start.z..<end.z {
+      for sectorY in start.y..<end.y {
+        for sectorX in start.x..<end.x {
+          tasks.append(SIMD3(sectorX, sectorY, sectorZ))
+        }
+      }
+    }
+    
+    if tasks.count < 4 {
+      for task in tasks {
+        execute(block: task)
+      }
+    } else {
+      DispatchQueue.concurrentPerform(iterations: tasks.count) { z in
+        execute(block: tasks[z])
       }
     }
   }

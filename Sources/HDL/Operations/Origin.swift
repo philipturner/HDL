@@ -1,6 +1,6 @@
 //
 //  Origin.swift
-//  MolecularRendererApp
+//  HDL
 //
 //  Created by Philip Turner on 9/1/23.
 //

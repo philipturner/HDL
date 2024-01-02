@@ -272,14 +272,10 @@ final class HDLTests: XCTestCase {
     XCTAssertEqual(atomRecord[32], 1)
   }
   
-  // TODO: Enable this test in debug mode once plane intersections are sped up.
-  // Fixing hexagonal grids is not a priority right now. However, it may become
-  // a priority in the future. This test will make that future optimization
-  // process easier.
-  //
-  // Multithreading is an easy fix. However, the massive prefactor from
-  // redundantly checking every voxel is still high. It is not yet suitable to
-  // test in debug mode.
+  // This is disabled in debug mode, due to the high computational prefactor
+  // of the lattice intersections. On devices with less CPU cores, the latency
+  // may be approximately 1 second.
+  // TODO: Check whether this is true.
   #if RELEASE
   // This test is to ensure there are no bugs, if one attempts to optimize
   // intersections in 'Lattice<Hexagonal>'.

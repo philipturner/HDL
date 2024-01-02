@@ -1,6 +1,6 @@
 //
 //  Filter.swift
-//  MolecularRenderer
+//  HDL
 //
 //  Created by Philip Turner on 12/2/23.
 //

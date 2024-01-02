@@ -1,6 +1,6 @@
 //
 //  Bounds.swift
-//  MolecularRenderer
+//  HDL
 //
 //  Created by Philip Turner on 9/16/23.
 //

@@ -107,39 +107,7 @@ extension BackBoardComponent {
       return repr + " ms"
     }
     
-    // Old Diamondoid API:
-    // lattice 1 - 62.4 ms
-    // lattice 2 - 61.9 ms
-    // lattice 3 - 537.2 ms
-    //
-    // New Topology API:
-    // lattice 1 - 21.4 ms
-    // lattice 2 - 33.3 ms
-    // lattice 3 - 335.9 ms
-    //
-    // With bug fixes to sorting:
-    // lattice 1 - 16.3 ms - 36,154 atoms
-    // lattice 2 - 31.1 ms - 21,324 atoms
-    // lattice 3 - 106.5 ms - 360,350 atoms
     
-    // Before some optimizations to 'lattice' and 'orbitals':
-    // -    atoms: 36,154
-    // -  lattice:  7.0 ms
-    // -    match:  3.9 ms
-    // - orbitals:  2.7 ms
-    // -    total: 13.6 ms
-    //
-    // -    atoms: 21,324
-    // -  lattice: 18.8 ms
-    // -    match:  2.4 ms
-    // - orbitals:  1.5 ms
-    // -    total: 22.7 ms
-    //
-    // -    atoms: 360,350
-    // -  lattice: 34.8 ms
-    // -    match: 42.0 ms
-    // - orbitals: 30.0 ms
-    // -    total: 106.9 ms
     
     let atomCount = topology.atoms.count
     print()

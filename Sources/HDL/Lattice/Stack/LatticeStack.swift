@@ -1,6 +1,6 @@
 //
 //  Stack.swift
-//  MolecularRenderer
+//  HDL
 //
 //  Created by Philip Turner on 9/15/23.
 //

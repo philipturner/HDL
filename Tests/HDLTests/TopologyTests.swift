@@ -745,10 +745,10 @@ final class TopologyTests: XCTestCase {
   // - 3) Optimize the compiler.
   //   - 3.1) Add performance test cases for some snippets of real-world code
   //          from these experiments. ✅
-  //   - 3.2) Enumerate the time spent on different stages of compilation.
+  //   - 3.2) Enumerate the time spent on different stages of compilation. ✅
   //   - 3.3) Create an optimized match(), tuned against both extremes of search
   //          radius and asymmetry. ✅
-  // - 4) Add performance test for the infamous nanofactory back board.
+  // - 4) Add performance test for the infamous nanofactory back board. ✅
   
   // Elaboration on sections 2, 3, and 4:
   //
@@ -777,5 +777,12 @@ final class TopologyTests: XCTestCase {
   //   dimensions is handled incorrectly by the recursive O(nlogn) volume
   //   narrowing algorithm. ✅
   // - unit test the performance of all 3 pieces: the monolithic piece before
-  //   the design change, and the 2 pieces after the design change
+  //   the design change, and the 2 pieces after the design change ✅
+  
+  // TODO: Replicate the flat sheet scaling test in performance tests, to
+  // benchmark performance of multithreading hexagonal lattices? Or just use a
+  // conservative task size that doesn't decrease performance for large problem
+  // sizes. Characteristics are different than Lattice<Cubic> because the
+  // work is dense, not sparse. Smaller cells may be acceptable.
+  
 }

@@ -592,6 +592,21 @@ final class PerformanceTests: XCTestCase {
     // 20     | 129600 |  19932 |  10811 |     6567 | 1.8 -> 3.0
   }
   
-  // TODO: Add the infamous nanofactory back board to performance unit tests.
+  // The infamous nanofactory back board that took ~1000 ms to compile.
+  func testBackBoard() throws {
+    let reportingPerformance = true
+    
+    var smallLeft = BackBoardSmallLeft()
+    smallLeft.compile(reportingPerformance: reportingPerformance)
+    XCTAssertEqual(smallLeft.topology.atoms.count, 36154)
+    
+    var smallRight = BackBoardSmallRight()
+    smallRight.compile(reportingPerformance: reportingPerformance)
+    XCTAssertEqual(smallRight.topology.atoms.count, 21324)
+    
+    var large = BackBoardLarge()
+    large.compile(reportingPerformance: reportingPerformance)
+    XCTAssertEqual(large.topology.atoms.count, 360_350)
+  }
 #endif
 }

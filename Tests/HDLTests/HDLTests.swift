@@ -273,6 +273,13 @@ final class HDLTests: XCTestCase {
   }
   
   // TODO: Enable this test in debug mode once plane intersections are sped up.
+  // Fixing hexagonal grids is not a priority right now. However, it may become
+  // a priority in the future. This test will make that future optimization
+  // process easier.
+  //
+  // Multithreading is an easy fix. However, the massive prefactor from
+  // redundantly checking every voxel is still high. It is not yet suitable to
+  // test in debug mode.
   #if RELEASE
   // This test is to ensure there are no bugs, if one attempts to optimize
   // intersections in 'Lattice<Hexagonal>'.

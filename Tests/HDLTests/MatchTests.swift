@@ -526,3 +526,42 @@ private struct MatchSummary {
 // ----- | ---- | ------- | ----- | ---- | ----
 //  100% |  17% |     15% |   31% |  17% |  19%
 // 36354 | 6325 |    5421 | 11406 | 6354 | 6849
+
+/*
+ Here is code from the Swift Standard Library, explaining the internal layout of
+ ArraySlice. MemoryLayout reports 32 bytes, which matches the data structure
+ shown here.
+ 
+ /// Buffer type for `ArraySlice<Element>`.
+ @frozen
+ @usableFromInline
+ internal struct _SliceBuffer<Element>
+   : _ArrayBufferProtocol,
+     RandomAccessCollection
+ {
+   #if $Embedded
+   @usableFromInline
+   typealias AnyObject = Builtin.NativeObject
+   #endif
+
+   internal typealias NativeStorage = _ContiguousArrayStorage<Element>
+   @usableFromInline
+   internal typealias NativeBuffer = _ContiguousArrayBuffer<Element>
+
+   /// An object that keeps the elements stored in this buffer alive.
+   @usableFromInline
+   internal var owner: AnyObject
+
+   @usableFromInline
+   internal let subscriptBaseAddress: UnsafeMutablePointer<Element>
+
+   /// The position of the first element in a non-empty collection.
+   ///
+   /// In an empty collection, `startIndex == endIndex`.
+   @usableFromInline
+   internal var startIndex: Int
+
+   /// [63:1: 63-bit index][0: has a native buffer]
+   @usableFromInline
+   internal var endIndexAndFlags: UInt
+ */

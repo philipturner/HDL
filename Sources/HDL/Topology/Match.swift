@@ -38,23 +38,21 @@ extension Topology {
     let checkpoint0 = CACurrentMediaTime()
 #endif
     
-    var lhsReorderingInverted: [UInt32] = []
-    var rhsReordering: [UInt32] = []
     var lhsOperand: Operand = .init(atomCount: 0)
     var rhsOperand: Operand = .init(atomCount: 0)
-    
     DispatchQueue.concurrentPerform(iterations: 2) { z in
       if z == 0 {
         let lhsGrid = GridSorter(atoms: input)
         let lhsReordering = lhsGrid.mortonReordering()
-        lhsReorderingInverted = lhsGrid.invertOrder(lhsReordering)
         lhsOperand = transform8(
           input, lhsReordering, include4: false, algorithm: algorithm)
+        lhsOperand.reorderingInverted = lhsGrid.invertOrder(lhsReordering)
       } else if z == 1 {
         let rhsGrid = GridSorter(atoms: atoms)
-        rhsReordering = rhsGrid.mortonReordering()
+        let rhsReordering = rhsGrid.mortonReordering()
         rhsOperand = transform8(
           atoms, rhsReordering, include4: true, algorithm: algorithm)
+        rhsOperand.reordering = rhsReordering
       }
     }
     
@@ -75,16 +73,15 @@ extension Topology {
     
     var outputArray: [UInt32] = []
     var outputRanges: [Range<Int>] = []
-    var outputSlices: [ArraySlice<UInt32>] = []
+    var outputSlices: [ArraySlice<UInt32>?] = []
     for lhsID in input.indices {
-      let lhsReordered = Int(truncatingIfNeeded: lhsReorderingInverted[lhsID])
+      let lhsReordered = Int(
+        truncatingIfNeeded: lhsOperand.reorderingInverted[lhsID])
       let sliceReordered = slicesReordered[lhsReordered]
       
       let rangeStart = outputArray.count
       for rhsReorderedID32 in sliceReordered {
-        let rhsReorderedID = Int(truncatingIfNeeded: rhsReorderedID32)
-        let rhsID = rhsReordering[rhsReorderedID]
-        outputArray.append(rhsID)
+        outputArray.append(rhsReorderedID32)
       }
       let rangeEnd = outputArray.count
       outputRanges.append(rangeStart..<rangeEnd)
@@ -169,7 +166,8 @@ extension Topology {
     precondition(
       outputArray.count == slicesReordered.last!.endIndex,
       "Output indices were mapped incorrectly.")
-    return outputSlices
+    return unsafeBitCast(
+      outputSlices, to: [ArraySlice<UInt32>].self)
     #endif
   }
 }
@@ -260,6 +258,15 @@ private func matchImpl(
       
       // Sort the matches in ascending order of distance.
       localBuffer.sort { $0.y < $1.y }
+      
+      let compactedOpaque = OpaquePointer(
+        localBuffer.baseAddress.unsafelyUnwrapped)
+      let compactedCasted = UnsafeMutablePointer<UInt32>(compactedOpaque)
+      for i in 0..<localBuffer.count {
+        let index = localBuffer[i][0].bitPattern
+        let mortonIndex = rhs.reordering[Int(index)]
+        compactedCasted[i] = mortonIndex
+      }
     }
   }
   
@@ -366,12 +373,15 @@ private func matchImpl(
     let castedCount = UnsafePointer<UInt8>(opaqueCount)
     let address = laneID &* (matchLimit &+ 1)
     let count = Int(castedCount[Int(laneID)])
-    let localBuffer = UnsafeMutableBufferPointer<SIMD2<Float>>(
-      start: matchBuffer.advanced(by: Int(address)), count: count)
+    
+    let floatBuffer = matchBuffer.advanced(by: Int(address))
+    let compactedOpaque = OpaquePointer(floatBuffer)
+    let compactedCasted = UnsafePointer<UInt32>(compactedOpaque)
+    let localBuffer = UnsafeBufferPointer<UInt32>(
+      start: compactedCasted, count: count)
     
     let rangeStart = outputArray.count
-    for match in localBuffer {
-      let atomID = match[0].bitPattern
+    for atomID in localBuffer {
       outputArray.append(atomID)
     }
     let rangeEnd = outputArray.count
@@ -404,6 +414,8 @@ private struct Operand {
   var blockBounds8: [SIMD4<Float>] = []
   var blockBounds32: [SIMD4<Float>] = []
   var blockBounds128: [SIMD4<Float>] = []
+  var reordering: [UInt32] = []
+  var reorderingInverted: [UInt32] = []
 }
 
 @inline(__always)

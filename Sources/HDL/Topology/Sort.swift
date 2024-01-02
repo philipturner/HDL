@@ -209,7 +209,7 @@ extension GridSorter {
         traverseGrid(
           atomIDs: bufferPointer,
           levelOrigin: levelOrigin,
-          levelSize: highestLevelSize)
+          levelSize: octreeStartSize)
       }
     }
     

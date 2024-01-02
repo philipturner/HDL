@@ -151,7 +151,7 @@ struct OctreeSorter {
       traverse(
         atomIDs: bufferPointer,
         levelOrigin: levelOrigin,
-        levelSize: highestLevelSize)
+        levelSize: octreeStartSize)
     }
     precondition(output.count == atoms.count)
     

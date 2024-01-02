@@ -394,6 +394,14 @@ final class MatchTests: XCTestCase {
      - match: 61623
      */
     
+    // There was one more remaining bug. This bug was fixed, cutting execution
+    // time in half (to ~30 milliseconds). Next, there are some load balancing
+    // issues, as the cutoff heuristic puts more work on the single-threaded
+    // part for extremely large grids. The sorting stage consumes ~50-75% of
+    // execution time for the back boards. However, nano-parts that have such
+    // high aspect ratio or such large volume as to trigger this bottleneck may
+    // be bad practice. Fixing the bottleneck is not a priority.
+    
     for sheetSize in sheetSizes {
       let lattice = Lattice<Hexagonal> { h, k, l in
         let h2k = h + 2 * k

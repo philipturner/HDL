@@ -598,7 +598,6 @@ final class TopologyTests: XCTestCase {
         let hydrogenRange = hydrogenMatches[i]
         XCTAssertEqual(orbitalsRange.count, hydrogenRange.count)
         XCTAssertEqual(orbitalsRange.count, 4 - neighborRange.count)
-        XCTAssertEqual(orbitalsRange.indices, hydrogenRange.indices)
         
         var orbitalDirections: [SIMD3<Float>] = []
         var hydrogenDirections: [SIMD3<Float>] = []

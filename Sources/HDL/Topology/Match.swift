@@ -47,6 +47,7 @@ extension Topology {
         lhsOperand = transform8(
           input, lhsReordering, include4: false, algorithm: algorithm)
         lhsOperand.reorderingInverted = lhsGrid.invertOrder(lhsReordering)
+        lhsOperand.reordering = lhsReordering
       } else if z == 1 {
         let rhsGrid = GridSorter(atoms: atoms)
         let rhsReordering = rhsGrid.mortonReordering()
@@ -62,34 +63,12 @@ extension Topology {
     
     // Call the actual matching function.
     var statistics: [Double] = []
-    let slicesReordered = matchImpl(
+    let outputSlices = matchImpl(
       lhs: &lhsOperand,
       rhs: &rhsOperand,
       algorithm: algorithm,
       maximumNeighborCount: maximumNeighborCount,
       statistics: &statistics)
-    precondition(
-      input.count == slicesReordered.count, "Incorrect number of match slices.")
-    
-    var outputArray: [UInt32] = []
-    var outputRanges: [Range<Int>] = []
-    var outputSlices: [ArraySlice<UInt32>?] = []
-    for lhsID in input.indices {
-      let lhsReordered = Int(
-        truncatingIfNeeded: lhsOperand.reorderingInverted[lhsID])
-      let sliceReordered = slicesReordered[lhsReordered]
-      
-      let rangeStart = outputArray.count
-      for rhsReorderedID32 in sliceReordered {
-        outputArray.append(rhsReorderedID32)
-      }
-      let rangeEnd = outputArray.count
-      outputRanges.append(rangeStart..<rangeEnd)
-    }
-    for range in outputRanges {
-      let slice = outputArray[range]
-      outputSlices.append(slice)
-    }
     
 #if PROFILE_MATCH
     let checkpoint5 = CACurrentMediaTime()
@@ -158,16 +137,7 @@ extension Topology {
     }
 #endif
     
-    // WARNING: This code assumes the array slices are contiguous.
-    guard input.count > 0 else {
-      return []
-    }
-    precondition(slicesReordered.first!.startIndex == 0)
-    precondition(
-      outputArray.count == slicesReordered.last!.endIndex,
-      "Output indices were mapped incorrectly.")
-    return unsafeBitCast(
-      outputSlices, to: [ArraySlice<UInt32>].self)
+    return outputSlices
     #endif
   }
 }
@@ -193,18 +163,22 @@ private func matchImpl(
     maximumNeighborCount < UInt8.max, "Maximum neighbor count is too large.")
   let matchLimit = UInt32(maximumNeighborCount)
   let matchBuffer: UnsafeMutablePointer<SIMD2<Float>> =
-    .allocate(capacity: Int(lhsSize32) * 32 * (maximumNeighborCount + 1))
+    .allocate(capacity: Int(lhsSize8) * 8 * (maximumNeighborCount + 1))
   let matchCount: UnsafeMutablePointer<SIMD8<UInt8>> =
     .allocate(capacity: Int(lhsSize8))
   matchCount.initialize(repeating: .zero, count: Int(lhsSize8))
+  let opaqueCount = OpaquePointer(matchCount)
+  let castedCount = UnsafeMutablePointer<UInt8>(opaqueCount)
+  
+  let outRangeCapacity = Int(lhs.atomCount)
+  var outRangeBuffer = [ArraySlice<UInt32>?](
+    unsafeUninitializedCapacity: outRangeCapacity
+  ) { $1 = outRangeCapacity }
+  let outRangePointer = outRangeBuffer.withUnsafeMutableBufferPointer { $0 }
   
 #if PROFILE_MATCH
     let checkpoint2 = CACurrentMediaTime()
 #endif
-  
-  var outputArray: [UInt32] = []
-  var outputRanges: [Range<Int>] = []
-  var outputSlices: [ArraySlice<UInt32>] = []
   
   let loopStartI: UInt32 = 0
   var loopEndI = loopStartI + UInt32(lhs.atomCount * 2) + 256
@@ -220,9 +194,11 @@ private func matchImpl(
     // without adding any special checks/early returns for edge cases.
   } else if taskCount == 1 {
     innerLoop3(0)
+    finishInnerLoop3(0)
   } else {
     DispatchQueue.concurrentPerform(iterations: Int(taskCount)) { z in
       innerLoop3(UInt32(z))
+      finishInnerLoop3(UInt32(z))
     }
   }
   
@@ -236,37 +212,65 @@ private func matchImpl(
         innerLoop2(vIDi3, vIDj3)
       }
     }
-    
+  }
+  
+  func finishInnerLoop3(_ vIDi3: UInt32) {
     let scalarStart = vIDi3 &* 128
     let scalarEnd = min(
       scalarStart &+ 128, UInt32(truncatingIfNeeded: lhs.atomCount))
     
+    let outMatchBuffer = [UInt32](
+      unsafeUninitializedCapacity: 128 &* Int(matchLimit &+ 1)
+    ) { buffer, bufferCount in
+      bufferCount = 128 &* Int(matchLimit &+ 1)
+      let baseAddress = buffer.baseAddress.unsafelyUnwrapped
+      
+      for laneID in scalarStart..<scalarEnd {
+        let address = laneID &* (matchLimit &+ 1)
+        let outAddress = (laneID &- scalarStart) &* (matchLimit &+ 1)
+        let count = Int(castedCount[Int(laneID)])
+        
+        // Remove bogus matches that result from padding the RHS.
+        var localBuffer = UnsafeMutableBufferPointer<SIMD2<Float>>(
+          start: matchBuffer.advanced(by: Int(address)), count: count)
+        while let last = localBuffer.last, last[0].bitPattern >= rhs.atomCount {
+          localBuffer = UnsafeMutableBufferPointer(
+            start: localBuffer.baseAddress, count: localBuffer.count - 1)
+        }
+        castedCount[Int(laneID)] = UInt8(truncatingIfNeeded: localBuffer.count)
+        
+        // Sort the matches in ascending order of distance.
+        localBuffer.sort { $0.y < $1.y }
+        
+        let compactedOpaque = OpaquePointer(
+          localBuffer.baseAddress.unsafelyUnwrapped)
+        let compactedCasted = UnsafeMutablePointer<UInt32>(compactedOpaque)
+        for i in 0..<localBuffer.count {
+          let index = localBuffer[i][0].bitPattern
+          let mortonIndex = rhs.reordering[Int(index)]
+          compactedCasted[i] = mortonIndex
+          baseAddress[Int(outAddress) &+ i] = mortonIndex
+        }
+      }
+    }
+    
     for laneID in scalarStart..<scalarEnd {
-      let opaqueCount = OpaquePointer(matchCount)
-      let castedCount = UnsafeMutablePointer<UInt8>(opaqueCount)
-      let address = laneID &* (matchLimit &+ 1)
+      let outAddress = (laneID &- scalarStart) &* (matchLimit &+ 1)
       let count = Int(castedCount[Int(laneID)])
+      let outID = lhs.reordering[Int(laneID)]
       
-      // Remove bogus matches that result from padding the RHS.
-      var localBuffer = UnsafeMutableBufferPointer<SIMD2<Float>>(
-        start: matchBuffer.advanced(by: Int(address)), count: count)
-      while let last = localBuffer.last, last[0].bitPattern >= rhs.atomCount {
-        localBuffer = UnsafeMutableBufferPointer(
-          start: localBuffer.baseAddress, count: localBuffer.count - 1)
+      let opaqueRange = OpaquePointer(outRangePointer.baseAddress!)
+      let castedRange = UnsafeMutablePointer<UInt>(opaqueRange)
+      let pointer = castedRange.advanced(by: Int(outID &* 4))
+      for i in 0..<4 {
+        // Initialize the array to 'nil', on multiple CPU cores at once,
+        // without causing a crash.
+        pointer[i] = 0
       }
-      castedCount[Int(laneID)] = UInt8(truncatingIfNeeded: localBuffer.count)
       
-      // Sort the matches in ascending order of distance.
-      localBuffer.sort { $0.y < $1.y }
-      
-      let compactedOpaque = OpaquePointer(
-        localBuffer.baseAddress.unsafelyUnwrapped)
-      let compactedCasted = UnsafeMutablePointer<UInt32>(compactedOpaque)
-      for i in 0..<localBuffer.count {
-        let index = localBuffer[i][0].bitPattern
-        let mortonIndex = rhs.reordering[Int(index)]
-        compactedCasted[i] = mortonIndex
-      }
+      let rangeStart = Int(outAddress)
+      let rangeEnd = rangeStart &+ count
+      outRangePointer[Int(outID)] = outMatchBuffer[rangeStart..<rangeEnd]
     }
   }
   
@@ -368,40 +372,16 @@ private func matchImpl(
     let checkpoint3 = CACurrentMediaTime()
 #endif
   
-  for laneID in 0..<UInt32(lhs.atomCount) {
-    let opaqueCount = OpaquePointer(matchCount)
-    let castedCount = UnsafePointer<UInt8>(opaqueCount)
-    let address = laneID &* (matchLimit &+ 1)
-    let count = Int(castedCount[Int(laneID)])
-    
-    let floatBuffer = matchBuffer.advanced(by: Int(address))
-    let compactedOpaque = OpaquePointer(floatBuffer)
-    let compactedCasted = UnsafePointer<UInt32>(compactedOpaque)
-    let localBuffer = UnsafeBufferPointer<UInt32>(
-      start: compactedCasted, count: count)
-    
-    let rangeStart = outputArray.count
-    for atomID in localBuffer {
-      outputArray.append(atomID)
-    }
-    let rangeEnd = outputArray.count
-    outputRanges.append(rangeStart..<rangeEnd)
-  }
-  
-  for range in outputRanges {
-    let slice = outputArray[range]
-    outputSlices.append(slice)
-  }
+  matchBuffer.deallocate()
+  matchCount.deallocate()
   
 #if PROFILE_MATCH
     let checkpoint4 = CACurrentMediaTime()
   statistics = [checkpoint2, checkpoint3, checkpoint4]
 #endif
   
-  matchBuffer.deallocate()
-  matchCount.deallocate()
   
-  return outputSlices
+  return unsafeBitCast(outRangeBuffer, to: [ArraySlice<UInt32>].self)
 }
 
 // MARK: - Block Comparison

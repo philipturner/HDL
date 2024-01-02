@@ -169,7 +169,10 @@ final class MatchTests: XCTestCase {
   // - Optimization 13: fuse Morton order mapping with preparation
   // - Optimization 14: remove a memory or object allocation bottleneck
   // - Optimization 15: fuse several post-processing stages into one pass
-  // - Optimization 16: multithread more of the pre- and post-processing
+  // - Optimization 16: multithread more of the pre-processing
+  //   - experiment with increasing the number of volume subdivisions for sort()
+  // - Optimization 17: experiment with 32/64-scoped task distribution and
+  //   disabling sorting for the smallest problem sizes
   //
   // lattice size = 3
   //
@@ -186,6 +189,7 @@ final class MatchTests: XCTestCase {
   // Optimization 12 |    142 |    112 |    100 | 0.507 | 0.609 | 0.545 |
   // Optimization 13 |    131 |     91 |     90 | 0.468 | 0.495 | 0.490 |
   // Optimization 14 |     97 |     70 |     74 | 0.346 | 0.380 | 0.403 |
+  // Optimization 15 |     87 |     61 |     67 | 0.311 | 0.332 | 0.365 |
   //
   // lattice size = 6
   //
@@ -202,6 +206,7 @@ final class MatchTests: XCTestCase {
   // Optimization 12 |    699 |    295 |    383 | 0.356 | 0.371 | 0.395 |
   // Optimization 13 |    712 |    298 |    366 | 0.363 | 0.374 | 0.378 |
   // Optimization 14 |    457 |    212 |    314 | 0.233 | 0.266 | 0.324 |
+  // Optimization 15 |    383 |    190 |    293 | 0.195 | 0.239 | 0.302 |
   //
   // lattice size = 24
   //
@@ -218,6 +223,7 @@ final class MatchTests: XCTestCase {
   // Optimization 12 |  36676 |   3037 |  10749 | 0.321 | 0.224 | 0.376 |
   // Optimization 13 |  38097 |   3333 |  10848 | 0.334 | 0.246 | 0.379 |
   // Optimization 14 |  24622 |   2171 |  10113 | 0.216 | 0.160 | 0.353 |
+  // Optimization 15 |  18380 |   1709 |   9784 | 0.161 | 0.126 | 0.342 |
   //
   // C-C       |
   // --------- |
@@ -526,6 +532,26 @@ private struct MatchSummary {
 // ----- | ---- | ------- | ----- | ---- | ----
 //  100% |  17% |     15% |   31% |  17% |  19%
 // 36354 | 6325 |    5421 | 11406 | 6354 | 6849
+
+// After several additional optimizations:
+//
+// atoms: 280 x 280
+// total | sort | prepare | match | sort | map
+// ----- | ---- | ------- | ----- | ---- | ---
+//  100% |  68% |      3% |   29% |   0% |  0%
+//   109 |   74 |       3 |    32 |    0 |   0
+//
+// atoms: 1963 x 1963
+// total | sort | prepare | match | sort | map
+// ----- | ---- | ------- | ----- | ---- | ---
+//  100% |  59% |      1% |   40% |   0% |  0%
+//   385 |  229 |       2 |   153 |    0 |   0
+//
+// atoms: 114121 x 114121
+// total | sort | prepare | match | sort | map
+// ----- | ---- | ------- | ----- | ---- | ---
+//  100% |  51% |      0% |   48% |   1% |  0%
+// 18399 | 9353 |       4 |  8889 |  152 |   0
 
 /*
  Here is code from the Swift Standard Library, explaining the internal layout of

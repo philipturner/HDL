@@ -172,6 +172,11 @@ final class MatchTests: XCTestCase {
   // - Optimization 16: parallelize a tiny portion of pre-processing
   // - Optimization 17: disable sorting for the smallest problem sizes
   //
+  // In the final state of optimization, asymptotically small problems only have
+  // ~5 microseconds of latency. It is not clear exactly how such small latency
+  // is being achieved with 'DispatchQueue.concurrentPerform', but it is a good
+  // thing. The issue of O(1) overhead will not be investigated further.
+  //
   // lattice size = 3
   //
   // Version         | Total Time               | Ratio / n^2           |
@@ -235,20 +240,22 @@ final class MatchTests: XCTestCase {
     // shape separately.
     var summary = MatchSummary()
     defer {
-      print()
-      print("Match Performance Report")
-      print()
-      print(summary.createReport(header: "C-C"))
-      print()
-      print(summary.createReport(header: "H-H"))
-      print()
-      print(summary.createReport(header: "H-C"))
-      print()
+      if Self.printPerformanceSummary {
+        print()
+        print("Match Performance Report")
+        print()
+        print(summary.createReport(header: "C-C"))
+        print()
+        print(summary.createReport(header: "H-H"))
+        print()
+        print(summary.createReport(header: "H-C"))
+        print()
+      }
     }
     
     // Compute cost scales with the sixth power of lattice width.
     #if RELEASE
-    let latticeSizes: [Float] = [2, 3, 4, 5, 6, 7, 8, 10, 16, 24]
+    let latticeSizes: [Float] = [1, 1, 2, 3, 4, 5, 6, 7, 8, 10, 16, 24]
     #else
     let latticeSizes: [Float] = [2, 3]
     #endif
@@ -529,6 +536,71 @@ private struct MatchSummary {
 // ----- | ---- | ------- | ----- | ---- | ---
 //  100% |  51% |      0% |   48% |   1% |  0%
 // 18399 | 9353 |       4 |  8889 |  152 |   0
+
+// Final state before optimization is finished:
+//
+// atoms: 280 x 280
+// total | sort | prepare | match | sort | map
+// ----- | ---- | ------- | ----- | ---- | ---
+//  100% |  43% |      2% |   54% |   1% |  0%
+//    59 |   25 |       1 |    32 |    1 |   0
+//
+// atoms: 1963 x 1963
+// total | sort | prepare | match | sort | map
+// ----- | ---- | ------- | ----- | ---- | ---
+//  100% |  30% |      2% |   68% |   0% |  0%
+//   239 |   73 |       4 |   162 |    1 |   0
+//
+// atoms: 114121 x 114121
+// total | sort | prepare | match | sort | map
+// ----- | ---- | ------- | ----- | ---- | ---
+//  100% |  49% |      0% |   50% |   1% |  0%
+// 17747 | 8729 |       7 |  8861 |  149 |   1
+//
+//                  C-C
+// --------------- | ----- | ------- | -----
+//     18 x     18 |    19 |       0 | 1.056
+//     18 x     18 |     7 |       0 | 0.389
+//     95 x     95 |    20 |       1 | 0.211
+//    280 x    280 |    66 |      15 | 0.236
+//    621 x    621 |   110 |      77 | 0.177
+//   1166 x   1166 |   173 |     271 | 0.148
+//   1963 x   1963 |   241 |     770 | 0.123
+//   3060 x   3060 |   369 |    1872 | 0.121
+//   4505 x   4505 |   536 |    4059 | 0.119
+//   8631 x   8631 |  1098 |   14898 | 0.127
+//  34353 x  34353 |  5282 |  236025 | 0.154
+// 114121 x 114121 | 17709 | 2604720 | 0.155
+//
+//                 H-H
+// ------------- | ---- | ----- | -----
+//    16 x    16 |    7 |     0 | 0.438
+//    16 x    16 |    3 |     0 | 0.188
+//    76 x    76 |   14 |     1 | 0.184
+//   184 x   184 |   41 |     6 | 0.223
+//   340 x   340 |   76 |    23 | 0.224
+//   544 x   544 |  100 |    59 | 0.184
+//   796 x   796 |  136 |   126 | 0.171
+//  1096 x  1096 |  177 |   240 | 0.161
+//  1444 x  1444 |  207 |   417 | 0.143
+//  2284 x  2284 |  296 |  1043 | 0.130
+//  5956 x  5956 |  972 |  7094 | 0.163
+// 13540 x 13540 | 1630 | 36666 | 0.120
+//
+//               H-C
+// ------------- | ---- | ------ | -----
+//   16 x     10 |    4 |      0 | 0.316
+//   16 x     10 |   14 |      0 | 1.107
+//   64 x     75 |   14 |      0 | 0.202
+//  136 x    248 |   46 |      6 | 0.250
+//  232 x    577 |   67 |     26 | 0.183
+//  352 x   1110 |  131 |     78 | 0.210
+//  496 x   1895 |  200 |    187 | 0.206
+//  664 x   2980 |  259 |    395 | 0.184
+//  856 x   4413 |  327 |    755 | 0.168
+// 1312 x   8515 |  519 |   2234 | 0.155
+// 3256 x  34165 | 3070 |  22248 | 0.291
+// 7192 x 113837 | 9510 | 163743 | 0.332
 
 /*
  Here is code from the Swift Standard Library, explaining the internal layout of

@@ -772,6 +772,4 @@ final class TopologyTests: XCTestCase {
   // time spent in each stage. This includes sorting.
   // - gather quantitative statistics of how long it took to generate with the
   //   old Diamondoid API
-  // - remove the macros for profiling 'match()', now that all optimizations
-  //   have been implemented
 }

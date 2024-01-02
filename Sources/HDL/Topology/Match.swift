@@ -7,7 +7,16 @@
 
 import Dispatch
 #if PROFILE_MATCH
-import QuartzCore
+import System
+
+private let startTime = ContinuousClock.now
+
+private func cross_platform_media_time() -> Double {
+  let duration = ContinuousClock.now.duration(to: startTime)
+  let seconds = duration.components.seconds
+  let attoseconds = duration.components.attoseconds
+  return -(Double(seconds) + Double(attoseconds) * 1e-18)
+}
 #endif
 
 extension Topology {
@@ -24,18 +33,12 @@ extension Topology {
     algorithm: MatchAlgorithm = .covalentBondLength(1.5),
     maximumNeighborCount: Int = 8
   ) -> [ArraySlice<UInt32>] {
-    // Try creating a cutoff. For very small structures, sorting may
-    // harm performance more than it helps. Multithreading also harms
-    // performance for small-enough problem sizes and must be selectively
-    // disabled. It would be simple to have just 2 ensemble members:
-    // - single-threaded, no sorting
-    // - multi-threaded, sorting
     #if false
     return matchImpl(lhs: input, rhs: atoms, algorithm: algorithm)
     
     #else
 #if PROFILE_MATCH
-    let checkpoint0 = CACurrentMediaTime()
+    let checkpoint0 = cross_platform_media_time()
 #endif
     
     let rmsAtomCount = (Float(input.count) * Float(atoms.count)).squareRoot()
@@ -67,7 +70,7 @@ extension Topology {
     }
     
 #if PROFILE_MATCH
-    let checkpoint1 = CACurrentMediaTime()
+    let checkpoint1 = cross_platform_media_time()
 #endif
     
     // Call the actual matching function.
@@ -80,7 +83,7 @@ extension Topology {
       statistics: &statistics)
     
 #if PROFILE_MATCH
-    let checkpoint5 = CACurrentMediaTime()
+    let checkpoint5 = cross_platform_media_time()
     let checkpoints = [checkpoint0, checkpoint1] + statistics + [checkpoint5]
     do {
       //             0-1      1-2        2-3      3-4    4-5
@@ -186,7 +189,7 @@ private func matchImpl(
   let outRangePointer = outRangeBuffer.withUnsafeMutableBufferPointer { $0 }
   
 #if PROFILE_MATCH
-    let checkpoint2 = CACurrentMediaTime()
+    let checkpoint2 = cross_platform_media_time()
 #endif
   
   let loopStartI: UInt32 = 0
@@ -378,14 +381,14 @@ private func matchImpl(
   // MARK: - Sort
   
 #if PROFILE_MATCH
-    let checkpoint3 = CACurrentMediaTime()
+    let checkpoint3 = cross_platform_media_time()
 #endif
   
   matchBuffer.deallocate()
   matchCount.deallocate()
   
 #if PROFILE_MATCH
-    let checkpoint4 = CACurrentMediaTime()
+    let checkpoint4 = cross_platform_media_time()
   statistics = [checkpoint2, checkpoint3, checkpoint4]
 #endif
   

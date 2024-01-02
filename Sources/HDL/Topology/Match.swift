@@ -46,7 +46,6 @@ extension Topology {
         let lhsReordering = lhsGrid.mortonReordering()
         lhsOperand = transform8(
           input, lhsReordering, include4: false, algorithm: algorithm)
-        lhsOperand.reorderingInverted = lhsGrid.invertOrder(lhsReordering)
         lhsOperand.reordering = lhsReordering
       } else if z == 1 {
         let rhsGrid = GridSorter(atoms: atoms)
@@ -395,31 +394,36 @@ private struct Operand {
   var blockBounds32: [SIMD4<Float>] = []
   var blockBounds128: [SIMD4<Float>] = []
   var reordering: [UInt32] = []
-  var reorderingInverted: [UInt32] = []
 }
 
-@inline(__always)
 private func transform8(
   _ atoms: [Entity],
   _ reordering: [UInt32],
   include4: Bool,
   algorithm: Topology.MatchAlgorithm
 ) -> Operand {
+  @inline(__always)
+  func makeArray<T>(_ capacity: Int) -> [T] {
+    [T](unsafeUninitializedCapacity: capacity) {
+      $1 = capacity
+    }
+  }
+  
   var output = Operand(atomCount: atoms.count)
   let paddedAtomCount = (atoms.count + 127) / 128 * 128
-  output.transformed8.reserveCapacity(4 * paddedAtomCount / 8)
+  output.transformed8 = makeArray(4 * paddedAtomCount / 8)
   if include4 {
-    output.transformed4.reserveCapacity(paddedAtomCount)
+    output.transformed4 = makeArray(paddedAtomCount)
   }
-  output.blockBounds8.reserveCapacity(paddedAtomCount / 8)
-  output.blockBounds32.reserveCapacity(paddedAtomCount / 32)
-  output.blockBounds128.reserveCapacity(paddedAtomCount / 128)
+  output.blockBounds8 = makeArray(paddedAtomCount / 8)
+  output.blockBounds32 = makeArray(paddedAtomCount / 32)
+  output.blockBounds128 = makeArray(paddedAtomCount / 128)
   
-  // Accumulate data at the 32-atom granularity. At the same time, generate most
-  // of the other per-operand data.
+  // Accumulate data at the 32-atom granularity. At the same time, generate
+  // most of the other per-operand data.
   var currentBlockBox32: SIMD8<Float> = .zero
   var blockBoxes32: [SIMD8<Float>] = []
-  blockBoxes32.reserveCapacity(paddedAtomCount / 32)
+  blockBoxes32 = makeArray(paddedAtomCount / 32)
   
   let vIDEnd = (UInt32(atoms.count) + 7) / 8
   for vID in 0..<vIDEnd {
@@ -439,7 +443,7 @@ private func transform8(
         let atomicNumber = Int(atom.w)
         vecR[Int(laneID)] = Element.covalentRadii[atomicNumber]
         if include4 {
-          output.transformed4.append(atom)
+          output.transformed4[Int(vID &* 8 &+ laneID)] = atom
         }
       }
     } else {
@@ -453,15 +457,20 @@ private func transform8(
         
         let atomicNumber = Int(atom.w)
         vecR[Int(laneID)] = Element.covalentRadii[atomicNumber]
-        output.transformed4.append(atom)
+        if include4 {
+          output.transformed4[Int(vID &* 8 &+ laneID)] = atom
+        }
       }
-      let last = output.transformed4.last ?? .zero
+      let last = (paddedAtomCount > 0 && include4)
+      ? output.transformed4[paddedAtomCount &- 1] : .zero
       for laneID in validLanes..<8 {
         vecX[Int(laneID)] = vecX[Int(validLanes &- 1)]
         vecY[Int(laneID)] = vecY[Int(validLanes &- 1)]
         vecZ[Int(laneID)] = vecZ[Int(validLanes &- 1)]
         vecR[Int(laneID)] = vecR[Int(validLanes &- 1)]
-        output.transformed4.append(last)
+        if include4 {
+          output.transformed4[Int(vID &* 8 &+ laneID)] = last
+        }
       }
     }
     switch algorithm {
@@ -476,10 +485,10 @@ private func transform8(
       }
     }
     
-    output.transformed8.append(vecX)
-    output.transformed8.append(vecY)
-    output.transformed8.append(vecZ)
-    output.transformed8.append(vecR)
+    output.transformed8[Int(vID &* 4 &+ 0)] = vecX
+    output.transformed8[Int(vID &* 4 &+ 1)] = vecY
+    output.transformed8[Int(vID &* 4 &+ 2)] = vecZ
+    output.transformed8[Int(vID &* 4 &+ 3)] = vecR
     output.paddedCutoff = max(output.paddedCutoff, vecR.max())
     
     let minimum = SIMD4(vecX.min(), vecY.min(), vecZ.min(), 0)
@@ -492,7 +501,7 @@ private func transform8(
     let deltaZ = vecZ - bounds.z
     let deltaSq = deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ
     bounds.w = deltaSq.max().squareRoot()
-    output.blockBounds8.append(bounds)
+    output.blockBounds8[Int(vID)] = bounds
     
     if (vID % 4 == 0) {
       currentBlockBox32 = SIMD8(lowHalf: minimum, highHalf: maximum)
@@ -503,9 +512,10 @@ private func transform8(
         with: maximum, where: maximum .> currentBlockBox32.highHalf)
     }
     if (vID % 4 == 3) || (vID == vIDEnd &- 1) {
-      let bounds = (currentBlockBox32.lowHalf + currentBlockBox32.highHalf) / 2
-      output.blockBounds32.append(bounds)
-      blockBoxes32.append(currentBlockBox32)
+      let bounds =
+      (currentBlockBox32.lowHalf + currentBlockBox32.highHalf) / 2
+      output.blockBounds32[Int(vID / 4)] = bounds
+      blockBoxes32[Int(vID / 4)] = currentBlockBox32
     }
   }
   
@@ -516,9 +526,10 @@ private func transform8(
     let vID128End = (UInt32(atoms.count) + 127) / 128
     
     if include4 {
-      let last4 = output.transformed4.last ?? .zero
-      for _ in vID8End * 8..<vID128End * 128 {
-        output.transformed4.append(last4)
+      let last = (paddedAtomCount > 0)
+      ? output.transformed4[paddedAtomCount - 1] : .zero
+      for i in vID8End * 8..<vID128End * 128 {
+        output.transformed4[Int(i)] = last
       }
     }
     
@@ -527,19 +538,22 @@ private func transform8(
     let vecZ = output.transformed8[Int(vID8End &* 4 &- 2)]
     let vecR = output.transformed8[Int(vID8End &* 4 &- 1)]
     let bound8 = output.blockBounds8[Int(vID8End &- 1)]
-    for _ in vID8End..<vID128End * 16 {
-      output.transformed8.append(vecX)
-      output.transformed8.append(vecY)
-      output.transformed8.append(vecZ)
-      output.transformed8.append(vecR)
-      output.blockBounds8.append(bound8)
+    for i in vID8End..<vID128End * 16 {
+      output.transformed8[Int(i &* 4 &+ 0)] = vecX
+      output.transformed8[Int(i &* 4 &+ 1)] = vecY
+      output.transformed8[Int(i &* 4 &+ 2)] = vecZ
+      output.transformed8[Int(i &* 4 &+ 3)] = vecR
+      output.blockBounds8[Int(i)] = bound8
     }
     
-    let box32 = blockBoxes32.last ?? .zero
-    let bound32 = output.blockBounds32.last ?? .zero
-    for _ in vID32End..<vID128End * 4 {
-      blockBoxes32.append(box32)
-      output.blockBounds32.append(bound32)
+    let box32 = (paddedAtomCount > 0)
+    ? blockBoxes32[paddedAtomCount / 32 &- 1] : .zero
+    
+    let bound32 = (paddedAtomCount > 0)
+    ? output.blockBounds32[paddedAtomCount / 32 &- 1] : .zero
+    for i in vID32End..<vID128End * 4 {
+      blockBoxes32[Int(i)] = box32
+      output.blockBounds32[Int(i)] = bound32
     }
   }
   
@@ -560,7 +574,7 @@ private func transform8(
     }
     
     let bounds = (blockBox128.lowHalf + blockBox128.highHalf) / 2
-    output.blockBounds128.append(bounds)
+    output.blockBounds128[Int(vID128)] = bounds
   }
   
   // Pre-compute the distance of each atom from the center.

@@ -14,6 +14,30 @@ extension Topology {
     case bonds
   }
   
+  public struct MapStorage: Collection {
+    var storage: SIMD8<Int32>
+    
+    public typealias Index = Int
+    
+    public typealias Element = UInt32
+    
+    public var startIndex: Int { 0 }
+    
+    public var endIndex: Int {
+      Int(truncatingIfNeeded: storage[7])
+    }
+    
+    public func index(after i: Int) -> Int {
+      i + 1
+    }
+    
+    public subscript(position: Int) -> UInt32 {
+      _read {
+         yield UInt32(truncatingIfNeeded: storage[position])
+      }
+    }
+  }
+  
   public func map(
     _ primaryType: MapType,
     to secondaryType: MapType

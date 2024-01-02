@@ -187,7 +187,7 @@ let bondsToAtomsMap = topology.map(.bonds, to: .atoms)
 
 Create a map that points from atoms/bonds to a list of connected atoms/bonds.
 
-The primary and secondary type cannot both be `.bonds`. There cannot be more than 8 connections to an atom. If one of the types is `.bonds`, the indices within the array slice are always sorted. Otherwise, the indices correspond to bonds in ascending order.
+The primary and secondary type cannot both be `.bonds`. There cannot be more than 7 connections to an atom. If one of the types is `.bonds`, the indices within the array slice are always sorted. Otherwise, the indices correspond to bonds in ascending order.
 
 ```swift
 extension Topology {

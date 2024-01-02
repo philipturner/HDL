@@ -24,11 +24,48 @@ extension Topology {
     }
   }
   
+  public struct OrbitalStorage: Collection {
+    var storage: SIMD16<Float>
+    
+    public typealias Index = Int
+    
+    public typealias Element = SIMD3<Float>
+    
+    public var startIndex: Int { 0 }
+    
+    public var endIndex: Int {
+      Int(storage[15])
+    }
+    
+    public func index(after i: Int) -> Int {
+      i + 1
+    }
+    
+    public subscript(position: Int) -> SIMD3<Float> {
+      _read {
+        var vec4: SIMD4<Float>
+        switch position {
+        case 0:
+          vec4 = storage.lowHalf.lowHalf
+        case 1:
+          vec4 = storage.lowHalf.highHalf
+        case 2:
+          vec4 = storage.highHalf.lowHalf
+        case 3:
+          vec4 = storage.highHalf.highHalf
+        default:
+          fatalError("Invalid position: \(position)")
+        }
+        yield unsafeBitCast(vec4, to: SIMD3<Float>.self)
+      }
+    }
+  }
+  
   // After reducing the overhead of array slice generation, elide the creation
   // of the atoms-to-atoms map. Just use the connections buffer directly.
   public func nonbondingOrbitals(
     hybridization: OrbitalHybridization = .sp3
-  ) -> [ArraySlice<SIMD3<Float>>] {
+  ) -> [OrbitalStorage] {
     /*
      Some performance data gathered before performing any optimizations:
      -   atoms: 237704
@@ -39,78 +76,44 @@ extension Topology {
      */
     
     let connectionsMap = createConnnectionsMap(secondaryType: .atoms)
+    var storageBuffer = [OrbitalStorage](
+      repeating: .init(storage: .zero), count: atoms.count)
     
-   
+    let taskSize: Int = 5_000
+    let taskCount = (atoms.count + taskSize - 1) / taskSize
     
-    
-    
-    var outRangeBuffer = [ArraySlice<SIMD3<Float>>?](
-      unsafeUninitializedCapacity: atoms.count
-    ) { $1 = atoms.count }
-    let outRangePointer = outRangeBuffer.withUnsafeMutableBufferPointer { $0 }
-    
-    
-    
-    var orbitalCounts: [Int] = Array(repeating: 0, count: atoms.count)
-    let outputArray = [SIMD3<Float>](
-      unsafeUninitializedCapacity: atoms.count &* 2
-    ) { buffer, bufferCount in
-      bufferCount = atoms.count &* 2
-      let baseAddress = buffer.baseAddress.unsafelyUnwrapped
-      
-      let taskSize: Int = 5_000
-      let taskCount = (atoms.count + taskSize - 1) / taskSize
-      
-      func execute(taskID: Int) {
-        let scalarStart = taskID &* taskSize
-        let scalarEnd = min(scalarStart &+ taskSize, atoms.count)
-        for atomID in scalarStart..<scalarEnd {
-          let (orbitalCount, orbital1, orbital2) = addOrbitals(
-            atoms: atoms,
-            atomID: atomID,
-            bonds: bonds,
-            connectionsMap: connectionsMap,
-            hybridization: hybridization)
-          orbitalCounts[atomID &- 0] = orbitalCount
-          
-          if orbitalCount > 0 {
-            baseAddress[(atomID &- 0) &* 2 &+ 0] = orbital1
-            baseAddress[(atomID &- 0) &* 2 &+ 1] = orbital2
-          }
-        }
-      }
-      
-      if taskCount == 0 {
+    func execute(taskID: Int) {
+      let scalarStart = taskID &* taskSize
+      let scalarEnd = min(scalarStart &+ taskSize, atoms.count)
+      for atomID in scalarStart..<scalarEnd {
+        let (orbitalCount, orbital1, orbital2) = addOrbitals(
+          atoms: atoms,
+          atomID: atomID,
+          bonds: bonds,
+          connectionsMap: connectionsMap,
+          hybridization: hybridization)
         
-      } else if taskCount == 1 {
-        for taskID in 0..<taskCount {
-          execute(taskID: taskID)
-        }
-      } else {
-        DispatchQueue.concurrentPerform(iterations: taskCount) { z in
-          execute(taskID: z)
-        }
+        var storage = OrbitalStorage(storage: .zero)
+        storage.storage.lowHalf.lowHalf = SIMD4(orbital1, 0)
+        storage.storage.lowHalf.highHalf = SIMD4(orbital2, 0)
+        storage.storage[15] = Float(orbitalCount)
+        storageBuffer[atomID] = storage
       }
     }
     
-    for atomID in 0..<atoms.count {
-      let rangeStart = (atomID &- 0) &* 2
-      let rangeEnd = rangeStart &+ orbitalCounts[atomID &- 0]
+    if taskCount == 0 {
       
-      let opaqueRange = OpaquePointer(outRangePointer.baseAddress!)
-      let castedRange = UnsafeMutablePointer<UInt>(opaqueRange)
-      let pointer = castedRange.advanced(by: Int(atomID &* 4))
-      for i in 0..<4 {
-        // Initialize the array to 'nil', on multiple CPU cores at once,
-        // without causing a crash.
-        pointer[i] = 0
+    } else if taskCount == 1 {
+      for taskID in 0..<taskCount {
+        execute(taskID: taskID)
       }
-      if rangeEnd > rangeStart {
-        outRangePointer[atomID] = outputArray[rangeStart..<rangeEnd]
+    } else {
+      DispatchQueue.concurrentPerform(iterations: taskCount) { z in
+        execute(taskID: z)
       }
     }
-    
-    return unsafeBitCast(outRangeBuffer, to: [_].self)
+
+    return storageBuffer
   }
 }
 

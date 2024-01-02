@@ -38,18 +38,28 @@ extension Topology {
     let checkpoint0 = CACurrentMediaTime()
 #endif
     
+    let rmsAtomCount = (Float(input.count) * Float(atoms.count)).squareRoot()
+    func reorder(_ atoms: [Entity]) -> [UInt32] {
+      if rmsAtomCount < 10_000 {
+        return atoms.indices.map {
+          UInt32(truncatingIfNeeded: $0)
+        }
+      } else {
+        let grid = GridSorter(atoms: atoms)
+        return grid.mortonReordering()
+      }
+    }
+    
     var lhsOperand: Operand = .init(atomCount: 0)
     var rhsOperand: Operand = .init(atomCount: 0)
     DispatchQueue.concurrentPerform(iterations: 2) { z in
       if z == 0 {
-        let lhsGrid = GridSorter(atoms: input)
-        let lhsReordering = lhsGrid.mortonReordering()
+        let lhsReordering = reorder(input)
         lhsOperand = transform8(
           input, lhsReordering, include4: false, algorithm: algorithm)
         lhsOperand.reordering = lhsReordering
       } else if z == 1 {
-        let rhsGrid = GridSorter(atoms: atoms)
-        let rhsReordering = rhsGrid.mortonReordering()
+        let rhsReordering = reorder(atoms)
         rhsOperand = transform8(
           atoms, rhsReordering, include4: true, algorithm: algorithm)
         rhsOperand.reordering = rhsReordering

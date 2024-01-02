@@ -226,6 +226,8 @@ For `covalentBondScale`, bond length is determined by summing the covalent radii
 
 `maximumNeighborCount` is 8 by default. This means most `match()` invocations searching beyond a single covalent bond length will fail. You may increase the limit for returned matches, but doing so may increase compile time.
 
+You are encouraged to sort the topology before calling `match()`. Otherwise, the search algorithm may degrade from $O(n)$ to $O(n^2)$. The overhead of sorting is significant and often takes more time than just running the match. Therefore, the internal implementation only performs sorting when the atom count is ~10,000. This is a performance sweet spot for highly ordered distributions (e.g. atoms directly fetched from a crystal lattice). However, it may not be a sweet spot for extremely disordered distributions.
+
 ```swift
 mutating func insert(atoms: [Entity])
 mutating func insert(bonds: [SIMD2<UInt32>])

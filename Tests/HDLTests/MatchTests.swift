@@ -167,7 +167,9 @@ final class MatchTests: XCTestCase {
   // - Optimization 11: fully optimize the preparation stage
   // - Optimization 12: multithread the searching stage
   // - Optimization 13: fuse Morton order mapping with preparation
-  // - Optimization 14: fuse Morton order de-mapping with array sorting
+  // - Optimization 14: remove a memory or object allocation bottleneck
+  // - Optimization 15: fuse several post-processing stages into one pass
+  // - Optimization 16: multithread more of the pre- and post-processing
   //
   // lattice size = 3
   //
@@ -183,6 +185,7 @@ final class MatchTests: XCTestCase {
   // Optimization 11 |    184 |    110 |     96 | 0.657 | 0.598 | 0.523 |
   // Optimization 12 |    142 |    112 |    100 | 0.507 | 0.609 | 0.545 |
   // Optimization 13 |    131 |     91 |     90 | 0.468 | 0.495 | 0.490 |
+  // Optimization 14 |     97 |     70 |     74 | 0.346 | 0.380 | 0.403 |
   //
   // lattice size = 6
   //
@@ -198,6 +201,7 @@ final class MatchTests: XCTestCase {
   // Optimization 11 |   1252 |    349 |    464 | 0.638 | 0.438 | 0.479 |
   // Optimization 12 |    699 |    295 |    383 | 0.356 | 0.371 | 0.395 |
   // Optimization 13 |    712 |    298 |    366 | 0.363 | 0.374 | 0.378 |
+  // Optimization 14 |    457 |    212 |    314 | 0.233 | 0.266 | 0.324 |
   //
   // lattice size = 24
   //
@@ -213,6 +217,7 @@ final class MatchTests: XCTestCase {
   // Optimization 11 | 101426 |   4566 |  16673 | 0.889 | 0.337 | 0.583 |
   // Optimization 12 |  36676 |   3037 |  10749 | 0.321 | 0.224 | 0.376 |
   // Optimization 13 |  38097 |   3333 |  10848 | 0.334 | 0.246 | 0.379 |
+  // Optimization 14 |  24622 |   2171 |  10113 | 0.216 | 0.160 | 0.353 |
   //
   // C-C       |
   // --------- |

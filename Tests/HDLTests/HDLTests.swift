@@ -187,31 +187,32 @@ final class HDLTests: XCTestCase {
       }
       return output
     }
-    func withOrbitals(_ closure: ([ArraySlice<SIMD3<Float>>]) -> Void) {
+    func withOrbitalCount(_ closure: (Int) -> Void) {
       let orbitals = structure.topology.nonbondingOrbitals(hybridization: .sp2)
-      closure(orbitals)
+      let count = orbitals.reduce(0) { $0 + $1.count }
+      closure(count)
     }
     
     structure.compilationPass0()
     XCTAssertEqual(structure.topology.atoms.count, 54)
     XCTAssertEqual(structure.topology.bonds.count, 0)
     XCTAssertEqual(filter(6).count, 54)
-    withOrbitals { orbitals in
-      XCTAssertEqual(orbitals.last!.endIndex, 0)
+    withOrbitalCount { orbitalCount in
+      XCTAssertEqual(orbitalCount, 0)
     }
     
     structure.compilationPass1()
     XCTAssertEqual(structure.topology.atoms.count, 54)
     XCTAssertEqual(structure.topology.bonds.count, 0)
-    withOrbitals { orbitals in
-      XCTAssertEqual(orbitals.last!.endIndex, 0)
+    withOrbitalCount { orbitalCount in
+      XCTAssertEqual(orbitalCount, 0)
     }
     
     structure.compilationPass2()
     XCTAssertEqual(structure.topology.atoms.count, 54)
     XCTAssertEqual(structure.topology.bonds.count, 71)
-    withOrbitals { orbitals in
-      XCTAssertGreaterThan(orbitals.last!.endIndex, 0)
+    withOrbitalCount { orbitalCount in
+      XCTAssertGreaterThan(orbitalCount, 0)
     }
     
     structure.compilationPass3()
@@ -220,8 +221,8 @@ final class HDLTests: XCTestCase {
     XCTAssertEqual(filter(1).count, 20)
     XCTAssertEqual(filter(6).count, 54)
     XCTAssertEqual(filter(16).count, 4)
-    withOrbitals { orbitals in
-      XCTAssertEqual(orbitals.last!.endIndex, 0)
+    withOrbitalCount { orbitalCount in
+      XCTAssertEqual(orbitalCount, 0)
     }
   }
   

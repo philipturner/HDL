@@ -29,6 +29,7 @@ extension Topology {
     hybridization: OrbitalHybridization = .sp3
   ) -> [ArraySlice<SIMD3<Float>>] {
     /*
+     Some performance data gathered before performing any optimizations:
      -   atoms: 237704
      -     map: 8060
      -   alloc: 12
@@ -36,7 +37,8 @@ extension Topology {
      -  object: 729
      */
     
-    let atomsToAtomsMap = map(.atoms, to: .atoms)
+    let connectionsMap = createConnnectionsMap(secondaryType: .atoms)
+    
     var outRangeBuffer = [ArraySlice<SIMD3<Float>>?](
       unsafeUninitializedCapacity: atoms.count
     ) { $1 = atoms.count }
@@ -49,17 +51,37 @@ extension Topology {
       bufferCount = atoms.count &* 2
       let baseAddress = buffer.baseAddress.unsafelyUnwrapped
       
-      for atomID in 0..<atoms.count {
-        let (orbitalCount, orbital1, orbital2) = addOrbitals(
-          atoms: atoms,
-          atomID: atomID,
-          atomsToAtomsMap: atomsToAtomsMap,
-          hybridization: hybridization)
-        orbitalCounts[atomID &- 0] = orbitalCount
+      let taskSize: Int = 5_000
+      let taskCount = (atoms.count + taskSize - 1) / taskSize
+      
+      func execute(taskID: Int) {
+        let scalarStart = taskID &* taskSize
+        let scalarEnd = min(scalarStart &+ taskSize, atoms.count)
+        for atomID in scalarStart..<scalarEnd {
+          let (orbitalCount, orbital1, orbital2) = addOrbitals(
+            atoms: atoms,
+            atomID: atomID,
+            bonds: bonds,
+            connectionsMap: connectionsMap,
+            hybridization: hybridization)
+          orbitalCounts[atomID &- 0] = orbitalCount
+          
+          if orbitalCount > 0 {
+            baseAddress[(atomID &- 0) &* 2 &+ 0] = orbital1
+            baseAddress[(atomID &- 0) &* 2 &+ 1] = orbital2
+          }
+        }
+      }
+      
+      if taskCount == 0 {
         
-        if orbitalCount > 0 {
-          baseAddress[(atomID &- 0) &* 2 &+ 0] = orbital1
-          baseAddress[(atomID &- 0) &* 2 &+ 1] = orbital2
+      } else if taskCount == 1 {
+        for taskID in 0..<taskCount {
+          execute(taskID: taskID)
+        }
+      } else {
+        DispatchQueue.concurrentPerform(iterations: taskCount) { z in
+          execute(taskID: z)
         }
       }
     }
@@ -89,7 +111,8 @@ extension Topology {
 private func addOrbitals(
   atoms: [Entity],
   atomID: Int,
-  atomsToAtomsMap: [ArraySlice<UInt32>],
+  bonds: [SIMD2<UInt32>],
+  connectionsMap: [SIMD8<Int32>],
   hybridization: Topology.OrbitalHybridization
 ) -> (Int, SIMD3<Float>, SIMD3<Float>) {
   let atom = atoms[atomID]
@@ -114,14 +137,35 @@ private func addOrbitals(
     return (0, .zero, .zero)
   }
   
-  let neighborIDs = atomsToAtomsMap[atomID]
-  switch (hybridization, neighborIDs.count) {
-  case (.sp1, 1): break
-  case (.sp2, 2): break
-  case (.sp3, 2): break
-  case (.sp3, 3): break
-  default:
+  let neighborIDs = connectionsMap[atomID]
+  var returnEarly = true
+  switch (hybridization) {
+  case .sp1:
+    if neighborIDs[0] != -1, neighborIDs[1] == -1 {
+      returnEarly = false
+    }
+  case .sp2:
+    if neighborIDs[1] != -1, neighborIDs[2] == -1 {
+      returnEarly = false
+    }
+  case .sp3:
+    if neighborIDs[1] != -1, neighborIDs[2] == -1 {
+      returnEarly = false
+    }
+    if neighborIDs[2] != -1, neighborIDs[3] == -1 {
+      returnEarly = false
+    }
+  }
+  if returnEarly {
     return (0, .zero, .zero)
+  }
+  
+  var neighborCount = 0
+  for lane in 0..<8 {
+    if neighborIDs[lane] == -1 {
+      break
+    }
+    neighborCount &+= 1
   }
   
   return withUnsafeTemporaryAllocation(of: SIMD3<Float>.self, capacity: 3) {
@@ -130,8 +174,12 @@ private func addOrbitals(
     var normal: SIMD3<Float> = .zero
     
     // Calculate deltas between the atom and its neighbors.
-    for i in 0..<neighborIDs.count {
-      let neighborID = neighborIDs[neighborIDs.startIndex &+ i]
+    for i in 0..<neighborCount {
+//      let bondID = neighborIDs[i]
+//      let bond = bonds[Int(bondID)]
+//      let neighborID = (bond[0] == atomID) ? bond[1] : bond[0]
+      let neighborID = neighborIDs[i]
+      
       let neighbor = atoms[Int(neighborID)]
       let delta4 = neighbor.storage - atom.storage
       let delta = unsafeBitCast(delta4, to: SIMD3<Float>.self)
@@ -154,7 +202,7 @@ private func addOrbitals(
     }
     
     // Branch on whether the situation resembles a sidewall carbon.
-    if hybridization == .sp3 && neighborIDs.count == 2 {
+    if hybridization == .sp3 && neighborCount == 2 {
       var crossProduct: SIMD3<Float> = .zero
       let axis = deltas[1] - deltas[0]
       crossProduct.x = axis.y * normal.z - axis.z * normal.y

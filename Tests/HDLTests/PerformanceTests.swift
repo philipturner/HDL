@@ -662,5 +662,43 @@ final class PerformanceTests: XCTestCase {
   // -    match: 39.2 ms
   // - orbitals: 28.3 ms
   // -    total: 82.5 ms
+  
+  // After the first round of optimizations to 'orbitals':
+  // -    atoms: 36,154
+  // -  lattice:  4.3 ms
+  // -    match:  3.9 ms
+  // - orbitals:  2.2 ms
+  // -    total: 10.4 ms
+  //
+  // -    atoms: 21,324
+  // -  lattice:  8.3 ms
+  // -    match:  2.7 ms
+  // - orbitals:  1.3 ms
+  // -    total: 12.3 ms
+  //
+  // -    atoms: 360,350
+  // -  lattice: 15.2 ms
+  // -    match: 39.2 ms
+  // - orbitals: 23.1 ms
+  // -    total: 77.5 ms
+  
+  // After the second round of optimizations to 'orbitals':
+  // -    atoms: 36,154
+  // -  lattice:  4.3 ms
+  // -    match:  3.8 ms
+  // - orbitals:  1.9 ms
+  // -    total: 10.0 ms
+  //
+  // -    atoms: 21,324
+  // -  lattice:  8.4 ms
+  // -    match:  2.2 ms
+  // - orbitals:  1.1 ms
+  // -    total: 11.7 ms
+  //
+  // -    atoms: 360,350
+  // -  lattice: 15.1 ms
+  // -    match: 40.2 ms
+  // - orbitals: 19.2 ms
+  // -    total: 74.5 ms
 #endif
 }

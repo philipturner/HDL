@@ -169,8 +169,7 @@ final class MatchTests: XCTestCase {
   // - Optimization 13: fuse Morton order mapping with preparation
   // - Optimization 14: remove a memory or object allocation bottleneck
   // - Optimization 15: fuse several post-processing stages into one pass
-  // - Optimization 16: multithread more of the pre-processing
-  //   - experiment with increasing the number of volume subdivisions for sort()
+  // - Optimization 16: parallelize a tiny portion of pre-processing
   // - Optimization 17: experiment with 32/64-scoped task distribution and
   //   disabling sorting for the smallest problem sizes
   //
@@ -190,6 +189,7 @@ final class MatchTests: XCTestCase {
   // Optimization 13 |    131 |     91 |     90 | 0.468 | 0.495 | 0.490 |
   // Optimization 14 |     97 |     70 |     74 | 0.346 | 0.380 | 0.403 |
   // Optimization 15 |     87 |     61 |     67 | 0.311 | 0.332 | 0.365 |
+  // Optimization 16 |     86 |     62 |     64 | 0.307 | 0.337 | 0.348 |
   //
   // lattice size = 6
   //
@@ -207,6 +207,7 @@ final class MatchTests: XCTestCase {
   // Optimization 13 |    712 |    298 |    366 | 0.363 | 0.374 | 0.378 |
   // Optimization 14 |    457 |    212 |    314 | 0.233 | 0.266 | 0.324 |
   // Optimization 15 |    383 |    190 |    293 | 0.195 | 0.239 | 0.302 |
+  // Optimization 16 |    356 |    183 |    298 | 0.181 | 0.230 | 0.307 |
   //
   // lattice size = 24
   //
@@ -224,6 +225,7 @@ final class MatchTests: XCTestCase {
   // Optimization 13 |  38097 |   3333 |  10848 | 0.334 | 0.246 | 0.379 |
   // Optimization 14 |  24622 |   2171 |  10113 | 0.216 | 0.160 | 0.353 |
   // Optimization 15 |  18380 |   1709 |   9784 | 0.161 | 0.126 | 0.342 |
+  // Optimization 16 |  17869 |   1621 |   9247 | 0.157 | 0.120 | 0.323 |
   //
   // C-C       |
   // --------- |

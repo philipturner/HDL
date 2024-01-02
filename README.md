@@ -224,7 +224,7 @@ If you specify a specific search radius, you should be able to calculate the exp
 
 For `covalentBondScale`, bond length is determined by summing the covalent radii. The pairwise sum does not always equal the bond length from `MM4Parameters`; add some tolerance for such error. The default value of 1.5 provides enough tolerance for 50% error in approximated bond length.
 
-`maximumNeighborCount` is 8 by default. This means most `match()` invocations searching beyond a single covalent bond length will fail. You may increase the limit for returned matches, but doing so may increase compile time.
+`maximumNeighborCount` is 8 by default. This means most `match()` invocations searching beyond a single covalent bond length will fail. You may increase the limit for returned neighbors, but doing so may increase compile time or memory consumption.
 
 You are encouraged to sort the topology before calling `match()`. Otherwise, the search algorithm may degrade from $O(n)$ to $O(n^2)$. The overhead of sorting is significant and often takes more time than just running the match. Therefore, the internal implementation only performs sorting when the atom count is ~10,000. This is a performance sweet spot for highly ordered distributions (e.g. atoms directly fetched from a crystal lattice). However, it may not be a sweet spot for extremely disordered distributions.
 
@@ -337,7 +337,7 @@ Encapsulates a set of planes, so that everything inside the scope is removed fro
 
 ## Testing
 
-Some unit test are disabled by default. They take too much time to execute in debug mode. However, Swift release mode takes too long to compile the tests. The solution is to gate the tests under the macro `RELEASE`. Then, hack the debug-mode compiler to actually compile in release mode, but with incremental compilation.
+Some unit tests are disabled by default. They take too much time to execute in debug mode. However, Swift release mode takes too long to compile the tests. The solution is to gate the tests under the macro `RELEASE`. Then, hack the debug-mode compiler to actually compile in release mode, but with incremental compilation.
 
 Enter the following at command-line to run all of the tests:
 

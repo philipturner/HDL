@@ -8,12 +8,10 @@
 /// Utility for checking that you're using each keyword in the correct scope.
 enum GlobalScope {
   case lattice
-  case topology
   
   var description: String {
     switch self {
     case .lattice: return "Lattice"
-    case .topology: return "Topology"
     }
   }
   

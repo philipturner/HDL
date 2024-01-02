@@ -24,7 +24,11 @@ extension Topology {
     public var startIndex: Int { 0 }
     
     public var endIndex: Int {
-      Int(truncatingIfNeeded: storage[7])
+      if storage[7] & 0x7FFF_FFF == storage[7] {
+        return Int(storage[7])
+      } else {
+        return 8
+      }
     }
     
     public func index(after i: Int) -> Int {
@@ -33,7 +37,7 @@ extension Topology {
     
     public subscript(position: Int) -> UInt32 {
       _read {
-         yield UInt32(truncatingIfNeeded: storage[position])
+         yield UInt32(truncatingIfNeeded: storage[position] & 0x7FFF_FFFF)
       }
     }
   }
@@ -135,7 +139,11 @@ extension Topology {
     
     for i in atoms.indices {
       let count = Int32(truncatingIfNeeded: atomicCasted[i])
-      connectionsMap[i][7] = count
+      if count < 8 {
+        connectionsMap[i][7] = count
+      } else {
+        connectionsMap[i][7] |= .init(truncatingIfNeeded: 0x8000_0000)
+      }
     }
     
     atomicPointer.deallocate()

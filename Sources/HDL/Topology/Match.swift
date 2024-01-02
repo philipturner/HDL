@@ -28,6 +28,14 @@ extension Topology {
     case covalentBondLength(Float)
   }
   
+  // Match storage: (SIMD4<UInt32>, SIMD4<UInt32>, Array, UInt32)
+  // - 8 elements
+  // - array that holds the remainder, if it exceeds capacity
+  
+//  public struct MatchStorage: Collection {
+//    var
+//  }
+  
   public func match(
     _ input: [Entity],
     algorithm: MatchAlgorithm = .covalentBondLength(1.5),

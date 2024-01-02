@@ -731,6 +731,68 @@ final class TopologyTests: XCTestCase {
     }
   }
   
+  // Test what happens when storage types reach the limit of their capacity.
+  func testStorage() throws {
+    var topology = Topology()
+    let hydrogen = Entity(position: .zero, type: .atom(.hydrogen))
+    let atoms = [Entity](repeating: hydrogen, count: 40)
+    topology.insert(atoms: atoms)
+    
+    var bonds: [SIMD2<UInt32>] = []
+    let arguments: [SIMD2<Int>] = [
+      [6, 0],
+      [7, 10],
+      [8, 20],
+      [9, 30],
+    ]
+    for argument in arguments {
+      let bondCount = argument[0]
+      let indexStart = argument[1]
+      let atomID = indexStart
+      let neighborStart = atomID + 1
+      let neighborEnd = neighborStart + bondCount
+      
+      for neighborID in neighborStart..<neighborEnd {
+        let bond = SIMD2(UInt32(atomID), UInt32(neighborID))
+        bonds.append(bond)
+      }
+    }
+    topology.insert(bonds: bonds)
+    
+    let atomsToAtomsMap = topology.map(.atoms, to: .atoms)
+    let map6 = atomsToAtomsMap[0]
+    let map7 = atomsToAtomsMap[10]
+    let map8 = atomsToAtomsMap[20]
+    let map9 = atomsToAtomsMap[30]
+    XCTAssertEqual(map6.count, 6)
+    XCTAssertEqual(map7.count, 7)
+    XCTAssertEqual(map8.count, 8)
+    XCTAssertEqual(map9.count, 8)
+    
+    for i in 0..<4 {
+      let map = atomsToAtomsMap[i * 10]
+      for j in 0..<6 {
+        let expected = i * 10 + j + 1
+        XCTAssertEqual(map[j], .init(expected))
+      }
+    }
+    
+    XCTAssertEqual(map6[5],  1 + 5)
+    XCTAssertEqual(map7[5], 11 + 5)
+    XCTAssertEqual(map8[5], 21 + 5)
+    XCTAssertEqual(map9[5], 31 + 5)
+    
+    XCTAssertEqual(map6[6], 0x7FFF_FFFF)
+    XCTAssertEqual(map7[6], 11 + 6)
+    XCTAssertEqual(map8[6], 21 + 6)
+    XCTAssertEqual(map9[6], 31 + 6)
+    
+    XCTAssertEqual(map6[7], .init(map6.count))
+    XCTAssertEqual(map7[7], .init(map7.count))
+    XCTAssertEqual(map8[7], 21 + 7)
+    XCTAssertEqual(map9[7], 31 + 7)
+  }
+  
   // Implementation plan:
   // - 1) Visualizer for Morton order and bond topology in GitHub gist. ✅
   //   - 1.1) Test against Lattice -> Diamondoid reordering. ✅

@@ -66,16 +66,7 @@ extension Topology {
   public func nonbondingOrbitals(
     hybridization: OrbitalHybridization = .sp3
   ) -> [OrbitalStorage] {
-    /*
-     Some performance data gathered before performing any optimizations:
-     -   atoms: 237704
-     -     map: 8060
-     -   alloc: 12
-     - compute: 4000
-     -  object: 729
-     */
-    
-    let connectionsMap = createConnnectionsMap(secondaryType: .atoms)
+    let connectionsMap = map(.atoms, to: .atoms)
     var storageBuffer = [OrbitalStorage](
       repeating: .init(storage: .zero), count: atoms.count)
     
@@ -122,7 +113,7 @@ private func addOrbitals(
   atoms: [Entity],
   atomID: Int,
   bonds: [SIMD2<UInt32>],
-  connectionsMap: [SIMD8<Int32>],
+  connectionsMap: [Topology.MapStorage],
   hybridization: Topology.OrbitalHybridization
 ) -> (Int, SIMD3<Float>, SIMD3<Float>) {
   let atom = atoms[atomID]
@@ -147,35 +138,14 @@ private func addOrbitals(
     return (0, .zero, .zero)
   }
   
-  let neighborIDs = connectionsMap[atomID]
-  var returnEarly = true
-  switch (hybridization) {
-  case .sp1:
-    if neighborIDs[0] != -1, neighborIDs[1] == -1 {
-      returnEarly = false
-    }
-  case .sp2:
-    if neighborIDs[1] != -1, neighborIDs[2] == -1 {
-      returnEarly = false
-    }
-  case .sp3:
-    if neighborIDs[1] != -1, neighborIDs[2] == -1 {
-      returnEarly = false
-    }
-    if neighborIDs[2] != -1, neighborIDs[3] == -1 {
-      returnEarly = false
-    }
-  }
-  if returnEarly {
+  let neighborIDs = connectionsMap[atomID].storage
+  switch (hybridization, neighborIDs[7]) {
+  case (.sp1, 1): break
+  case (.sp2, 2): break
+  case (.sp3, 2): break
+  case (.sp3, 3): break
+  default:
     return (0, .zero, .zero)
-  }
-  
-  var neighborCount = 0
-  for lane in 0..<8 {
-    if neighborIDs[lane] == -1 {
-      break
-    }
-    neighborCount &+= 1
   }
   
   return withUnsafeTemporaryAllocation(of: SIMD3<Float>.self, capacity: 3) {
@@ -184,10 +154,7 @@ private func addOrbitals(
     var normal: SIMD3<Float> = .zero
     
     // Calculate deltas between the atom and its neighbors.
-    for i in 0..<neighborCount {
-//      let bondID = neighborIDs[i]
-//      let bond = bonds[Int(bondID)]
-//      let neighborID = (bond[0] == atomID) ? bond[1] : bond[0]
+    for i in 0..<Int(neighborIDs[7]) {
       let neighborID = neighborIDs[i]
       
       let neighbor = atoms[Int(neighborID)]
@@ -212,7 +179,7 @@ private func addOrbitals(
     }
     
     // Branch on whether the situation resembles a sidewall carbon.
-    if hybridization == .sp3 && neighborCount == 2 {
+    if hybridization == .sp3 && neighborIDs[7] == 2 {
       var crossProduct: SIMD3<Float> = .zero
       let axis = deltas[1] - deltas[0]
       crossProduct.x = axis.y * normal.z - axis.z * normal.y

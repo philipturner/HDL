@@ -723,20 +723,20 @@ final class PerformanceTests: XCTestCase {
   // After using a custom type for orbitals storage:
   // -    atoms: 36,154
   // -  lattice:  4.0 ms
-  // -    match:  3.9 ms
+  // -    match:  3.8 ms
   // - orbitals:  1.6 ms
-  // -    total:  9.5 ms
+  // -    total:  9.3 ms
   //
   // -    atoms: 21,324
-  // -  lattice:  8.5 ms
+  // -  lattice:  8.8 ms
   // -    match:  2.2 ms
-  // - orbitals:  1.1 ms
+  // - orbitals:  1.0 ms
   // -    total: 11.9 ms
   //
   // -    atoms: 360,350
-  // -  lattice: 15.0 ms
-  // -    match: 40.1 ms
-  // - orbitals: 14.2 ms
+  // -  lattice: 15.6 ms
+  // -    match: 39.4 ms
+  // - orbitals: 14.3 ms
   // -    total: 69.4 ms
 #endif
 }

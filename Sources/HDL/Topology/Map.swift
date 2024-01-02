@@ -41,57 +41,23 @@ extension Topology {
   public func map(
     _ primaryType: MapType,
     to secondaryType: MapType
-  ) -> [ArraySlice<UInt32>] {
+  ) -> [MapStorage] {
     switch (primaryType, secondaryType) {
     case (.atoms, _):
       let connectionsMap = createConnnectionsMap(secondaryType: secondaryType)
-      
-      var outputArray: [UInt32] = []
-      outputArray.reserveCapacity(atoms.count * 4)
-      var outputRanges: [Range<UInt32>] = []
-      outputRanges.reserveCapacity(atoms.count)
-      var outputSlices: [ArraySlice<UInt32>] = []
-      outputSlices.reserveCapacity(atoms.count)
-      
-      for atomID in atoms.indices {
-        let element = connectionsMap[atomID]
-        let rangeStart = UInt32(truncatingIfNeeded: outputArray.count)
-        for lane in 0..<8 {
-          if element[lane] == -1 {
-            break
-          }
-          outputArray.append(
-            UInt32(truncatingIfNeeded: element[lane]))
-        }
-        let rangeEnd = UInt32(truncatingIfNeeded: outputArray.count)
-        outputRanges.append(rangeStart..<rangeEnd)
-      }
-      
-      for range in outputRanges {
-        let rangeStart = Int(truncatingIfNeeded: range.lowerBound)
-        let rangeEnd = Int(truncatingIfNeeded: range.upperBound)
-        let slice = outputArray[rangeStart..<rangeEnd]
-        outputSlices.append(slice)
-      }
-      return outputSlices
+      return unsafeBitCast(connectionsMap, to: [_].self)
     case (.bonds, .atoms):
-      var outputArray: [UInt32] = []
-      outputArray.reserveCapacity(bonds.count * 2)
+      var outputStorage: [MapStorage] = []
+      outputStorage.reserveCapacity(bonds.count)
       for i in bonds.indices {
         let bond = bonds[i]
-        outputArray.append(bond[0])
-        outputArray.append(bond[1])
+        var vector = SIMD8<Int32>.zero
+        vector[0] = Int32(truncatingIfNeeded: bond[0])
+        vector[1] = Int32(truncatingIfNeeded: bond[1])
+        vector[7] = 2
+        outputStorage.append(MapStorage(storage: vector))
       }
-      
-      var outputSlices: [ArraySlice<UInt32>] = []
-      outputSlices.reserveCapacity(bonds.count)
-      for i in bonds.indices {
-        let rangeStart = 2 &* i
-        let rangeEnd = 2 &* (i &+ 1)
-        let slice = outputArray[rangeStart..<rangeEnd]
-        outputSlices.append(slice)
-      }
-      return outputSlices
+      return outputStorage
     case (.bonds, .bonds):
       fatalError("Bonds to bonds map is not supported.")
     }
@@ -101,7 +67,9 @@ extension Topology {
 extension Topology {
   // Internal API used to avoid the overhead of creating an array of object
   // references.
-  func createConnnectionsMap(secondaryType: MapType) -> [SIMD8<Int32>] {
+  private func createConnnectionsMap(
+    secondaryType: MapType
+  ) -> [SIMD8<Int32>] {
     var connectionsMap = [SIMD8<Int32>](
       repeating: .init(repeating: -1), count: atoms.count)
     guard atoms.count > 0 else {
@@ -111,11 +79,9 @@ extension Topology {
     // Optimization: try atomics with smaller numbers of bits
     let atomicPointer: UnsafeMutablePointer<Int16.AtomicRepresentation> =
       .allocate(capacity: atoms.count)
-    do {
-      let opaque = OpaquePointer(atomicPointer)
-      let casted = UnsafeMutablePointer<Int16>(opaque)
-      casted.initialize(repeating: .zero, count: atoms.count)
-    }
+    let atomicOpaque = OpaquePointer(atomicPointer)
+    let atomicCasted = UnsafeMutablePointer<Int16>(atomicOpaque)
+    atomicCasted.initialize(repeating: .zero, count: atoms.count)
     
     connectionsMap.withUnsafeMutableBufferPointer {
       let connectionsPointer = $0.baseAddress.unsafelyUnwrapped
@@ -166,6 +132,12 @@ extension Topology {
         }
       }
     }
+    
+    for i in atoms.indices {
+      let count = Int32(truncatingIfNeeded: atomicCasted[i])
+      connectionsMap[i][7] = count
+    }
+    
     atomicPointer.deallocate()
     return connectionsMap
   }

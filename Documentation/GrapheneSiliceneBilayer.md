@@ -6,7 +6,7 @@ be used to create 2D shapes. Restriction to 3D shapes was one important design
 choice for the compiler. By supporting only the minimal amount of needed
 functionality, the language is simpler and the compiler takes less effort to
 develop. If the user wishes to work with an unsupported crystal geometry, they
-can easily generate it from a supported geometry. In this case, an unsupported 
+can often generate it from a supported geometry. In this case, an unsupported 
 "planar" lattice is created from a "hexagonal" lattice.
 
 Objective: reproduce the graphene-silicene bilayer from https://doi.org/10.1103/PhysRevB.88.245408

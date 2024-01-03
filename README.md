@@ -217,6 +217,12 @@ let farMatches = topology.match(
   atoms2, algorithm: .covalentBondLength(2))
 let angstromMatches = topology.match(
   atoms2, algorithm: .absoluteRadius(0.1))
+  
+// Another example of usage.
+var atoms = [Entity(...), Entity(...)]
+let atomsLocationsInStructure = topology.match(atoms)
+someFunction(atoms[0], atomLocationsInStructure[0])
+someFunction(atoms[1], atomLocationsInStructure[1])
 ```
 
 Match the `source` atoms to target atom indices, where the targets reside in the `Topology`. The output has the same dimensions as the input array.

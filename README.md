@@ -164,15 +164,15 @@ The atoms and bonds backing the topology.
 
 ```swift
 extension Topology {
-  enum MapType {
+  enum MapNode {
     case atoms
     case bonds
   }
 }
 
 func map(
-  _ primaryType: MapType,
-  to secondaryType: MapType
+  _ sourceNode: MapNode,
+  to targetNode: MapNode
 ) -> [ArraySlice<UInt32>]
 
 // Example of usage.
@@ -187,7 +187,10 @@ let bondsToAtomsMap = topology.map(.bonds, to: .atoms)
 
 Create a map that points from atoms/bonds to a list of connected atoms/bonds.
 
-The primary and secondary type cannot both be `.bonds`. There cannot be more than 8 connections to an atom. If one of the types is `.bonds`, the indices within the array slice are always sorted. Otherwise, the indices correspond to bonds in ascending order.
+The results of this function follow a few particular rules:
+- The source and target nodes cannot both be `.bonds`.
+- The number of targets for a given source node cannot exceed 8.
+- If one of the nodes is `.bonds`, the target indices are sorted. Otherwise, the target indices (which are `.atoms`) correspond to bonds in ascending order.
 
 ```swift
 extension Topology {
@@ -249,16 +252,6 @@ An index may be specified multiple times in the input. The atom or bond will onl
 The order of atoms and bonds is preserved after removal. The removed items are taken out of the list, and the remainder is compacted in place. This behavior is different from `sort()`, which scrambles the relative order of atoms.
 
 ```swift
-// Sorts the atoms and returns the old atoms' indices in the new list.
-@discardableResult
-mutating func sort() -> [UInt32]
-```
-
-Sorts atoms in Morton order, then sorts bonds in ascending order based on atom indices.
-
-The topology must be sorted before entering into a simulator. Otherwise, there are two consequences. Absence of spatial locality makes nonbonded forces extremely expensive, increasing algorithmic complexity from $O(n)$ to $O(n^2)$. Nondeterministic bond order also makes parameters harder to troubleshoot.
-
-```swift
 extension Topology {
   enum OrbitalHybridization {
     case sp1
@@ -281,6 +274,16 @@ Free radicals and lone pairs are treated the same way. This means a nitrogen wit
 For the carbon in an acetylene radical, only one orbital is reported. The reported orbital contains the free radical and is collinear with the two carbon atoms. It is also the only orbital known with absolute positional certainty. The two pi orbitals could be rotated into a infinite number of specific positions around the axis. It may be possible exactly determine their orientation relative to other pi orbitals in a carbyne rod. However, that heuristic involves more than just immediate neighbors.
 
 Another edge case is halogens. Although they have 3 lone pairs, there is no method to positionally constrain the directions of sp3 orbitals. In contrast, the nonbonding orbitals of divalent oxygen and trivalent nitrogen are reported. The difference in behavior corresponds to how primary carbons are treated differently than secondary and tertiary carbons.
+
+```swift
+// Sorts the atoms and returns the old atoms' indices in the new list.
+@discardableResult
+mutating func sort() -> [UInt32]
+```
+
+Sorts atoms in Morton order, then sorts bonds in ascending order based on atom indices.
+
+The topology must be sorted before entering into a simulator. Otherwise, there are two consequences. Absence of spatial locality makes nonbonded forces extremely expensive, increasing algorithmic complexity from $O(n)$ to $O(n^2)$. Nondeterministic bond order also makes parameters harder to troubleshoot.
 
 ### Volume
 

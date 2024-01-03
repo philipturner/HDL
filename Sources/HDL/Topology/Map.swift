@@ -9,7 +9,7 @@ import Atomics
 import Dispatch
 
 extension Topology {
-  public enum MapType {
+  public enum MapNode {
     case atoms
     case bonds
   }
@@ -47,12 +47,12 @@ extension Topology {
   }
   
   public func map(
-    _ primaryType: MapType,
-    to secondaryType: MapType
+    _ sourceNode: MapNode,
+    to targetNode: MapNode
   ) -> [MapStorage] {
-    switch (primaryType, secondaryType) {
+    switch (sourceNode, targetNode) {
     case (.atoms, _):
-      let connectionsMap = createConnnectionsMap(secondaryType: secondaryType)
+      let connectionsMap = createConnnectionsMap(targetNode: targetNode)
       return unsafeBitCast(connectionsMap, to: [_].self)
     case (.bonds, .atoms):
       var outputStorage: [MapStorage] = []
@@ -73,10 +73,8 @@ extension Topology {
 }
 
 extension Topology {
-  // Internal API used to avoid the overhead of creating an array of object
-  // references.
   private func createConnnectionsMap(
-    secondaryType: MapType
+    targetNode: MapNode
   ) -> [SIMD8<Int32>] {
     var connectionsMap = [SIMD8<Int32>](
       repeating: .init(repeating: -1), count: atoms.count)
@@ -110,7 +108,7 @@ extension Topology {
           for i in scalarStart..<scalarEnd {
             let atomID = Int(truncatingIfNeeded: casted[i])
             var idToWrite: Int32
-            if secondaryType == .atoms {
+            if targetNode == .atoms {
               let otherID = (i % 2 == 0) ? casted[i &+ 1] : casted[i &- 1]
               idToWrite = Int32(truncatingIfNeeded: otherID)
             } else {

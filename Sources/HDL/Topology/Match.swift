@@ -31,7 +31,7 @@ extension Topology {
   public typealias MatchStorage = ArraySlice<UInt32>
   
   public func match(
-    _ input: [Entity],
+    _ source: [Entity],
     algorithm: MatchAlgorithm = .covalentBondLength(1.5),
     maximumNeighborCount: Int = 8
   ) -> [MatchStorage] {
@@ -39,7 +39,7 @@ extension Topology {
     let checkpoint0 = cross_platform_media_time()
 #endif
     
-    let rmsAtomCount = (Float(input.count) * Float(atoms.count)).squareRoot()
+    let rmsAtomCount = (Float(source.count) * Float(atoms.count)).squareRoot()
     func reorder(_ atoms: [Entity]) -> [UInt32] {
       if rmsAtomCount < 10_000 {
         return atoms.indices.map {
@@ -55,9 +55,9 @@ extension Topology {
     var rhsOperand: Operand = .init(atomCount: 0)
     DispatchQueue.concurrentPerform(iterations: 2) { z in
       if z == 0 {
-        let lhsReordering = reorder(input)
+        let lhsReordering = reorder(source)
         lhsOperand = transform8(
-          input, lhsReordering, include4: false, algorithm: algorithm)
+          source, lhsReordering, include4: false, algorithm: algorithm)
         lhsOperand.reordering = lhsReordering
       } else if z == 1 {
         let rhsReordering = reorder(atoms)

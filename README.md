@@ -204,7 +204,7 @@ extension Topology {
 }
 
 func match(
-  _ input: [Entity], 
+  _ source: [Entity], 
   algorithm: MatchAlgorithm = .covalentBondLength(1.5),
   maximumNeighborCount: Int = 8
 ) -> [ArraySlice<UInt32>]
@@ -219,7 +219,7 @@ let angstromMatches = topology.match(
   atoms2, algorithm: .absoluteRadius(0.1))
 ```
 
-Reports nearby atoms using an $O(n)$ algorithm.
+Match the `source` atoms to target atom indices, where the targets reside in the `Topology`. The output has the same dimensions as the input array.
 
 If the total number of atoms within the search radius exceeds the `maximumNeighborCount`, results are undefined. The internal matching algorithm relies on a given amount of memory being allocated. This memory temporarily holds references to other atoms. After all qualifying atoms are found, they are sorted in order of ascending distance. If the memory capacity is exceeded, there is nowhere to store the remaining references, even if one contains the closest atom.
 

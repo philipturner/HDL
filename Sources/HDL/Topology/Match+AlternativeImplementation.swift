@@ -5,6 +5,13 @@
 //  Created by Philip Turner on 12/23/23.
 //
 
+// This is an alternative implementation of Match that was attempted, but
+// failed. Although it theoretically provides more performance to the public
+// API, harnessing that performance requires some extremely un-ergonomic code.
+// In addition, performance regressions during 'topology.match()' were
+// identified.
+
+#if false
 import Dispatch
 #if PROFILE_MATCH
 import System
@@ -28,7 +35,42 @@ extension Topology {
     case covalentBondLength(Float)
   }
   
-  public typealias MatchStorage = ArraySlice<UInt32>
+  public struct MatchStorage: Collection, Equatable {
+    @usableFromInline var data: SIMD8<UInt32> = .zero
+    @usableFromInline var remainder: [UInt32] = []
+    public internal(set) var count: Int = .zero
+    
+    public typealias Index = Int
+    
+    public typealias Element = UInt32
+    
+    @_transparent
+    public var startIndex: Int { 0 }
+    
+    @_transparent
+    public var endIndex: Int {
+      count
+    }
+    
+    @_transparent
+    public func index(after i: Int) -> Int {
+      i &+ 1
+    }
+    
+    public subscript(position: Int) -> UInt32 {
+      @_transparent
+      _read {
+        guard position >= 0, position < count else {
+          fatalError("Position less than zero or greater than count.")
+        }
+        if position < 8 {
+          yield data[position]
+        } else {
+          yield remainder[position &- 8]
+        }
+      }
+    }
+  }
   
   public func match(
     _ input: [Entity],
@@ -146,7 +188,6 @@ extension Topology {
       }
     }
 #endif
-    
     return outputSlices
   }
 }
@@ -179,11 +220,8 @@ private func matchImpl(
   let opaqueCount = OpaquePointer(matchCount)
   let castedCount = UnsafeMutablePointer<UInt8>(opaqueCount)
   
-  let outRangeCapacity = Int(lhs.atomCount)
-  var outRangeBuffer = [ArraySlice<UInt32>?](
-    unsafeUninitializedCapacity: outRangeCapacity
-  ) { $1 = outRangeCapacity }
-  let outRangePointer = outRangeBuffer.withUnsafeMutableBufferPointer { $0 }
+  var outputStorage: [Topology.MatchStorage] = []
+  outputStorage = Array(repeating: .init(), count: lhs.atomCount)
   
 #if PROFILE_MATCH
     let checkpoint2 = cross_platform_media_time()
@@ -228,58 +266,48 @@ private func matchImpl(
     let scalarEnd = min(
       scalarStart &+ 128, UInt32(truncatingIfNeeded: lhs.atomCount))
     
-    let outMatchBuffer = [UInt32](
-      unsafeUninitializedCapacity: 128 &* Int(matchLimit &+ 1)
-    ) { buffer, bufferCount in
-      bufferCount = 128 &* Int(matchLimit &+ 1)
-      let baseAddress = buffer.baseAddress.unsafelyUnwrapped
-      
-      for laneID in scalarStart..<scalarEnd {
-        let address = laneID &* (matchLimit &+ 1)
-        let outAddress = (laneID &- scalarStart) &* (matchLimit &+ 1)
-        let count = Int(castedCount[Int(laneID)])
-        
-        // Remove bogus matches that result from padding the RHS.
-        var localBuffer = UnsafeMutableBufferPointer<SIMD2<Float>>(
-          start: matchBuffer.advanced(by: Int(address)), count: count)
-        while let last = localBuffer.last, last[0].bitPattern >= rhs.atomCount {
-          localBuffer = UnsafeMutableBufferPointer(
-            start: localBuffer.baseAddress, count: localBuffer.count - 1)
-        }
-        castedCount[Int(laneID)] = UInt8(truncatingIfNeeded: localBuffer.count)
-        
-        // Sort the matches in ascending order of distance.
-        localBuffer.sort { $0.y < $1.y }
-        
-        let compactedOpaque = OpaquePointer(
-          localBuffer.baseAddress.unsafelyUnwrapped)
-        let compactedCasted = UnsafeMutablePointer<UInt32>(compactedOpaque)
-        for i in 0..<localBuffer.count {
-          let index = localBuffer[i][0].bitPattern
-          let mortonIndex = rhs.reordering[Int(index)]
-          compactedCasted[i] = mortonIndex
-          baseAddress[Int(outAddress) &+ i] = mortonIndex
-        }
-      }
-    }
-    
+
     for laneID in scalarStart..<scalarEnd {
-      let outAddress = (laneID &- scalarStart) &* (matchLimit &+ 1)
+      let address = laneID &* (matchLimit &+ 1)
       let count = Int(castedCount[Int(laneID)])
-      let outID = lhs.reordering[Int(laneID)]
       
-      let opaqueRange = OpaquePointer(outRangePointer.baseAddress!)
-      let castedRange = UnsafeMutablePointer<UInt>(opaqueRange)
-      let pointer = castedRange.advanced(by: Int(outID &* 4))
-      for i in 0..<4 {
-        // Initialize the array to 'nil', on multiple CPU cores at once,
-        // without causing a crash.
-        pointer[i] = 0
+      // Remove bogus matches that result from padding the RHS.
+      var localBuffer = UnsafeMutableBufferPointer<SIMD2<Float>>(
+        start: matchBuffer.advanced(by: Int(address)), count: count)
+      while let last = localBuffer.last, last[0].bitPattern >= rhs.atomCount {
+        localBuffer = UnsafeMutableBufferPointer(
+          start: localBuffer.baseAddress, count: localBuffer.count - 1)
+      }
+      castedCount[Int(laneID)] = UInt8(truncatingIfNeeded: localBuffer.count)
+      
+      // Sort the matches in ascending order of distance.
+      localBuffer.sort { $0.y < $1.y }
+      let compactedOpaque = OpaquePointer(
+        localBuffer.baseAddress.unsafelyUnwrapped)
+      let compactedCasted = UnsafeMutablePointer<UInt32>(compactedOpaque)
+      
+      var data: SIMD8<UInt32> = .zero
+      var remainder: [UInt32] = []
+      
+      for i in 0..<localBuffer.count {
+        let index = localBuffer[i][0].bitPattern
+        let mortonIndex = rhs.reordering[Int(index)]
+        compactedCasted[i] = mortonIndex
+        
+        let elementID = i
+        let element = mortonIndex
+        if elementID < 8 {
+          data[elementID] = element
+        } else {
+          remainder.append(element)
+        }
       }
       
-      let rangeStart = Int(outAddress)
-      let rangeEnd = rangeStart &+ count
-      outRangePointer[Int(outID)] = outMatchBuffer[rangeStart..<rangeEnd]
+      let outID = lhs.reordering[Int(laneID)]
+      outputStorage[Int(outID)] = Topology.MatchStorage(
+        data: data,
+        remainder: remainder,
+        count: localBuffer.count)
     }
   }
   
@@ -381,15 +409,12 @@ private func matchImpl(
     let checkpoint3 = cross_platform_media_time()
 #endif
   
-  matchBuffer.deallocate()
-  matchCount.deallocate()
-  
 #if PROFILE_MATCH
     let checkpoint4 = cross_platform_media_time()
   statistics = [checkpoint2, checkpoint3, checkpoint4]
 #endif
   
-  return unsafeBitCast(outRangeBuffer, to: [_].self)
+  return outputStorage
 }
 
 // MARK: - Block Comparison
@@ -734,3 +759,4 @@ private func compareBlocks(
   blockDelta.w = 0
   return (blockDelta * blockDelta).sum() < largeCutoffSquared
 }
+#endif

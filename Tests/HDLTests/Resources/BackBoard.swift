@@ -19,52 +19,9 @@ protocol BackBoardComponent {
 }
 
 extension BackBoardComponent {
-  mutating func compilationPass1() {
-    let matches = topology.match(topology.atoms)
-    
-    var removedAtoms: [UInt32] = []
-    var insertedBonds: [SIMD2<UInt32>] = []
-    for i in topology.atoms.indices {
-      let matchRange = matches[i]
-      if matchRange.count <= 2 {
-        removedAtoms.append(UInt32(truncatingIfNeeded: i))
-      } else if matchRange.count <= 5 {
-        for j in matchRange where i < j {
-          insertedBonds.append(SIMD2(UInt32(truncatingIfNeeded: i),
-                                     UInt32(truncatingIfNeeded: j)))
-        }
-      } else {
-        fatalError("More than 5 matches.")
-      }
-    }
-    
-    topology.insert(bonds: insertedBonds)
-    topology.remove(atoms: removedAtoms)
-  }
-  
-  mutating func compilationPass2() {
-    let orbitals = topology.nonbondingOrbitals()
-    let chBondLength = Element.carbon.covalentRadius +
-    Element.hydrogen.covalentRadius
-    
-    var insertedAtoms: [Entity] = []
-    var insertedBonds: [SIMD2<UInt32>] = []
-    for i in topology.atoms.indices {
-      let atom = topology.atoms[i]
-      for orbital in orbitals[i] {
-        let position = atom.position + orbital * chBondLength
-        let hydrogen = Entity(position: position, type: .atom(.hydrogen))
-        let hydrogenID = topology.atoms.count + insertedAtoms.count
-        insertedAtoms.append(hydrogen)
-        
-        let bond = SIMD2(UInt32(i), UInt32(hydrogenID))
-        insertedBonds.append(bond)
-      }
-    }
-    topology.insert(atoms: insertedAtoms)
-    topology.insert(bonds: insertedBonds)
-  }
-  
+  // 'optimized' is whether to report out-of-the-box performance. One section
+  // of the code is maximum possible performance available from the public API.
+  // Another is performance of typical code segments.
   mutating func compile(reportingPerformance: Bool) {
     let checkpoint0 = cross_platform_media_time()
     
@@ -109,8 +66,6 @@ extension BackBoardComponent {
       return repr + " ms"
     }
     
-    
-    
     let atomCount = topology.atoms.count
     print()
     print("-    atoms: \(atomCount / 1000),\(atomCount % 1000)")
@@ -118,6 +73,53 @@ extension BackBoardComponent {
     print("-    match: \(milliseconds(microseconds[1]))")
     print("- orbitals: \(milliseconds(microseconds[2]))")
     print("-    total: \(milliseconds(microseconds.reduce(0, +)))")
+  }
+  
+  mutating func compilationPass1() {
+    let matches = topology.match(topology.atoms)
+    
+    var removedAtoms: [UInt32] = []
+    var insertedBonds: [SIMD2<UInt32>] = []
+    for i in topology.atoms.indices {
+      let matchRange = matches[i]
+      if matchRange.count <= 2 {
+        removedAtoms.append(UInt32(truncatingIfNeeded: i))
+      } else if matchRange.count <= 5 {
+        for j in matchRange where i < j {
+          insertedBonds.append(SIMD2(UInt32(truncatingIfNeeded: i),
+                                     UInt32(truncatingIfNeeded: j)))
+        }
+      } else {
+        fatalError("More than 5 matches.")
+      }
+    }
+    
+    topology.insert(bonds: insertedBonds)
+    topology.remove(atoms: removedAtoms)
+  }
+  
+  mutating func compilationPass2() {
+    let orbitals = topology.nonbondingOrbitals()
+    let chBondLength = Element.carbon.covalentRadius +
+    Element.hydrogen.covalentRadius
+    
+    var insertedAtoms: [Entity] = []
+    var insertedBonds: [SIMD2<UInt32>] = []
+    
+    for i in topology.atoms.indices {
+      let atom = topology.atoms[i]
+      for orbital in orbitals[i] {
+        let position = atom.position + orbital * chBondLength
+        let hydrogen = Entity(position: position, type: .atom(.hydrogen))
+        let hydrogenID = topology.atoms.count + insertedAtoms.count
+        insertedAtoms.append(hydrogen)
+        
+        let bond = SIMD2(UInt32(i), UInt32(hydrogenID))
+        insertedBonds.append(bond)
+      }
+    }
+    topology.insert(atoms: insertedAtoms)
+    topology.insert(bonds: insertedBonds)
   }
 }
 

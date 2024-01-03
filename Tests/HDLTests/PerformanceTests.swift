@@ -569,7 +569,7 @@ final class PerformanceTests: XCTestCase {
     // sized grids will be constructed. They might be the exact same, although
     // the program can't detect that fact in a generalizable/robust manner.
     // Parallelization offers a simpler alternative that, based on the data
-    // below, provides about the same speedup.
+    // below, provides about the same speedup as eliding the compute work.
     
     // 'lattice' configuration, serial
     //
@@ -594,7 +594,7 @@ final class PerformanceTests: XCTestCase {
   
   // The infamous nanofactory back board that took ~1000 ms to compile.
   func testBackBoard() throws {
-    let reportingPerformance = true
+    let reportingPerformance = Self.printPerformanceSummary
     
     var smallLeft = BackBoardSmallLeft()
     smallLeft.compile(reportingPerformance: reportingPerformance)
@@ -738,5 +738,89 @@ final class PerformanceTests: XCTestCase {
   // -    match: 39.4 ms
   // - orbitals: 14.3 ms
   // -    total: 69.4 ms
+  
+  // After changing the storage of 'match':
+  // -    atoms: 36,154
+  // -  lattice:  3.9 ms
+  // -    match:  3.8 ms
+  // - orbitals:  1.7 ms
+  // -    total:  9.4 ms
+  //
+  // -    atoms: 21,324
+  // -  lattice:  7.9 ms
+  // -    match:  2.1 ms
+  // - orbitals:  0.9 ms
+  // -    total: 10.9 ms
+  //
+  // -    atoms: 360,350
+  // -  lattice: 15.1 ms
+  // -    match: 38.0 ms
+  // - orbitals: 15.5 ms
+  // -    total: 68.7 ms
+  
+  // After applying a few more optimizations (optimized):
+  // -    atoms: 36,154
+  // -  lattice:  3.9 ms
+  // -    match:  3.6 ms
+  // - orbitals:  1.7 ms
+  // -    total:  9.2 ms
+  //
+  // -    atoms: 21,324
+  // -  lattice:  8.2 ms
+  // -    match:  2.2 ms
+  // - orbitals:  0.9 ms
+  // -    total: 11.4 ms
+  //
+  // -    atoms: 360,350
+  // -  lattice: 14.7 ms
+  // -    match: 37.7 ms
+  // - orbitals: 15.1 ms
+  // -    total: 67.5 ms
+  
+  // Out of the box performance:
+  //
+  // -    atoms: 36,154
+  // -  lattice:  4.1 ms
+  // -    match:  4.1 ms
+  // - orbitals:  1.6 ms
+  // -    total:  9.8 ms
+  //
+  // -    atoms: 21,324
+  // -  lattice:  8.2 ms
+  // -    match:  2.3 ms
+  // - orbitals:  1.0 ms
+  // -    total: 11.5 ms
+  //
+  // -    atoms: 360,350
+  // -  lattice: 14.4 ms
+  // -    match: 40.6 ms
+  // - orbitals: 15.6 ms
+  // -    total: 70.7 ms
+  
+  // With the storage modification reverted:
+  //
+  // -    atoms: 36,154
+  // -  lattice:  4.0 ms
+  // -    match:  4.3 ms
+  // - orbitals:  1.7 ms
+  // -    total: 10.0 ms
+  //
+  // -    atoms: 21,324
+  // -  lattice:  8.2 ms
+  // -    match:  2.3 ms
+  // - orbitals:  1.1 ms
+  // -    total: 11.6 ms
+  //
+  // -    atoms: 360,350
+  // -  lattice: 15.0 ms
+  // -    match: 39.4 ms
+  // - orbitals: 14.5 ms
+  // -    total: 69.0 ms
+  
+  // Overall speedup:
+  // lattice 1 -  62.4 ms -> 10.0 ms (6.24x)
+  // lattice 2 -  61.9 ms -> 11.6 ms (5.33x)
+  // lattice 3 - 537.2 ms -> 69.0 ms (7.79x)
+  
 #endif
 }

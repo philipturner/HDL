@@ -37,6 +37,7 @@ public enum EntityType: RawRepresentable {
     }
   }
   
+  @_transparent
   @inlinable
   public var rawValue: Float {
     switch self {
@@ -62,9 +63,11 @@ public struct Entity: Equatable, Hashable {
   
   @inlinable @inline(__always)
   public var position: SIMD3<Float> {
+    @_transparent
     get {
       unsafeBitCast(storage, to: SIMD3<Float>.self)
     }
+    @_transparent
     set {
       storage = SIMD4(newValue, storage.w)
     }
@@ -72,9 +75,11 @@ public struct Entity: Equatable, Hashable {
   
   @inlinable @inline(__always)
   public var atomicNumber: UInt8 {
+    @_transparent
     get {
       UInt8(storage.w)
     }
+    @_transparent
     set {
       storage.w = Float(newValue)
     }
@@ -82,9 +87,11 @@ public struct Entity: Equatable, Hashable {
   
   @inlinable @inline(__always)
   public var type: EntityType {
+    @_transparent
     get {
       EntityType(rawValue: storage.w)
     }
+    @_transparent
     set {
       storage.w = newValue.rawValue
     }
@@ -95,11 +102,13 @@ public struct Entity: Equatable, Hashable {
     storage.w == 0
   }
   
+  @_transparent
   @inlinable @inline(__always)
   public init(storage: SIMD4<Float>) {
     self.storage = storage
   }
   
+  @_transparent
   @inlinable @inline(__always)
   public init(position: SIMD3<Float>, type: EntityType) {
     self.storage = SIMD4(position, type.rawValue)

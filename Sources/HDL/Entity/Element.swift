@@ -18,6 +18,7 @@ public enum Element: UInt8, CustomStringConvertible {
   case germanium = 32
   case gold = 79
   
+  @_transparent
   @inlinable @inline(__always)
   public init(_ atomicNumber: UInt8) {
     self.init(rawValue: atomicNumber)!

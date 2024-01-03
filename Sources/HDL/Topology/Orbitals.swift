@@ -24,24 +24,28 @@ extension Topology {
     }
   }
   
-  public struct OrbitalStorage: Collection {
-    var storage: SIMD16<Float>
+  public struct OrbitalStorage: Collection, Equatable {
+    @usableFromInline var storage: SIMD16<Float>
     
     public typealias Index = Int
     
     public typealias Element = SIMD3<Float>
     
+    @_transparent
     public var startIndex: Int { 0 }
     
+    @_transparent
     public var endIndex: Int {
       Int(storage[15])
     }
     
+    @_transparent
     public func index(after i: Int) -> Int {
-      i + 1
+      i &+ 1
     }
     
     public subscript(position: Int) -> SIMD3<Float> {
+      @_transparent
       _read {
         var vec4: SIMD4<Float>
         switch position {

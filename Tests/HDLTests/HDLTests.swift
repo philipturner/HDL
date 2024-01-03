@@ -274,12 +274,10 @@ final class HDLTests: XCTestCase {
   }
   
   // This is disabled in debug mode, due to the high computational prefactor
-  // of the lattice intersections. On devices with less CPU cores, the latency
-  // may be approximately 1 second.
-  // TODO: Check whether this is true.
+  // of the numerous lattice intersections.
   #if RELEASE
   // This test is to ensure there are no bugs, if one attempts to optimize
-  // intersections in 'Lattice<Hexagonal>'.
+  // intersections in 'Lattice<Hexagonal>' through sparsity.
   func testRodLogicHousing() throws {
     var housing = RodLogicHousing()
     XCTAssertEqual(housing.topology.atoms.count, 0)

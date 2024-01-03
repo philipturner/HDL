@@ -14,15 +14,17 @@ extension Topology {
     case bonds
   }
   
-  public struct MapStorage: Collection {
-    var storage: SIMD8<Int32>
+  public struct MapStorage: Collection, Equatable {
+    @usableFromInline var storage: SIMD8<Int32>
     
     public typealias Index = Int
     
     public typealias Element = UInt32
     
+    @_transparent
     public var startIndex: Int { 0 }
     
+    @_transparent
     public var endIndex: Int {
       if storage[7] & 0x7FFF_FFF == storage[7] {
         return Int(storage[7])
@@ -31,11 +33,13 @@ extension Topology {
       }
     }
     
+    @_transparent
     public func index(after i: Int) -> Int {
-      i + 1
+      i &+ 1
     }
     
     public subscript(position: Int) -> UInt32 {
+      @_transparent
       _read {
          yield UInt32(truncatingIfNeeded: storage[position] & 0x7FFF_FFFF)
       }

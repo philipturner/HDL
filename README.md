@@ -133,9 +133,9 @@ Lattice<Hexagonal> { h, k, l in
     Plane { -l }
     
     Origin { 3 * h + 2 * (h2k + l) }
-    Plane { +h }
-    Plane { +h2k }
-    Plane { +l }
+    Plane { h }
+    Plane { h2k }
+    Plane { l }
     ...
   }
 }

@@ -61,7 +61,7 @@ Creates a lattice of crystal unit cells to edit. Coordinates are represented in 
 
 ```swift
 // Initialize an empty topology. Geometry will be added using member functions.
-Topology()
+var topology = Topology()
 ```
 
 Encapsulates low-level operations during bond topology formation. These include $O(n)$ neighbor searching, insertion/removal of atoms/bonds, and Morton reordering.

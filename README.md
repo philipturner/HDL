@@ -289,7 +289,7 @@ mutating func sort() -> [UInt32]
 
 Sorts atoms in Morton order, then sorts bonds in ascending order based on atom indices.
 
-The topology must be sorted before entering into a simulator. Otherwise, there are two consequences. Absence of spatial locality makes nonbonded forces extremely expensive, increasing algorithmic complexity from $O(n)$ to $O(n^2)$. Nondeterministic bond order also makes parameters harder to troubleshoot.
+The topology should be sorted before entering into a simulator. Sorting causes nearby atoms to appear in consecutive memory locations. OpenMM utilizes this spatial locality to compute nonbonded forces very fast. If you forget to sort, the algorithmic complexity may increase from $O(n)$ to $O(n^2)$.
 
 ### Volume
 

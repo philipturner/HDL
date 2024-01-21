@@ -16,7 +16,9 @@ public enum Element: UInt8, CustomStringConvertible {
   case phosphorus = 15
   case sulfur = 16
   case germanium = 32
+  case tin = 50
   case gold = 79
+  case lead = 82
   
   @_transparent
   @inlinable @inline(__always)
@@ -35,7 +37,9 @@ public enum Element: UInt8, CustomStringConvertible {
     case .phosphorus: return ".phosphorus"
     case .sulfur: return ".sulfur"
     case .germanium: return ".germanium"
+    case .tin: return ".tin"
     case .gold: return ".gold"
+    case .lead: return ".lead"
     }
   }
   
@@ -55,7 +59,9 @@ public enum Element: UInt8, CustomStringConvertible {
     output[15] = 107 / 1000
     output[16] = 105 / 1000
     output[32] = 120 / 1000
+    output[50] = 139 / 1000
     output[79] = 136 / 1000
+    output[82] = 146 / 1000
     return output
   }()
   

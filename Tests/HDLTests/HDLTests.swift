@@ -56,6 +56,61 @@ final class HDLTests: XCTestCase {
     }
   }
   
+  func testElement() throws {
+    for atomicNumber in [1, 6, 7, 8, 9, 14, 15, 16, 32, 50, 79, 82] {
+      var description: String
+      var covalentRadius: Float // in picometers
+      
+      switch atomicNumber {
+      case 1:
+        description = ".hydrogen"
+        covalentRadius = 31
+      case 6:
+        description = ".carbon"
+        covalentRadius = 76
+      case 7:
+        description = ".nitrogen"
+        covalentRadius = 71
+      case 8:
+        description = ".oxygen"
+        covalentRadius = 66
+      case 9:
+        description = ".fluorine"
+        covalentRadius = 57
+      case 14:
+        description = ".silicon"
+        covalentRadius = 111
+      case 15:
+        description = ".phosphorus"
+        covalentRadius = 107
+      case 16:
+        description = ".sulfur"
+        covalentRadius = 105
+      case 32:
+        description = ".germanium"
+        covalentRadius = 120
+      case 50:
+        description = ".tin"
+        covalentRadius = 139
+      case 79:
+        description = ".gold"
+        covalentRadius = 136
+      case 82:
+        description = ".lead"
+        covalentRadius = 146
+      default:
+        fatalError("Unrecognized atomic number: \(atomicNumber)")
+      }
+      
+      guard let element = Element(rawValue: UInt8(atomicNumber)) else {
+        XCTAssert(false, "'Element' failed to initialize.")
+        continue
+      }
+      XCTAssertEqual(description, element.description)
+      XCTAssertEqual(Int(covalentRadius), Int(element.covalentRadius * 1e3))
+    }
+  }
+  
   func testGold() throws {
     let carbonLattice = Lattice<Cubic> { h, k, l in
       Bounds { 4 * (h + k + l) }

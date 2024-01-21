@@ -133,7 +133,9 @@ private func addOrbitals(
   case .phosphorus: valence = 3
   case .sulfur: valence = 2
   case .germanium: valence = 4
+  case .tin: valence = 4
   case .gold: valence = 0
+  case .lead: valence = 4
   case nil:
     fatalError("Invalid atomic number.")
   }

@@ -25,7 +25,9 @@ enum Element {
   case phosphorus = 15
   case sulfur = 16
   case germanium = 32
+  case tin = 50
   case gold = 79
+  case lead = 82
   
   var covalentRadius: Float { get }
 }
@@ -43,7 +45,7 @@ struct Entity {
 
 `Entity` is a data structure that stores atoms and bond connectors. The position occupies 12 bytes and the entity type occupies 4 bytes. This format aligns the entity to a 16-byte vector word, improving compilation speed.
 
-`EntityType` stores the atomic number of an atom, or zero for `.empty`. Atomic numbers can be any element from the [MM4 force field](https://github.com/philipturner/MM4) (H, C, N, O, F, Si, P, S, and Ge). Gold (Au) is also permitted.
+`EntityType` stores the atomic number of an atom, or zero for `.empty`. Atomic numbers can be any element from the [MM4 force field](https://github.com/philipturner/MM4) (H, C, N, O, F, Si, P, S, and Ge). Tin, gold, and lead are also permitted.
 
 ```swift
 // Specify lattice edits, if any, in the trailing closure.

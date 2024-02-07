@@ -7,7 +7,7 @@
 
 import Dispatch
 #if PROFILE_MATCH
-import System
+import SystemPackage
 
 private let startTime = ContinuousClock.now
 

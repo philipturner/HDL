@@ -1,7 +1,7 @@
 import XCTest
 import HDL
 import Numerics
-import System
+import SystemPackage
 
 private let startTime = ContinuousClock.now
 

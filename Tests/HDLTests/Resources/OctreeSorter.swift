@@ -5,7 +5,7 @@
 //  Created by Philip Turner on 12/25/23.
 //
 
-import Dispatch
+import Foundation
 import HDL
 
 struct OctreeSorter {

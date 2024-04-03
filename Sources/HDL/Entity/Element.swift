@@ -12,10 +12,14 @@ public enum Element: UInt8, CustomStringConvertible {
   case nitrogen = 7
   case oxygen = 8
   case fluorine = 9
+  
   case silicon = 14
   case phosphorus = 15
   case sulfur = 16
+  case chlorine = 17
+  
   case germanium = 32
+  case bromine = 35
   case tin = 50
   case gold = 79
   case lead = 82
@@ -33,10 +37,14 @@ public enum Element: UInt8, CustomStringConvertible {
     case .nitrogen: return ".nitrogen"
     case .oxygen: return ".oxygen"
     case .fluorine: return ".fluorine"
+      
     case .silicon: return ".silicon"
     case .phosphorus: return ".phosphorus"
     case .sulfur: return ".sulfur"
+    case .chlorine: return ".chlorine"
+      
     case .germanium: return ".germanium"
+    case .bromine: return ".bromine"
     case .tin: return ".tin"
     case .gold: return ".gold"
     case .lead: return ".lead"
@@ -55,10 +63,14 @@ public enum Element: UInt8, CustomStringConvertible {
     output[7] = 71 / 1000
     output[8] = 66 / 1000
     output[9] = 57 / 1000
+    
     output[14] = 111 / 1000
     output[15] = 107 / 1000
     output[16] = 105 / 1000
+    output[17] = 102 / 1000
+    
     output[32] = 120 / 1000
+    output[35] = 120 / 1000
     output[50] = 139 / 1000
     output[79] = 136 / 1000
     output[82] = 146 / 1000

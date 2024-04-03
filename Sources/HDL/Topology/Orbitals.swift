@@ -128,10 +128,14 @@ private func addOrbitals(
   case .nitrogen: valence = 3
   case .oxygen: valence = 2
   case .fluorine: valence = 1
+    
   case .silicon: valence = 4
   case .phosphorus: valence = 3
   case .sulfur: valence = 2
+  case .chlorine: valence = 1
+    
   case .germanium: valence = 4
+  case .bromine: valence = 1
   case .tin: valence = 4
   case .gold: valence = 0
   case .lead: valence = 4

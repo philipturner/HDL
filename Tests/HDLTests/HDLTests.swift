@@ -57,7 +57,12 @@ final class HDLTests: XCTestCase {
   }
   
   func testElement() throws {
-    for atomicNumber in [1, 6, 7, 8, 9, 14, 15, 16, 32, 50, 79, 82] {
+    var permittedAtomicNumbers: [UInt8] = []
+    permittedAtomicNumbers += [1, 6, 7, 8, 9]
+    permittedAtomicNumbers += [14, 15, 16, 17]
+    permittedAtomicNumbers += [32, 35, 50, 79, 82]
+    
+    for atomicNumber in permittedAtomicNumbers {
       var description: String
       var covalentRadius: Float // in picometers
       
@@ -77,6 +82,7 @@ final class HDLTests: XCTestCase {
       case 9:
         description = ".fluorine"
         covalentRadius = 57
+        
       case 14:
         description = ".silicon"
         covalentRadius = 111
@@ -86,8 +92,15 @@ final class HDLTests: XCTestCase {
       case 16:
         description = ".sulfur"
         covalentRadius = 105
+      case 17:
+        description = ".chlorine"
+        covalentRadius = 102
+        
       case 32:
         description = ".germanium"
+        covalentRadius = 120
+      case 35:
+        description = ".bromine"
         covalentRadius = 120
       case 50:
         description = ".tin"

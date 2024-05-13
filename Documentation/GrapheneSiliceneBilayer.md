@@ -92,7 +92,7 @@ let carbonLattice = Lattice<Hexagonal> { h, k, l in
     Replace { .empty }
   }
 }
-print(exportToXYZ(carbonLattice.entities, comment: "Step 1"))
+print(exportToXYZ(carbonLattice.atoms, comment: "Step 1"))
 ```
 
 Lonsdaleite and graphene are similar, with a hexagonal arrangement of
@@ -154,7 +154,7 @@ let siliconLattice = Lattice<Hexagonal> { h, k, l in
     Replace { .empty }
   }
 }
-print(exportToXYZ(siliconLattice.entities, comment: "Step 3"))
+print(exportToXYZ(siliconLattice.atoms, comment: "Step 3"))
 ```
 
 Change the silicene atoms to match the lattice spacings from the

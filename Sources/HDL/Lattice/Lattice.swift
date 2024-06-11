@@ -7,11 +7,8 @@
 
 public struct Lattice<T: Basis> {
   var stack: LatticeStack
-  var _atoms: [Entity]
   
-  @available(*, deprecated, renamed: "atoms")
-  public var entities: [Entity] { _atoms }
-  public var atoms: [Entity] { _atoms }
+  public internal(set) var atoms: [Entity]
   
   public init(_ closure: (SIMD3<Float>, SIMD3<Float>, SIMD3<Float>) -> Void) {
     // Check whether there is invalid syntax.
@@ -39,6 +36,6 @@ public struct Lattice<T: Basis> {
     
     // Create the entities once, so they aren't regenerated multiple times.
     // There is no simple way to lazily materialize them with a `struct`.
-    self._atoms = stack.grid.atoms
+    self.atoms = stack.grid.atoms
   }
 }

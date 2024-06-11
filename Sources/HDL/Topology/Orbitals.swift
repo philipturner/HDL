@@ -122,20 +122,30 @@ private func addOrbitals(
   let atom = atoms[atomID]
   let atomicNumber = UInt8(atom.storage.w)
   let valence: Int
+  
   switch Element(rawValue: atomicNumber) {
   case .hydrogen: valence = 1
+    
+    // Always assume Group III elements are involved in a dative bond.
+  case .boron: valence = 4
   case .carbon: valence = 4
   case .nitrogen: valence = 3
   case .oxygen: valence = 2
   case .fluorine: valence = 1
     
+  case .aluminum: valence = 4
   case .silicon: valence = 4
   case .phosphorus: valence = 3
   case .sulfur: valence = 2
   case .chlorine: valence = 1
     
+  case .gallium: valence = 4
   case .germanium: valence = 4
+  case .arsenic: valence = 3
+  case .selenium: valence = 2
   case .bromine: valence = 1
+    
+    // Always assume Group IV elements are tetravalent.
   case .tin: valence = 4
   case .gold: valence = 0
   case .lead: valence = 4

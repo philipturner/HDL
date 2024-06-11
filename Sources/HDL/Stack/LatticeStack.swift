@@ -150,7 +150,7 @@ extension LatticeStack {
     }
   }
   
-  func createSelectedVolume() -> any LatticeMask {
+  func createSelectedVolume() -> (any LatticeMask)? {
     checkScopesValid()
     var volume: (any LatticeMask)?
     
@@ -161,9 +161,6 @@ extension LatticeStack {
         continue
       }
       volume = predecessor.backpropagate(successor)
-    }
-    guard let volume else {
-      fatalError("Backpropagation produced no volume.")
     }
     return volume
   }
@@ -178,9 +175,13 @@ extension LatticeStack {
   }
   
   func replace(with other: Int8) {
+    guard let volume = createSelectedVolume() else {
+      // No atoms were highlighted, so don't attempt to replace any.
+      return
+    }
     Self.replace(
       grid: &grid,
       other: other,
-      volume: createSelectedVolume())
+      volume: volume)
   }
 }

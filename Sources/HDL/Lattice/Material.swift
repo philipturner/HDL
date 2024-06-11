@@ -52,9 +52,16 @@ public struct Material {
       let minElement = (a.rawValue < b.rawValue) ? a : b
       let maxElement = (a.rawValue > b.rawValue) ? a : b
       switch (minElement, maxElement) {
+      case (.boron, .nitrogen): break
+      case (.boron, .phosphorus): break
+      case (.boron, .arsenic): break
       case (.carbon, .silicon): break
       case (.carbon, .germanium): break
+      case (.nitrogen, .aluminum): break
       case (.nitrogen, .gallium): break
+      
+      case (.aluminum, .phosphorus): break
+      case (.aluminum, .arsenic): break
       case (.phosphorus, .gallium): break
       case (.gallium, .arsenic): break
       default: fatalError("Unrecognized material type: \(materialType)")

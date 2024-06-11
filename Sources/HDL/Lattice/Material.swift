@@ -54,6 +54,9 @@ public struct Material {
       switch (minElement, maxElement) {
       case (.carbon, .silicon): break
       case (.carbon, .germanium): break
+      case (.nitrogen, .gallium): break
+      case (.phosphorus, .gallium): break
+      case (.gallium, .arsenic): break
       default: fatalError("Unrecognized material type: \(materialType)")
       }
     }
@@ -85,8 +88,17 @@ extension Float {
     case .checkerboard(.carbon, .germanium),
         .checkerboard(.germanium, .carbon):
       cubicSpacing = 0.4523
+    case .checkerboard(.nitrogen, .gallium),
+        .checkerboard(.gallium, .nitrogen):
+      cubicSpacing = 0.4498
     case .elemental(.silicon):
       cubicSpacing = 0.5431
+    case .checkerboard(.phosphorus, .gallium),
+        .checkerboard(.gallium, .phosphorus):
+      cubicSpacing = 0.5450
+    case .checkerboard(.gallium, .arsenic),
+        .checkerboard(.arsenic, .gallium):
+      cubicSpacing = 0.5653
     case .elemental(.germanium):
       cubicSpacing = 0.5658
     case .elemental(.gold):

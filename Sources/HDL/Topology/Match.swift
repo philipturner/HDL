@@ -6,18 +6,6 @@
 //
 
 import Dispatch
-#if PROFILE_MATCH
-import SystemPackage
-
-private let startTime = ContinuousClock.now
-
-private func cross_platform_media_time() -> Double {
-  let duration = ContinuousClock.now.duration(to: startTime)
-  let seconds = duration.components.seconds
-  let attoseconds = duration.components.attoseconds
-  return -(Double(seconds) + Double(attoseconds) * 1e-18)
-}
-#endif
 
 extension Topology {
   public enum MatchAlgorithm {
@@ -35,10 +23,6 @@ extension Topology {
     algorithm: MatchAlgorithm = .covalentBondLength(1.5),
     maximumNeighborCount: Int = 8
   ) -> [MatchStorage] {
-#if PROFILE_MATCH
-    let checkpoint0 = cross_platform_media_time()
-#endif
-    
     let rmsAtomCount = (Float(source.count) * Float(atoms.count)).squareRoot()
     func reorder(_ atoms: [Entity]) -> [UInt32] {
       if rmsAtomCount < 10_000 {
@@ -67,10 +51,6 @@ extension Topology {
       }
     }
     
-#if PROFILE_MATCH
-    let checkpoint1 = cross_platform_media_time()
-#endif
-    
     // Call the actual matching function.
     var statistics: [Double] = []
     let outputSlices = matchImpl(
@@ -79,73 +59,6 @@ extension Topology {
       algorithm: algorithm,
       maximumNeighborCount: maximumNeighborCount,
       statistics: &statistics)
-    
-#if PROFILE_MATCH
-    let checkpoint5 = cross_platform_media_time()
-    let checkpoints = [checkpoint0, checkpoint1] + statistics + [checkpoint5]
-    do {
-      //             0-1      1-2        2-3      3-4    4-5
-      var labels = ["sort", "prepare", "match", "sort", "map"]
-      var durations: [Double] = []
-      for i in labels.indices {
-        let duration = checkpoints[i + 1] - checkpoints[i]
-        durations.append(duration)
-      }
-      
-      let sum = durations.reduce(0, +)
-      let proportions = durations.map { $0 / sum }
-      var percents = proportions.map { Int(($0 * 100).rounded(.toNearestOrEven)) }
-      
-      labels = ["total"] + labels
-      percents = [100] + percents
-      durations = [checkpoint5 - checkpoint0] + durations
-      
-      var outputLine1 = " "
-      var outputMiddle = " "
-      var outputLine2 = " "
-      var outputLine3 = " "
-      for i in labels.indices {
-        var string1 = labels[i]
-        var string2 = "\(percents[i])%"
-        var string3 = "\(Int((durations[i] * 1e6).rounded(.toNearestOrEven)))"
-        let maxCount = max(max(string1.count, string2.count), string3.count)
-        
-        while maxCount > string1.count {
-          string1 = " " + string1
-        }
-        while maxCount > string2.count {
-          string2 = " " + string2
-        }
-        while maxCount > string3.count {
-          string3 = " " + string3
-        }
-        let stringMiddle = String(repeating: "-", count: string1.count)
-        
-        outputLine1 += string1
-        outputMiddle += stringMiddle
-        outputLine2 += string2
-        outputLine3 += string3
-        
-        if i < labels.count - 1 {
-          outputLine1 += " | "
-          outputMiddle += " | "
-          outputLine2 += " | "
-          outputLine3 += " | "
-        }
-      }
-      
-      if input.count == atoms.count {
-        if input.count == 280 || input.count == 1963 || input.count > 100_000 {
-          print()
-          print(" atoms:", input.count, "x", input.count)
-          print(outputLine1)
-          print(outputMiddle)
-          print(outputLine2)
-          print(outputLine3)
-        }
-      }
-    }
-#endif
     
     return outputSlices
   }
@@ -184,10 +97,6 @@ private func matchImpl(
     unsafeUninitializedCapacity: outRangeCapacity
   ) { $1 = outRangeCapacity }
   let outRangePointer = outRangeBuffer.withUnsafeMutableBufferPointer { $0 }
-  
-#if PROFILE_MATCH
-    let checkpoint2 = cross_platform_media_time()
-#endif
   
   let loopStartI: UInt32 = 0
   var loopEndI = loopStartI + UInt32(lhs.atomCount * 2) + 256
@@ -377,17 +286,8 @@ private func matchImpl(
   
   // MARK: - Sort
   
-#if PROFILE_MATCH
-    let checkpoint3 = cross_platform_media_time()
-#endif
-  
   matchBuffer.deallocate()
   matchCount.deallocate()
-  
-#if PROFILE_MATCH
-    let checkpoint4 = cross_platform_media_time()
-  statistics = [checkpoint2, checkpoint3, checkpoint4]
-#endif
   
   return unsafeBitCast(outRangeBuffer, to: [_].self)
 }

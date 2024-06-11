@@ -31,6 +31,32 @@ final class ReconstructionTests: XCTestCase {
     XCTAssertEqual(topology.bonds.count, 1318)
   }
   
+  func testAluminumPhosphide() throws {
+    let lattice = Lattice<Cubic> { h, k, l in
+      Bounds { 3 * h + 3 * k + 3 * l }
+      Material { .checkerboard(.phosphorus, .aluminum) }
+    }
+    
+    var reconstruction = Reconstruction()
+    reconstruction.material = .checkerboard(.phosphorus, .aluminum)
+    reconstruction.topology.insert(atoms: lattice.atoms)
+    reconstruction.compile()
+    
+    let topology = reconstruction.topology
+    XCTAssertEqual(topology.atoms.count, 384)
+    XCTAssertEqual(topology.bonds.count, 564)
+    
+    let orbitals = topology.nonbondingOrbitals()
+    var hasUnfilledValences = false
+    for atomID in topology.atoms.indices {
+      let orbitalList = orbitals[atomID]
+      if orbitalList.count > 0 {
+        hasUnfilledValences = true
+      }
+    }
+    XCTAssertFalse(hasUnfilledValences)
+  }
+  
   #if RELEASE
   func testReproducerBefore() throws {
     let lattice = Lattice<Cubic> { h, k, l in

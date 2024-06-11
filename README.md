@@ -14,8 +14,6 @@ Table of Contents
 
 For an introduction, visit the [tutorial](./Documentation/GrapheneSiliceneBilayer.md).
 
-> TODO: Remove the code for profiling 'match()'.
-
 ```swift
 enum Element {
   case hydrogen = 1

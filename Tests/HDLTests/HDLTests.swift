@@ -56,11 +56,27 @@ final class HDLTests: XCTestCase {
     }
   }
   
+  func testBackpropagationFailure() throws {
+    let lattice = Lattice<Cubic> { h, k, l in
+      Bounds { 5 * h + 5 * k + 5 * l }
+      Material { .elemental(.carbon) }
+      
+      Volume {
+        Replace { .empty }
+      }
+    }
+    
+    XCTAssertEqual(
+      lattice.atoms.count,
+      (6 * 6 * 6) + (5 * 5 * 5) + 3 * (5 * 5 * 11))
+  }
+  
   func testElement() throws {
     var permittedAtomicNumbers: [UInt8] = []
     permittedAtomicNumbers += [1, 6, 7, 8, 9]
-    permittedAtomicNumbers += [14, 15, 16, 17]
-    permittedAtomicNumbers += [32, 35, 50, 79, 82]
+    permittedAtomicNumbers += [13, 14, 15, 16, 17]
+    permittedAtomicNumbers += [31, 32, 33, 34, 35]
+    permittedAtomicNumbers += [50, 79, 82]
     
     for atomicNumber in permittedAtomicNumbers {
       var description: String
@@ -83,6 +99,9 @@ final class HDLTests: XCTestCase {
         description = ".fluorine"
         covalentRadius = 57
         
+      case 13:
+        description = ".aluminum"
+        covalentRadius = 121
       case 14:
         description = ".silicon"
         covalentRadius = 111
@@ -96,12 +115,22 @@ final class HDLTests: XCTestCase {
         description = ".chlorine"
         covalentRadius = 102
         
+      case 31:
+        description = ".gallium"
+        covalentRadius = 122
       case 32:
         description = ".germanium"
+        covalentRadius = 120
+      case 33:
+        description = ".arsenic"
+        covalentRadius = 119
+      case 34:
+        description = ".selenium"
         covalentRadius = 120
       case 35:
         description = ".bromine"
         covalentRadius = 120
+        
       case 50:
         description = ".tin"
         covalentRadius = 139

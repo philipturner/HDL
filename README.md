@@ -17,18 +17,25 @@ For an introduction, visit the [tutorial](./Documentation/GrapheneSiliceneBilaye
 ```swift
 enum Element {
   case hydrogen = 1
+  
+  case boron = 5
   case carbon = 6
   case nitrogen = 7
   case oxygen = 8
   case fluorine = 9
   
+  case aluminum = 13
   case silicon = 14
   case phosphorus = 15
   case sulfur = 16
   case chlorine = 17
   
+  case gallium = 31
   case germanium = 32
+  case arsenic = 33
+  case selenium = 34
   case bromine = 35
+  
   case tin = 50
   case gold = 79
   case lead = 82
@@ -49,7 +56,7 @@ struct Entity {
 
 `Entity` is a data structure that stores an atom. The position occupies 12 bytes and the entity type occupies 4 bytes. This format aligns the entity to a 16-byte vector word, improving compilation speed.
 
-`EntityType` stores the atomic number of an atom, or zero for `.empty`. Atomic numbers can be any element from the [MM4 force field](https://github.com/philipturner/MM4) (H, C, N, O, F, Si, P, S, and Ge). A few other metals and halogens are also permitted.
+`EntityType` stores the atomic number of an atom, or zero for `.empty`. Atomic numbers can be any element from Group III - VII, Period II - IV of the periodic table. A few additional elements are supported.
 
 ```swift
 // Specify lattice edits, if any, in the trailing closure.
@@ -327,15 +334,6 @@ Plane { SIMD3<Float> }
 Adds a plane to the stack. The plane will be combined with other planes, and used for selecting/deleting atoms.
 
 A `Plane` divides the `Bounds` into two sections. The "one" volume is the side the normal vector points toward. The "zero" volume is the side the normal points away from. The "one" volume contains the atoms modified during a `Replace`. When planes combine into a `Concave`, only the crystal unit cells common to every plane's "one" volume are modifiable.
-
-```swift
-Ridge(SIMD3<Float>) { SIMD3<Float> }
-Ridge(normal) { reflector }
-Valley(SIMD3<Float>) { SIMD3<Float> }
-Valley(normal) { reflector }
-```
-
-Reflect `normal` across `reflector`. Generate a plane with the normal before reflection, then a second plane after the reflection. `Ridge` takes the union of the planes' "one" volumes, while `Valley` takes the intersection.
 
 ```swift
 Replace { EntityType }

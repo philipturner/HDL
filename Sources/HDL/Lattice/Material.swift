@@ -52,8 +52,18 @@ public struct Material {
       let minElement = (a.rawValue < b.rawValue) ? a : b
       let maxElement = (a.rawValue > b.rawValue) ? a : b
       switch (minElement, maxElement) {
+      case (.boron, .nitrogen): break
+      case (.boron, .phosphorus): break
+      case (.boron, .arsenic): break
       case (.carbon, .silicon): break
       case (.carbon, .germanium): break
+      case (.nitrogen, .aluminum): break
+      case (.nitrogen, .gallium): break
+      
+      case (.aluminum, .phosphorus): break
+      case (.aluminum, .arsenic): break
+      case (.phosphorus, .gallium): break
+      case (.gallium, .arsenic): break
       default: fatalError("Unrecognized material type: \(materialType)")
       }
     }
@@ -77,6 +87,16 @@ extension Float {
     let materialType = closure()
     var cubicSpacing: Float
     switch materialType {
+    case .checkerboard(.boron, .nitrogen),
+        .checkerboard(.nitrogen, .boron):
+      cubicSpacing = 0.3615
+    case .checkerboard(.boron, .phosphorus),
+        .checkerboard(.phosphorus, .boron):
+      cubicSpacing = 0.4538
+    case .checkerboard(.boron, .arsenic),
+        .checkerboard(.arsenic, .boron):
+      cubicSpacing = 0.4778
+      
     case .elemental(.carbon):
       cubicSpacing = 0.3567
     case .checkerboard(.carbon, .silicon),
@@ -85,15 +105,41 @@ extension Float {
     case .checkerboard(.carbon, .germanium),
         .checkerboard(.germanium, .carbon):
       cubicSpacing = 0.4523
+      
+    case .checkerboard(.nitrogen, .aluminum),
+        .checkerboard(.aluminum, .nitrogen):
+      cubicSpacing = 0.4358
+    case .checkerboard(.nitrogen, .gallium),
+        .checkerboard(.gallium, .nitrogen):
+      cubicSpacing = 0.4498
+      
+    case .checkerboard(.aluminum, .phosphorus),
+        .checkerboard(.phosphorus, .aluminum):
+      cubicSpacing = 0.5464
+    case .checkerboard(.aluminum, .arsenic),
+        .checkerboard(.arsenic, .aluminum):
+      cubicSpacing = 0.5660
+      
     case .elemental(.silicon):
       cubicSpacing = 0.5431
+      
+    case .checkerboard(.phosphorus, .gallium),
+        .checkerboard(.gallium, .phosphorus):
+      cubicSpacing = 0.5450
+      
+    case .checkerboard(.gallium, .arsenic),
+        .checkerboard(.arsenic, .gallium):
+      cubicSpacing = 0.5653
+      
     case .elemental(.germanium):
       cubicSpacing = 0.5658
+      
     case .elemental(.gold):
       cubicSpacing = 0.4078
       guard constantType == .square else {
         fatalError("Hexagonal gold is unsupported.")
       }
+      
     default:
       fatalError("Unrecognized material type: \(materialType)")
     }

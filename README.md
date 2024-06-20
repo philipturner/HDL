@@ -293,7 +293,7 @@ Free radicals and lone pairs are treated the same way. This means a nitrogen wit
 
 For the carbon in an acetylene radical, only one orbital is reported. The reported orbital contains the free radical and is collinear with the two carbon atoms. It is also the only orbital known with absolute positional certainty. The two pi orbitals could be rotated into a infinite number of specific positions around the axis. It may be possible to exactly determine their orientation relative to other pi orbitals in a carbyne rod. However, that heuristic involves more than just immediate neighbors.
 
-Another edge case is halogens. Although they have 3 lone pairs, there is no method to positionally constrain the directions of sp3 orbitals. Nonbonding orbitals of divalent oxygen and trivalent nitrogen can be computed analytically from the neighbor atom positions. This corresponds to how primary carbons report zero orbitals, while secondary and tertiary carbons report 1&ndash;2 orbitals.
+Another edge case is halogens. They have three sp3 lone pairs, which cannot be positionally constrained. Therefore, the compiler cannot generate a discrete set of orbital orientations for halogens.  Nonbonding orbitals of divalent oxygen and trivalent nitrogen can be computed analytically from the neighbor atom positions. The discrepancy between treatment of Group VII and Group V/VI has an analogue in purely hydrocarbon matter. Primary carbons report zero orbitals, while secondary and tertiary carbons report 1&ndash;2 orbitals.
 
 ```swift
 // Sorts the atoms and returns the old atoms' indices in the new list.

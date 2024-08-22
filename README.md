@@ -15,7 +15,22 @@ Table of Contents
 For an introduction, visit the [tutorial](./Documentation/GrapheneSiliceneBilayer.md).
 
 ```swift
-enum Element {
+typealias Atom = SIMD4<Float>
+
+extension Atom {
+  var position: SIMD3<Float>
+  
+  var atomicNumber: UInt8 {
+    let fourthLane: Float = self[3]
+    return UInt8(fourthLane)
+  }
+}
+```
+
+`Atom` is a typealias for a four-wide SIMD vector. Each vector lane contains an IEEE 754 single-precision floating point number. The first three lanes store the X, Y, and Z coordinates in real space. The fourth lane stores the atomic number.
+
+```swift
+enum Element: UInt8 {
   case hydrogen = 1
   
   case boron = 5
@@ -42,21 +57,9 @@ enum Element {
   
   var covalentRadius: Float { get }
 }
-
-enum EntityType {
-  case atom(Element)
-  case empty
-}
-
-struct Entity {
-  var position: SIMD3<Float>
-  var type: EntityType
-}
 ```
 
-`Entity` is a data structure that stores an atom. The position occupies 12 bytes and the entity type occupies 4 bytes. This format aligns the entity to a 16-byte vector word, improving compilation speed.
-
-`EntityType` stores the atomic number of an atom, or zero for `.empty`. Atomic numbers can be any element from Group III - VII, Period II - IV of the periodic table. A few additional elements are supported.
+Atomic numbers can be any element from Group III - VII, Period II - IV of the periodic table. In addition, a few heavy metals are parameterized.
 
 ```swift
 // Specify lattice edits, if any, in the trailing closure.
@@ -336,7 +339,12 @@ Adds a plane to the stack. The plane will be combined with other planes, and use
 A `Plane` divides the `Bounds` into two sections. The "one" volume is the side the normal vector points toward. The "zero" volume is the side the normal points away from. The "one" volume contains the atoms modified during a `Replace`. When planes combine into a `Concave`, only the crystal unit cells common to every plane's "one" volume are modifiable.
 
 ```swift
-Replace { EntityType }
+enum ReplaceType {
+  case atom(Element)
+  case empty
+}
+
+Replace { ReplaceType }
 ```
 
 Replace all atoms in the selected volume with a new entity.

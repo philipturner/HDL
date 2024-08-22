@@ -19,7 +19,7 @@ typealias Atom = SIMD4<Float>
 
 extension Atom {
   var position: SIMD3<Float>
-  var atomicNumber: UInt8
+  var element: Element
   
   init(position: SIMD3<Float>, element: Element)
 }

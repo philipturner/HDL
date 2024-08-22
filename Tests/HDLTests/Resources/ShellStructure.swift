@@ -36,7 +36,7 @@ struct ShellStructure {
     insertedBonds = []
     
     let orbitals = topology.nonbondingOrbitals()
-    var insertedAtoms: [Entity] = []
+    var insertedAtoms: [Atom] = []
     for i in topology.atoms.indices {
       let atom = topology.atoms[i]
       let bondLength = Element.hydrogen.covalentRadius +
@@ -45,7 +45,7 @@ struct ShellStructure {
       for orbital in orbitals[i] {
         let hydrogenID = topology.atoms.count + insertedAtoms.count
         let position = atom.position + bondLength * orbital
-        let hydrogen = Entity(position: position, type: .atom(.hydrogen))
+        let hydrogen = Atom(position: position, element: .hydrogen)
         insertedAtoms.append(hydrogen)
         insertedBonds.append(
           SIMD2(UInt32(i), UInt32(hydrogenID)))

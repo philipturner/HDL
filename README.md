@@ -19,11 +19,9 @@ typealias Atom = SIMD4<Float>
 
 extension Atom {
   var position: SIMD3<Float>
+  var atomicNumber: UInt8
   
-  var atomicNumber: UInt8 {
-    let fourthLane: Float = self[3]
-    return UInt8(fourthLane)
-  }
+  init(position: SIMD3<Float>, element: Element)
 }
 ```
 
@@ -340,8 +338,8 @@ A `Plane` divides the `Bounds` into two sections. The "one" volume is the side t
 
 ```swift
 enum ReplaceType {
-  case atom(Element)
-  case empty
+  case .atom(Element)
+  case .empty
 }
 
 Replace { ReplaceType }

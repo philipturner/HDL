@@ -6,7 +6,7 @@
 //
 
 public struct Topology {
-  public var atoms: [Entity] = []
+  public var atoms: [Atom] = []
   public var bonds: [SIMD2<UInt32>] = []
   
   public init() {
@@ -17,13 +17,13 @@ public struct Topology {
 // MARK: - Insert and Remove
   
 extension Topology {
-  public mutating func insert(atoms: [Entity]) {
+  public mutating func insert(atoms: [Atom]) {
     for atom in atoms {
-      guard atom.storage.w > 0 else {
-        fatalError("Topology does not accept empty entities.")
+      guard atom.w > 0 else {
+        fatalError("Topology does not accept empty atoms: \(atom), \(atom.w), \(atom.w > 0).")
       }
-      guard atom.storage.w == Float(Int8(atom.storage.w)) else {
-        fatalError("Entity must have an integer atomic number.")
+      guard atom.w == Float(Int8(atom.w)) else {
+        fatalError("Atom must have an integer atomic number.")
       }
     }
     self.atoms += atoms
@@ -48,7 +48,7 @@ extension Topology {
       marks[Int(index)] = false
     }
     
-    var newAtoms: [Entity] = []
+    var newAtoms: [Atom] = []
     var reordering: [Int32] = []
     newAtoms.reserveCapacity(max(0, atoms.count - indices.count))
     reordering.reserveCapacity(atoms.count)

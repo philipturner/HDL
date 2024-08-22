@@ -335,7 +335,7 @@ struct CubicMask: LatticeMask {
 
 struct CubicGrid: LatticeGrid {
   var dimensions: SIMD3<Int32>
-  var entityTypes: [SIMD8<Int8>]
+  var atomicNumbers: [SIMD8<Int8>]
   var squareSideLength: Float
   
   /// Create a mask using a plane.
@@ -367,7 +367,7 @@ struct CubicGrid: LatticeGrid {
     dimensions = SIMD3<Int32>((bounds + 0.001).rounded(.up))
     dimensions.replace(with: SIMD3.zero, where: dimensions .< 0)
     dimensions.x = (dimensions.x + 3) / 4 * 4
-    entityTypes = Array(repeating: repeatingUnit, count: Int(
+    atomicNumbers = Array(repeating: repeatingUnit, count: Int(
       dimensions.x * dimensions.y * dimensions.z))
     
     // Fetch the lattice constant using the 'Constant' API.
@@ -391,13 +391,13 @@ struct CubicGrid: LatticeGrid {
       let mask8 = UnsafeMutablePointer<UInt8>(opaque)
       let mask32 = UnsafeMutablePointer<UInt32>(opaque)
       
-      for groupID in 0..<entityTypes.count / 4 {
+      for groupID in 0..<atomicNumbers.count / 4 {
         let value32 = mask32[groupID]
         if value32 == .zero {
           continue
         } else if value32 == .max && other == .zero {
           for lane in 0..<4 {
-            entityTypes[groupID &* 4 &+ lane] = newValue
+            atomicNumbers[groupID &* 4 &+ lane] = newValue
           }
         } else {
           for lane in 0..<4 {
@@ -405,18 +405,18 @@ struct CubicGrid: LatticeGrid {
             let compressed = mask8[cellID]
             let flags = CubicCell.flags & compressed
             
-            var codes = entityTypes[cellID]
+            var codes = atomicNumbers[cellID]
             let select = codes .!= 0
             codes.replace(with: newValue, where: flags .> 0 .& select)
-            entityTypes[cellID] = codes
+            atomicNumbers[cellID] = codes
           }
         }
       }
     }
   }
   
-  var atoms: [Entity] {
-    var output: [Entity] = []
+  var atoms: [Atom] {
+    var output: [Atom] = []
     let outputTransform = (
       SIMD3<Float>(squareSideLength, 0, 0),
       SIMD3<Float>(0, squareSideLength, 0),
@@ -429,7 +429,7 @@ struct CubicGrid: LatticeGrid {
           var cellID = z * dimensions.y + y
           cellID = cellID * dimensions.x + x
           
-          let cell = entityTypes[Int(cellID)]
+          let cell = atomicNumbers[Int(cellID)]
           if all(cell .== .zero) {
             continue
           }
@@ -437,7 +437,6 @@ struct CubicGrid: LatticeGrid {
             let x = CubicCell.x0[lane] / 4
             let y = CubicCell.y0[lane] / 4
             let z = CubicCell.z0[lane] / 4
-            let type = EntityType(compactRepresentation: cell[lane])
             
             var position = SIMD3<Float>(x, y, z)
             position += lowerCorner
@@ -446,9 +445,9 @@ struct CubicGrid: LatticeGrid {
             outputTransform.1 * position.y +
             outputTransform.2 * position.z
             
-            let entity = Entity(
-              position: position, type: type)
-            output.append(entity)
+            let atomicNumber = cell[lane]
+            let atom = SIMD4(position, Float(atomicNumber))
+            output.append(atom)
           }
         }
       }

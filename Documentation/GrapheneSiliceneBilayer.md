@@ -86,7 +86,7 @@ let carbonLattice = Lattice<Hexagonal> { h, k, l in
     Plane { l }
     
     // Remove all atoms on the positive side of the plane.
-    Replace { .empty }
+    Replace { nil }
   }
 }
 print(exportToXYZ(carbonLattice.atoms, comment: "Step 1"))
@@ -148,7 +148,7 @@ let siliconLattice = Lattice<Hexagonal> { h, k, l in
   Volume {
     Origin { 0.25 * l }
     Plane { l }
-    Replace { .empty }
+    Replace { nil }
   }
 }
 print(exportToXYZ(siliconLattice.atoms, comment: "Step 3"))

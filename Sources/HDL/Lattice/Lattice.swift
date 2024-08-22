@@ -8,7 +8,7 @@
 public struct Lattice<T: Basis> {
   var stack: LatticeStack
   
-  public internal(set) var atoms: [Entity]
+  public internal(set) var atoms: [Atom]
   
   public init(_ closure: (SIMD3<Float>, SIMD3<Float>, SIMD3<Float>) -> Void) {
     // Check whether there is invalid syntax.
@@ -20,7 +20,7 @@ public struct Lattice<T: Basis> {
     }
     LatticeStackDescriptor.global.basis = _T
     
-    // Initialize the entities.
+    // Initialize the atoms.
     GlobalScope.push(.lattice)
     closure(SIMD3(1, 0, 0), SIMD3(0, 1, 0), SIMD3(0, 0, 1))
     guard GlobalScope.pop() == .lattice else {
@@ -34,7 +34,7 @@ public struct Lattice<T: Basis> {
     // Erase the global stack.
     LatticeStack.deleteGlobal()
     
-    // Create the entities once, so they aren't regenerated multiple times.
+    // Create the atoms once, so they aren't regenerated multiple times.
     // There is no simple way to lazily materialize them with a `struct`.
     self.atoms = stack.grid.atoms
   }

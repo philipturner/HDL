@@ -42,7 +42,7 @@ final class TopologyTests: XCTestCase {
     var removedAtomIDs: [UInt32] = []
     var removedBondIDs: [UInt32] = []
     
-    var carbonAtoms: [Entity] = []
+    var carbonAtoms: [Atom] = []
     var originalCarbonBonds: [SIMD2<UInt32>] = []
     var compactedCarbonBonds: [SIMD2<UInt32>] = []
     
@@ -406,7 +406,7 @@ final class TopologyTests: XCTestCase {
       }
     }
     
-    var expectedAtoms: [Entity]
+    var expectedAtoms: [Atom]
     var expectedBonds: [SIMD2<UInt32>]
     do {
       var topology = Topology()
@@ -734,8 +734,8 @@ final class TopologyTests: XCTestCase {
   // Test what happens when storage types reach the limit of their capacity.
   func testStorage() throws {
     var topology = Topology()
-    let hydrogen = Entity(position: .zero, type: .atom(.hydrogen))
-    let atoms = [Entity](repeating: hydrogen, count: 40)
+    let hydrogen = Atom(position: .zero, element: .hydrogen)
+    let atoms = [Atom](repeating: hydrogen, count: 40)
     topology.insert(atoms: atoms)
     
     var bonds: [SIMD2<UInt32>] = []

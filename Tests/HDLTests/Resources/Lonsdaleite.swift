@@ -8,11 +8,11 @@
 import HDL
 
 struct Lonsdaleite {
-  var atoms: [Entity]
+  var atoms: [Atom]
   var bonds: [SIMD2<UInt32>]
   
   init() {
-    self.atoms = lonsdaleiteAtoms.map(Entity.init(storage:))
+    self.atoms = lonsdaleiteAtoms.map { $0 }
     self.bonds = lonsdaleiteBonds
   }
 }

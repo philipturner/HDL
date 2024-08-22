@@ -305,12 +305,12 @@ final class MatchTests: XCTestCase {
       do {
         let orbitals = topology.nonbondingOrbitals()
         
-        var insertedAtoms: [Entity] = []
+        var insertedAtoms: [Atom] = []
         for i in topology.atoms.indices {
           let atom = topology.atoms[i]
           for orbital in orbitals[i] {
             let position = atom.position + orbital * ccBondLength
-            let hydrogen = Entity(position: position, type: .atom(.hydrogen))
+            let hydrogen = Atom(position: position, element: .hydrogen)
             insertedAtoms.append(hydrogen)
           }
         }

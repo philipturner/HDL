@@ -466,7 +466,7 @@ final class PerformanceTests: XCTestCase {
     }
     
     for trialID in 0..<4 {
-      var trialAtoms: [Entity]
+      var trialAtoms: [Atom]
       var trialName: String
       
       switch trialID {

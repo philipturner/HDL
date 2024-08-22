@@ -218,7 +218,7 @@ struct CBNTripodCage: CBNTripodComponent {
     do {
       let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)
       
-      var insertedAtoms: [Entity] = []
+      var insertedAtoms: [Atom] = []
       var insertedBonds: [SIMD2<UInt32>] = []
       for i in topology.atoms.indices {
         let atom = topology.atoms[i]
@@ -229,7 +229,7 @@ struct CBNTripodCage: CBNTripodComponent {
         
         let orbital = orbitals[i].first!
         let carbonPosition = atom.position + orbital * ccBondLength
-        let carbon = Entity(position: carbonPosition, type: .atom(.carbon))
+        let carbon = Atom(position: carbonPosition, element: .carbon)
         let carbonID = topology.atoms.count + insertedAtoms.count
         insertedAtoms.append(carbon)
         insertedBonds.append(SIMD2(UInt32(i), UInt32(carbonID)))
@@ -241,15 +241,15 @@ struct CBNTripodCage: CBNTripodComponent {
         
         let oxygenOrbital = rotation.act(on: -orbital)
         let oxygenPosition = carbon.position + oxygenOrbital * coBondLength
-        let oxygen = Entity(position: oxygenPosition, type: .atom(.oxygen))
+        let oxygen = Atom(position: oxygenPosition, element: .oxygen)
         let oxygenID = topology.atoms.count + insertedAtoms.count
         insertedAtoms.append(oxygen)
         insertedBonds.append(SIMD2(UInt32(carbonID), UInt32(oxygenID)))
         
         let hydrogenOrbital = rotation.act(on: oxygenOrbital)
         let hydrogenPosition = carbon.position + hydrogenOrbital * chBondLength
-        let hydrogen = Entity(
-          position: hydrogenPosition, type: .atom(.hydrogen))
+        let hydrogen = Atom(
+          position: hydrogenPosition, element: .hydrogen)
         let hydrogenID = topology.atoms.count + insertedAtoms.count
         insertedAtoms.append(hydrogen)
         insertedBonds.append(SIMD2(UInt32(carbonID), UInt32(hydrogenID)))
@@ -267,7 +267,7 @@ struct CBNTripodCage: CBNTripodComponent {
     let atomsToAtomsMap = topology.map(.atoms, to: .atoms)
     let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)
     
-    var insertedAtoms: [Entity] = []
+    var insertedAtoms: [Atom] = []
     var insertedBonds: [SIMD2<UInt32>] = []
     for i in topology.atoms.indices {
       let atom = topology.atoms[i]
@@ -289,7 +289,7 @@ struct CBNTripodCage: CBNTripodComponent {
       
       for orbital in orbitals[i] {
         let position = atom.position + orbital * chBondLength
-        let hydrogen = Entity(position: position, type: .atom(.hydrogen))
+        let hydrogen = Atom(position: position, element: .hydrogen)
         let hydrogenID = topology.atoms.count + insertedAtoms.count
         insertedAtoms.append(hydrogen)
         insertedBonds.append(SIMD2(UInt32(i), UInt32(hydrogenID)))
@@ -323,7 +323,7 @@ struct CBNTripodCage: CBNTripodComponent {
       let germanium = topology.atoms[germaniumID]
       let orbital = orbitals[germaniumID].first!
       let carbonPosition1 = germanium.position + orbital * cGeBondLength
-      let carbon1 = Entity(position: carbonPosition1, type: .atom(.carbon))
+      let carbon1 = Atom(position: carbonPosition1, element: .carbon)
       let carbonID1 = topology.atoms.count
       topology.insert(atoms: [carbon1])
       topology.insert(bonds: [SIMD2(UInt32(germaniumID), UInt32(carbonID1))])
@@ -344,7 +344,7 @@ struct CBNTripodCage: CBNTripodComponent {
       let carbon1 = topology.atoms[carbonID1]
       let orbital = orbitals[carbonID1].first!
       let carbonPosition2 = carbon1.position + orbital * ccBondLength
-      let carbon2 = Entity(position: carbonPosition2, type: .atom(.carbon))
+      let carbon2 = Atom(position: carbonPosition2, element: .carbon)
       let carbonID2 = topology.atoms.count
       topology.insert(atoms: [carbon2])
       topology.insert(bonds: [SIMD2(UInt32(carbonID1), UInt32(carbonID2))])
@@ -353,40 +353,40 @@ struct CBNTripodCage: CBNTripodComponent {
   
   // Replace the atom positions with the energy-minimized ones from xTB.
   mutating func compilationPass5() {
-    let xtbOptimizedAtoms: [Entity] = [
-      Entity(position: SIMD3( 0.0000, -0.2471, -0.1449), type: .atom(.carbon)),
-      Entity(position: SIMD3(-0.1255, -0.2471,  0.0725), type: .atom(.carbon)),
-      Entity(position: SIMD3( 0.1255, -0.2471,  0.0725), type: .atom(.carbon)),
-      Entity(position: SIMD3( 0.0000, -0.2024,  0.1490), type: .atom(.carbon)),
-      Entity(position: SIMD3( 0.0000, -0.0523,  0.1782), type: .atom(.carbon)),
-      Entity(position: SIMD3( 0.1290, -0.2024, -0.0745), type: .atom(.carbon)),
-      Entity(position: SIMD3( 0.1543, -0.0523, -0.0891), type: .atom(.carbon)),
-      Entity(position: SIMD3(-0.1290, -0.2024, -0.0745), type: .atom(.carbon)),
-      Entity(position: SIMD3(-0.1543, -0.0523, -0.0891), type: .atom(.carbon)),
-      Entity(position: SIMD3( 0.0000,  0.0341,  0.0000), type: .atom(.germanium)),
-      Entity(position: SIMD3( 0.0000, -0.2795,  0.2808), type: .atom(.carbon)),
-      Entity(position: SIMD3(-0.0000, -0.3987,  0.2894), type: .atom(.oxygen)),
-      Entity(position: SIMD3( 0.0000, -0.2153,  0.3710), type: .atom(.hydrogen)),
-      Entity(position: SIMD3( 0.2431, -0.2795, -0.1404), type: .atom(.carbon)),
-      Entity(position: SIMD3( 0.2506, -0.3987, -0.1447), type: .atom(.oxygen)),
-      Entity(position: SIMD3( 0.3213, -0.2153, -0.1856), type: .atom(.hydrogen)),
-      Entity(position: SIMD3(-0.2431, -0.2795, -0.1404), type: .atom(.carbon)),
-      Entity(position: SIMD3(-0.2506, -0.3987, -0.1447), type: .atom(.oxygen)),
-      Entity(position: SIMD3(-0.3213, -0.2153, -0.1856), type: .atom(.hydrogen)),
-      Entity(position: SIMD3(-0.0000, -0.3563, -0.1495), type: .atom(.hydrogen)),
-      Entity(position: SIMD3( 0.0000, -0.2088, -0.2475), type: .atom(.hydrogen)),
-      Entity(position: SIMD3(-0.2143, -0.2088,  0.1237), type: .atom(.hydrogen)),
-      Entity(position: SIMD3(-0.1295, -0.3563,  0.0748), type: .atom(.hydrogen)),
-      Entity(position: SIMD3( 0.1295, -0.3563,  0.0748), type: .atom(.hydrogen)),
-      Entity(position: SIMD3( 0.2143, -0.2088,  0.1237), type: .atom(.hydrogen)),
-      Entity(position: SIMD3( 0.0880, -0.0254,  0.2368), type: .atom(.hydrogen)),
-      Entity(position: SIMD3(-0.0880, -0.0254,  0.2368), type: .atom(.hydrogen)),
-      Entity(position: SIMD3( 0.1610, -0.0254, -0.1946), type: .atom(.hydrogen)),
-      Entity(position: SIMD3( 0.2490, -0.0254, -0.0422), type: .atom(.hydrogen)),
-      Entity(position: SIMD3(-0.2490, -0.0254, -0.0422), type: .atom(.hydrogen)),
-      Entity(position: SIMD3(-0.1610, -0.0254, -0.1946), type: .atom(.hydrogen)),
-      Entity(position: SIMD3(-0.0000,  0.2273, -0.0000), type: .atom(.carbon)),
-      Entity(position: SIMD3(-0.0000,  0.3471, -0.0000), type: .atom(.carbon)),
+    let xtbOptimizedAtoms: [Atom] = [
+      Atom(position: SIMD3( 0.0000, -0.2471, -0.1449), element: .carbon),
+      Atom(position: SIMD3(-0.1255, -0.2471,  0.0725), element: .carbon),
+      Atom(position: SIMD3( 0.1255, -0.2471,  0.0725), element: .carbon),
+      Atom(position: SIMD3( 0.0000, -0.2024,  0.1490), element: .carbon),
+      Atom(position: SIMD3( 0.0000, -0.0523,  0.1782), element: .carbon),
+      Atom(position: SIMD3( 0.1290, -0.2024, -0.0745), element: .carbon),
+      Atom(position: SIMD3( 0.1543, -0.0523, -0.0891), element: .carbon),
+      Atom(position: SIMD3(-0.1290, -0.2024, -0.0745), element: .carbon),
+      Atom(position: SIMD3(-0.1543, -0.0523, -0.0891), element: .carbon),
+      Atom(position: SIMD3( 0.0000,  0.0341,  0.0000), element: .germanium),
+      Atom(position: SIMD3( 0.0000, -0.2795,  0.2808), element: .carbon),
+      Atom(position: SIMD3(-0.0000, -0.3987,  0.2894), element: .oxygen),
+      Atom(position: SIMD3( 0.0000, -0.2153,  0.3710), element: .hydrogen),
+      Atom(position: SIMD3( 0.2431, -0.2795, -0.1404), element: .carbon),
+      Atom(position: SIMD3( 0.2506, -0.3987, -0.1447), element: .oxygen),
+      Atom(position: SIMD3( 0.3213, -0.2153, -0.1856), element: .hydrogen),
+      Atom(position: SIMD3(-0.2431, -0.2795, -0.1404), element: .carbon),
+      Atom(position: SIMD3(-0.2506, -0.3987, -0.1447), element: .oxygen),
+      Atom(position: SIMD3(-0.3213, -0.2153, -0.1856), element: .hydrogen),
+      Atom(position: SIMD3(-0.0000, -0.3563, -0.1495), element: .hydrogen),
+      Atom(position: SIMD3( 0.0000, -0.2088, -0.2475), element: .hydrogen),
+      Atom(position: SIMD3(-0.2143, -0.2088,  0.1237), element: .hydrogen),
+      Atom(position: SIMD3(-0.1295, -0.3563,  0.0748), element: .hydrogen),
+      Atom(position: SIMD3( 0.1295, -0.3563,  0.0748), element: .hydrogen),
+      Atom(position: SIMD3( 0.2143, -0.2088,  0.1237), element: .hydrogen),
+      Atom(position: SIMD3( 0.0880, -0.0254,  0.2368), element: .hydrogen),
+      Atom(position: SIMD3(-0.0880, -0.0254,  0.2368), element: .hydrogen),
+      Atom(position: SIMD3( 0.1610, -0.0254, -0.1946), element: .hydrogen),
+      Atom(position: SIMD3( 0.2490, -0.0254, -0.0422), element: .hydrogen),
+      Atom(position: SIMD3(-0.2490, -0.0254, -0.0422), element: .hydrogen),
+      Atom(position: SIMD3(-0.1610, -0.0254, -0.1946), element: .hydrogen),
+      Atom(position: SIMD3(-0.0000,  0.2273, -0.0000), element: .carbon),
+      Atom(position: SIMD3(-0.0000,  0.3471, -0.0000), element: .carbon),
     ]
     
     topology.atoms = xtbOptimizedAtoms
@@ -398,7 +398,7 @@ extension CBNTripodCage {
   // equilibrium, but the compiled structure doesn't need to be close. It only
   // needed to be close for the tripod leg, where replacing with the minimized
   // structure constituted unacceptable information loss.
-  func createLattice() -> [Entity] {
+  func createLattice() -> [Atom] {
     // Create the adamantane cage with Ge and with 3 methyl groups in place of
     // the leg structures.
     let lattice = Lattice<Cubic> { h, k, l in

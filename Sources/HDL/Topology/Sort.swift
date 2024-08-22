@@ -40,12 +40,12 @@ extension Topology {
 }
 
 struct GridSorter {
-  var atoms: [Entity] = []
+  var atoms: [Atom] = []
   
   var origin: SIMD3<Float>
   var dimensions: SIMD3<Float>
   
-  init(atoms: [Entity]) {
+  init(atoms: [Atom]) {
     self.atoms = atoms
     
     if atoms.count == 0 {

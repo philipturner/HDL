@@ -5,7 +5,7 @@
 //  Created by Philip Turner on 10/22/23.
 //
 
-/// The elements supported by the compiler.
+/// The elements parameterized by the compiler.
 public enum Element: UInt8, CustomStringConvertible {
   case hydrogen = 1
   
@@ -33,7 +33,7 @@ public enum Element: UInt8, CustomStringConvertible {
   
   @_transparent
   @inlinable @inline(__always)
-  public init(_ atomicNumber: UInt8) {
+  public init(atomicNumber: UInt8) {
     self.init(rawValue: atomicNumber)!
   }
   
@@ -101,5 +101,11 @@ public enum Element: UInt8, CustomStringConvertible {
   @inlinable @inline(__always)
   public var covalentRadius: Float {
     Self.covalentRadii[Int(rawValue)]
+  }
+  
+  @_transparent
+  @inlinable @inline(__always)
+  public var atomicNumber: UInt8 {
+    rawValue
   }
 }

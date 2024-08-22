@@ -113,14 +113,14 @@ extension Topology {
 
 @inline(__always)
 private func addOrbitals(
-  atoms: [Entity],
+  atoms: [Atom],
   atomID: Int,
   bonds: [SIMD2<UInt32>],
   connectionsMap: [Topology.MapStorage],
   hybridization: Topology.OrbitalHybridization
 ) -> (Int, SIMD3<Float>, SIMD3<Float>) {
   let atom = atoms[atomID]
-  let atomicNumber = UInt8(atom.storage.w)
+  let atomicNumber = UInt8(atom.w)
   let valence: Int
   
   switch Element(rawValue: atomicNumber) {
@@ -177,7 +177,7 @@ private func addOrbitals(
       let neighborID = neighborIDs[i]
       
       let neighbor = atoms[Int(neighborID)]
-      let delta4 = neighbor.storage - atom.storage
+      let delta4 = neighbor - atom
       let delta = unsafeBitCast(delta4, to: SIMD3<Float>.self)
       
       let distance = (delta * delta).sum().squareRoot()

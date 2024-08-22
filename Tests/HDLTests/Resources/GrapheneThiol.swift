@@ -94,7 +94,7 @@ struct GrapheneThiol {
     let thiolRotation = Quaternion<Float>(
       angle: 109.5 * .pi / 180, axis: [0, 0, 1])
     
-    var insertedAtoms: [Entity] = []
+    var insertedAtoms: [Atom] = []
     var insertedBonds: [SIMD2<UInt32>] = []
     for i in topology.atoms.indices {
       for orbital in orbitals[i] {
@@ -106,9 +106,9 @@ struct GrapheneThiol {
           insertedBonds.append(SIMD2(UInt32(i), UInt32(sulfurID)))
           
           let sulfurPosition = atom.position + orbital * csBondLength
-          let sulfur = Entity(
+          let sulfur = Atom(
             position: sulfurPosition,
-            type: .atom(.sulfur))
+            element: .sulfur)
           insertedAtoms.append(sulfur)
           
           var thiolOrbital = thiolRotation.act(on: -orbital)
@@ -122,9 +122,9 @@ struct GrapheneThiol {
           insertedBonds.append(SIMD2(UInt32(i), UInt32(hydrogenID)))
           
           let hydrogenPosition = sulfur.position + thiolOrbital * shBondLength
-          let hydrogen = Entity(
+          let hydrogen = Atom(
             position: hydrogenPosition,
-            type: .atom(.hydrogen))
+            element: .hydrogen)
           insertedAtoms.append(hydrogen)
         } else {
           let hydrogenID = topology.atoms.count + insertedAtoms.count
@@ -132,9 +132,9 @@ struct GrapheneThiol {
           insertedBonds.append(bond)
           
           let hydrogenPosition = atom.position + orbital * chBondLength
-          let hydrogen = Entity(
+          let hydrogen = Atom(
             position: hydrogenPosition,
-            type: .atom(.hydrogen))
+            element: .hydrogen)
           insertedAtoms.append(hydrogen)
         }
       }

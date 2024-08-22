@@ -15,7 +15,20 @@ Table of Contents
 For an introduction, visit the [tutorial](./Documentation/GrapheneSiliceneBilayer.md).
 
 ```swift
-enum Element {
+typealias Atom = SIMD4<Float>
+
+extension Atom {
+  var position: SIMD3<Float>
+  var element: Element
+  
+  init(position: SIMD3<Float>, element: Element)
+}
+```
+
+`Atom` is a typealias for a four-wide SIMD vector. Each vector lane contains an IEEE 754 single-precision floating point number. The first three lanes store the X, Y, and Z coordinates in real space. The fourth lane stores the atomic number.
+
+```swift
+enum Element: UInt8 {
   case hydrogen = 1
   
   case boron = 5
@@ -42,21 +55,9 @@ enum Element {
   
   var covalentRadius: Float { get }
 }
-
-enum EntityType {
-  case atom(Element)
-  case empty
-}
-
-struct Entity {
-  var position: SIMD3<Float>
-  var type: EntityType
-}
 ```
 
-`Entity` is a data structure that stores an atom. The position occupies 12 bytes and the entity type occupies 4 bytes. This format aligns the entity to a 16-byte vector word, improving compilation speed.
-
-`EntityType` stores the atomic number of an atom, or zero for `.empty`. Atomic numbers can be any element from Group III - VII, Period II - IV of the periodic table. A few additional elements are supported.
+Atomic numbers can be any element from Group III - VII, Period II - IV of the periodic table. In addition, a few heavy metals are parameterized.
 
 ```swift
 // Specify lattice edits, if any, in the trailing closure.
@@ -168,7 +169,7 @@ Specifies the atom types to fill the lattice with, and the lattice constant. Thi
 The following APIs are available for `Topology`.
 
 ```swift
-var atoms: [Entity] { get set }
+var atoms: [Atom] { get set }
 var bonds: [SIMD2<UInt32>] { get set }
 ```
 
@@ -218,7 +219,7 @@ extension Topology {
 }
 
 func match(
-  _ source: [Entity], 
+  _ source: [Atom], 
   algorithm: MatchAlgorithm = .covalentBondLength(1.5),
   maximumNeighborCount: Int = 8
 ) -> [ArraySlice<UInt32>]
@@ -233,7 +234,7 @@ let angstromMatches = topology.match(
   atoms2, algorithm: .absoluteRadius(0.1))
   
 // Another example of usage.
-var atoms = [Entity(...), Entity(...)]
+var atoms = [Atom(...), Atom(...)]
 let atomsLocationsInStructure = topology.match(atoms)
 someFunction(atoms[0], atomLocationsInStructure[0])
 someFunction(atoms[1], atomLocationsInStructure[1])
@@ -252,7 +253,7 @@ For `covalentBondScale`, bond length is determined by summing the covalent radii
 You are encouraged to sort the topology before calling `match()`. Otherwise, the search algorithm may degrade from $O(n)$ to $O(n^2)$. The overhead of sorting is significant and often takes more time than just running the match. Therefore, the internal implementation only performs sorting when the atom count is ~10,000. This is a performance sweet spot for highly ordered distributions (e.g. atoms directly fetched from a crystal lattice). However, it may not be a sweet spot for extremely disordered distributions.
 
 ```swift
-mutating func insert(atoms: [Entity])
+mutating func insert(atoms: [Atom])
 mutating func insert(bonds: [SIMD2<UInt32>])
 ```
 
@@ -336,10 +337,15 @@ Adds a plane to the stack. The plane will be combined with other planes, and use
 A `Plane` divides the `Bounds` into two sections. The "one" volume is the side the normal vector points toward. The "zero" volume is the side the normal points away from. The "one" volume contains the atoms modified during a `Replace`. When planes combine into a `Concave`, only the crystal unit cells common to every plane's "one" volume are modifiable.
 
 ```swift
-Replace { EntityType }
+enum ReplaceType {
+  case .atom(Element)
+  case .empty
+}
+
+Replace { ReplaceType }
 ```
 
-Replace all atoms in the selected volume with a new entity.
+Transmute the atoms in the selected volume to a different atom type.
 
 To delete atoms, use `Replace { .empty }`. Removed atoms cannot be restored by a subsequent `Replace`.
 

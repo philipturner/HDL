@@ -51,7 +51,7 @@ final class HDLTests: XCTestCase {
       
       XCTAssertGreaterThan(lattice.atoms.count, 0)
       XCTAssertTrue(lattice.atoms.contains(where: {
-        $0.type == .atom(element)
+        $0.element == element
       }))
     }
   }

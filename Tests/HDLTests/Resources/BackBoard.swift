@@ -103,14 +103,14 @@ extension BackBoardComponent {
     let chBondLength = Element.carbon.covalentRadius +
     Element.hydrogen.covalentRadius
     
-    var insertedAtoms: [Entity] = []
+    var insertedAtoms: [Atom] = []
     var insertedBonds: [SIMD2<UInt32>] = []
     
     for i in topology.atoms.indices {
       let atom = topology.atoms[i]
       for orbital in orbitals[i] {
         let position = atom.position + orbital * chBondLength
-        let hydrogen = Entity(position: position, type: .atom(.hydrogen))
+        let hydrogen = Atom(position: position, element: .hydrogen)
         let hydrogenID = topology.atoms.count + insertedAtoms.count
         insertedAtoms.append(hydrogen)
         

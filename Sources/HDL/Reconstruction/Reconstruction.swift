@@ -158,15 +158,15 @@ extension Reconstruction {
     
     // Create a transient topology to de-duplicate the hydrogens and merge
     // references between them.
-    let hydrogenEntities = hydrogenData.map {
-      var storage = $0
-      storage.w = 1
-      return unsafeBitCast(storage, to: Entity.self)
+    let hydrogenAtoms = hydrogenData.map {
+      var atom = $0
+      atom.w = 1
+      return atom
     }
     var matcher = Topology()
-    matcher.insert(atoms: hydrogenEntities)
+    matcher.insert(atoms: hydrogenAtoms)
     let matches = matcher.match(
-      hydrogenEntities, algorithm: .absoluteRadius(0.050))
+      hydrogenAtoms, algorithm: .absoluteRadius(0.050))
     
   outer:
     for i in hydrogenData.indices {
@@ -199,7 +199,7 @@ extension Reconstruction {
   }
   
   mutating func createHydrogenBonds() {
-    var insertedAtoms: [Entity] = []
+    var insertedAtoms: [Atom] = []
     var insertedBonds: [SIMD2<UInt32>] = []
     func createCenter(_ atomList: [UInt32]) -> SIMD3<Float>? {
       guard atomList.count > 1 else {
@@ -215,15 +215,16 @@ extension Reconstruction {
     }
     func addBond(_ atomID: Int, orbital: SIMD3<Float>) {
       let atom = topology.atoms[atomID]
-      guard case .atom(let element) = atom.type else {
+      guard let element = Element(rawValue: atom.atomicNumber) else {
         fatalError("This should never happen.")
       }
+      
       var bondLength = element.covalentRadius
       bondLength += Element.hydrogen.covalentRadius
       let position = atom.position + bondLength * orbital
       let hydrogenID = topology.atoms.count + insertedAtoms.count
       
-      let hydrogen = Entity(position: position, type: .atom(.hydrogen))
+      let hydrogen = Atom(position: position, element: .hydrogen)
       let bond = SIMD2(UInt32(atomID), UInt32(hydrogenID))
       insertedAtoms.append(hydrogen)
       insertedBonds.append(bond)

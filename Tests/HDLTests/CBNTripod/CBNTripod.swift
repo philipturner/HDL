@@ -12,7 +12,7 @@ import QuaternionModule
 
 // This data structure holds objects wrapping the individual components. At the
 // end, it stitches them all together into one topology. The data structure
-// establishes a practice of creating functions for exporting [Entity], similar
+// establishes a practice of creating functions for exporting [Atom], similar
 // to the convention from the nanofactory animation. However, there is also an
 // alternative way to acquire the final geometry: a Topology.
 //
@@ -64,8 +64,8 @@ struct CBNTripod {
   // atoms. In practice, you might make a copy of the tripod data structure.
   // Mutate the copy, simulate it, and transfer data back to the original.
   
-  func createAtoms() -> [Entity] {
-    var output: [Entity] = []
+  func createAtoms() -> [Atom] {
+    var output: [Atom] = []
     output += cage.topology.atoms
     for leg in legs {
       output += leg.topology.atoms

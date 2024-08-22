@@ -211,7 +211,7 @@ struct HexagonalMask: LatticeMask {
 
 struct HexagonalGrid: LatticeGrid {
   var dimensions: SIMD3<Int32>
-  var entityTypes: [SIMD16<Int8>]
+  var atomicNumbers: [SIMD16<Int8>]
   var hexagonSideLength: Float
   var prismHeight: Float
   
@@ -251,7 +251,7 @@ struct HexagonalGrid: LatticeGrid {
     
     dimensions = SIMD3<Int32>(transformedBounds.rounded(.up))
     dimensions.replace(with: SIMD3.zero, where: dimensions .< 0)
-    entityTypes = Array(repeating: repeatingUnit, count: Int(
+    atomicNumbers = Array(repeating: repeatingUnit, count: Int(
       dimensions.x * dimensions.y * dimensions.z))
     
     // Fetch the lattice constants using the 'Constant' API.
@@ -274,21 +274,21 @@ struct HexagonalGrid: LatticeGrid {
     var newValue = SIMD16(repeating: other)
     newValue.highHalf.highHalf = SIMD4(repeating: 0)
     
-    for cellID in entityTypes.indices {
+    for cellID in atomicNumbers.indices {
       let compressed = mask.mask[cellID]
       let flags0 = CubicCell.flags & UInt8(truncatingIfNeeded: compressed)
       let flags1 = CubicCell.flags & UInt8(truncatingIfNeeded: compressed / 256)
       let flags = SIMD16(lowHalf: flags0, highHalf: flags1)
       
-      var codes = entityTypes[cellID]
+      var codes = atomicNumbers[cellID]
       let select = codes .!= 0
       codes.replace(with: newValue, where: flags .> 0 .& select)
-      entityTypes[cellID] = codes
+      atomicNumbers[cellID] = codes
     }
   }
   
-  var atoms: [Entity] {
-    var output: [Entity] = []
+  var atoms: [Atom] {
+    var output: [Atom] = []
     let outputScale = SIMD3<Float>(
       hexagonSideLength, hexagonSideLength, prismHeight
     )
@@ -310,7 +310,7 @@ struct HexagonalGrid: LatticeGrid {
           lowerCorner *= outputScale
           lowerCorner = transformHKLtoXYZ(lowerCorner)
           
-          let cell = entityTypes[Int(baseAddress + x)]
+          let cell = atomicNumbers[Int(baseAddress + x)]
           for lane in 0..<12 {
             guard cell[lane] != 0 else {
               continue
@@ -328,7 +328,6 @@ struct HexagonalGrid: LatticeGrid {
               y = HexagonalCell.y1[lane - 8]
               z = HexagonalCell.z1[lane - 8]
             }
-            let type = EntityType(compactRepresentation: cell[lane])
             
             var position = SIMD3<Float>(x, y, z)
             position *= SIMD3<Float>(1.0 / 3, 1.0 / 3, 1.0 / 8)
@@ -336,9 +335,9 @@ struct HexagonalGrid: LatticeGrid {
             position = transformHKLtoXYZ(position)
             position += lowerCorner
             
-            let entity = Entity(
-              position: position, type: type)
-            output.append(entity)
+            let atomicNumber = cell[lane]
+            let atom = SIMD4(position, Float(atomicNumber))
+            output.append(atom)
           }
         }
       }
@@ -349,21 +348,21 @@ struct HexagonalGrid: LatticeGrid {
 
 // MARK: - Utilities
 
-fileprivate func transformHH2KLtoHKL(_ input: SIMD3<Float>) -> SIMD3<Float> {
+private func transformHH2KLtoHKL(_ input: SIMD3<Float>) -> SIMD3<Float> {
   var output = SIMD3(1, 0, 0) * input.x
   output += SIMD3(1, 2, 0) * input.y
   output += SIMD3(0, 0, 1) * input.z
   return output
 }
 
-fileprivate func transformHKLtoHH2KL(_ input: SIMD3<Float>) -> SIMD3<Float> {
+private func transformHKLtoHH2KL(_ input: SIMD3<Float>) -> SIMD3<Float> {
   var output = SIMD3(1, 0, 0) * input.x
   output += SIMD3(-0.5, 0.5, 0) * input.y
   output += SIMD3(0, 0, 1) * input.z
   return output
 }
 
-fileprivate func transformHKLtoXYZ(_ input: SIMD3<Float>) -> SIMD3<Float> {
+private func transformHKLtoXYZ(_ input: SIMD3<Float>) -> SIMD3<Float> {
   var output = SIMD3(1, 0, 0) * input.x
   output += SIMD3(-0.5, 0.8660254038, 0) * input.y
   output += SIMD3(0, 0, 1) * input.z

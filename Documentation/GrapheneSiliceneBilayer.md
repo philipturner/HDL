@@ -22,27 +22,24 @@ following in `main.swift`. The code should compile without errors.
 ```swift
 import HDL
 
-func exportToXYZ(_ entities: [Entity], comment: String = "") -> String {
+func exportToXYZ(_ atoms: [Atom], comment: String = "") -> String {
   var output: String = ""
-  output += String(describing: entities.count)
+  output += String(describing: atoms.count)
   output += "\n"
   output += comment
   output += "\n"
   
-  for entity in entities {
-    guard case .atom(let element) = entity.type else {
-      fatalError("Cannot export entities other than atoms.")
-    }
+  for atom in atoms {
     var elementSymbol: String
-    switch element {
+    switch atom.element {
     case .hydrogen: elementSymbol = "H "
     case .carbon:   elementSymbol = "C "
     case .silicon:  elementSymbol = "Si"
-    default: fatalError("Unrecognized element symbol: \(element)")
+    default: fatalError("Unrecognized element symbol: \(atom.element)")
     }
     output += elementSymbol
     
-    let position: SIMD3<Float> = entity.position
+    let position: SIMD3<Float> = atom.position
     for vectorLane in 0..<3 {
       // Convert the coordinate from nm -> angstrom.
       let coordinate = position[vectorLane] * 10
@@ -122,7 +119,7 @@ do {
   grapheneHexagonScale *= grapheneConstant
 }
 
-var carbons: [Entity] = carbonLattice.atoms
+var carbons: [Atom] = carbonLattice.atoms
 for atomID in carbons.indices {
   // Flatten the sp3 sheet into an sp2 sheet.
   carbons[atomID].position.z = 0
@@ -176,7 +173,7 @@ do {
   siliceneHexagonScale = siliceneConstant / lonsdaleiteConstant
 }
 
-var silicons: [Entity] = siliconLattice.atoms
+var silicons: [Atom] = siliconLattice.atoms
 for atomID in silicons.indices {
   // Partially flatten the sp3 sheet, so the elevated atoms reach the
   // buckling distance from the literature.

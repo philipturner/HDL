@@ -19,12 +19,12 @@ extension Topology {
   public typealias MatchStorage = ArraySlice<UInt32>
   
   public func match(
-    _ source: [Entity],
+    _ source: [Atom],
     algorithm: MatchAlgorithm = .covalentBondLength(1.5),
     maximumNeighborCount: Int = 8
   ) -> [MatchStorage] {
     let rmsAtomCount = (Float(source.count) * Float(atoms.count)).squareRoot()
-    func reorder(_ atoms: [Entity]) -> [UInt32] {
+    func reorder(_ atoms: [Atom]) -> [UInt32] {
       if rmsAtomCount < 10_000 {
         return atoms.indices.map {
           UInt32(truncatingIfNeeded: $0)
@@ -306,7 +306,7 @@ private struct Operand {
 }
 
 private func transform8(
-  _ atoms: [Entity],
+  _ atoms: [Atom],
   _ reordering: [UInt32],
   include4: Bool,
   algorithm: Topology.MatchAlgorithm
@@ -411,7 +411,7 @@ private func transform8(
       if vID &* 8 &+ 8 < UInt32(truncatingIfNeeded: atoms.count) {
         for laneID in 0..<UInt32(8) {
           let mortonIndex = reordering[Int(vID &* 8 &+ laneID)]
-          let atom = atoms[Int(mortonIndex)].storage
+          let atom = atoms[Int(mortonIndex)]
           vecX[Int(laneID)] = atom.x
           vecY[Int(laneID)] = atom.y
           vecZ[Int(laneID)] = atom.z
@@ -426,7 +426,7 @@ private func transform8(
         let validLanes = UInt32(truncatingIfNeeded: atoms.count) &- vID &* 8
         for laneID in 0..<validLanes {
           let mortonIndex = reordering[Int(vID &* 8 &+ laneID)]
-          let atom = atoms[Int(mortonIndex)].storage
+          let atom = atoms[Int(mortonIndex)]
           vecX[Int(laneID)] = atom.x
           vecY[Int(laneID)] = atom.y
           vecZ[Int(laneID)] = atom.z

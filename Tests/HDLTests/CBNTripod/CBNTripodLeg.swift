@@ -158,7 +158,7 @@ struct CBNTripodLeg: CBNTripodComponent {
     let atomsToAtomsMap = topology.map(.atoms, to: .atoms)
     let orbitals = topology.nonbondingOrbitals(hybridization: .sp2)
     
-    var insertedAtoms: [Entity] = []
+    var insertedAtoms: [Atom] = []
     var insertedBonds: [SIMD2<UInt32>] = []
     for i in topology.atoms.indices {
       let atom = topology.atoms[i]
@@ -166,7 +166,7 @@ struct CBNTripodLeg: CBNTripodComponent {
         if orbital.x < 0 {
           // Add a hydrogen to the left.
           let position = atom.position + orbital * chBondLength
-          let hydrogen = Entity(position: position, type: .atom(.hydrogen))
+          let hydrogen = Atom(position: position, element: .hydrogen)
           let hydrogenID = topology.atoms.count + insertedAtoms.count
           let bond = SIMD2(UInt32(i), UInt32(hydrogenID))
           insertedAtoms.append(hydrogen)
@@ -230,7 +230,7 @@ struct CBNTripodLeg: CBNTripodComponent {
     let nSiBondLength: Float = 1.7450 / 10 // xTB
     
     var nitrogenID: Int = -1
-    var insertedAtoms: [Entity] = []
+    var insertedAtoms: [Atom] = []
     var insertedBonds: [SIMD2<UInt32>] = []
     for i in topology.atoms.indices {
       let atom = topology.atoms[i]
@@ -250,7 +250,7 @@ struct CBNTripodLeg: CBNTripodComponent {
       // Add a hydrogen to the left.
       do {
         let position = atom.position + orbital2 * nhBondLength
-        let hydrogen = Entity(position: position, type: .atom(.hydrogen))
+        let hydrogen = Atom(position: position, element: .hydrogen)
         let hydrogenID = topology.atoms.count + insertedAtoms.count
         let bond = SIMD2(UInt32(i), UInt32(hydrogenID))
         insertedAtoms.append(hydrogen)
@@ -348,7 +348,7 @@ struct CBNTripodLeg: CBNTripodComponent {
 extension CBNTripodLeg {
   // Create a prototypical methane/silane geometry to insert into the
   // structure.
-  func createMethaneAnalogue(_ element: Element) -> [Entity] {
+  func createMethaneAnalogue(_ element: Element) -> [Atom] {
     // MM4 forcefield:
     // - sp3 C-H bond length is 1.1120 Å.
     // - sp3 Si-H bond length is 1.483 Å.
@@ -388,12 +388,12 @@ extension CBNTripodLeg {
       orbitals = orbitals.map(rotation.act(on:))
     }
     
-    var output: [Entity] = []
-    output.append(Entity(position: .zero, type: .atom(element)))
+    var output: [Atom] = []
+    output.append(Atom(position: .zero, element: element))
     for orbital in orbitals {
       let bondLength = (element == .carbon) ? chBondLength : siHBondLength
       let position = orbital * bondLength
-      let hydrogen = Entity(position: position, type: .atom(.hydrogen))
+      let hydrogen = Atom(position: position, element: .hydrogen)
       output.append(hydrogen)
     }
     return output
@@ -401,7 +401,7 @@ extension CBNTripodLeg {
   
   // Create a lattice with the benzene and immediately connected atoms. Rescale
   // to match the geometry of graphene.
-  func createLattice() -> [Entity] {
+  func createLattice() -> [Atom] {
     let lattice = Lattice<Hexagonal> { h, k, l in
       let h2k = h + 2 * k
       Bounds { 4 * h + 3 * h2k + 1 * l }

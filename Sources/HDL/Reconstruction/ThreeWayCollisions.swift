@@ -13,7 +13,7 @@ extension Reconstruction {
     
     let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)
     
-    var insertedAtoms: [Entity] = []
+    var insertedAtoms: [Atom] = []
     for hydrogenSiteID in hydrogensToAtomsMap.indices {
       var atomList = hydrogensToAtomsMap[hydrogenSiteID]
       guard atomList.count == 3 || atomList.count == 4 else {
@@ -119,10 +119,9 @@ extension Reconstruction {
         }
       }
       
-      let element = Element(rawValue: chosenAtomicNumber)!
-      let entity = Entity(
-        position: bestPermutationAverage, type: .atom(element))
-      insertedAtoms.append(entity)
+      let atom = Atom(
+        position: bestPermutationAverage, atomicNumber: chosenAtomicNumber)
+      insertedAtoms.append(atom)
     }
     
     topology.insert(atoms: insertedAtoms)

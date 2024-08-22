@@ -171,7 +171,7 @@ Specifies the atom types to fill the lattice with, and the lattice constant. Thi
 The following APIs are available for `Topology`.
 
 ```swift
-var atoms: [Entity] { get set }
+var atoms: [Atom] { get set }
 var bonds: [SIMD2<UInt32>] { get set }
 ```
 
@@ -221,7 +221,7 @@ extension Topology {
 }
 
 func match(
-  _ source: [Entity], 
+  _ source: [Atom], 
   algorithm: MatchAlgorithm = .covalentBondLength(1.5),
   maximumNeighborCount: Int = 8
 ) -> [ArraySlice<UInt32>]
@@ -236,7 +236,7 @@ let angstromMatches = topology.match(
   atoms2, algorithm: .absoluteRadius(0.1))
   
 // Another example of usage.
-var atoms = [Entity(...), Entity(...)]
+var atoms = [Atom(...), Atom(...)]
 let atomsLocationsInStructure = topology.match(atoms)
 someFunction(atoms[0], atomLocationsInStructure[0])
 someFunction(atoms[1], atomLocationsInStructure[1])
@@ -255,7 +255,7 @@ For `covalentBondScale`, bond length is determined by summing the covalent radii
 You are encouraged to sort the topology before calling `match()`. Otherwise, the search algorithm may degrade from $O(n)$ to $O(n^2)$. The overhead of sorting is significant and often takes more time than just running the match. Therefore, the internal implementation only performs sorting when the atom count is ~10,000. This is a performance sweet spot for highly ordered distributions (e.g. atoms directly fetched from a crystal lattice). However, it may not be a sweet spot for extremely disordered distributions.
 
 ```swift
-mutating func insert(atoms: [Entity])
+mutating func insert(atoms: [Atom])
 mutating func insert(bonds: [SIMD2<UInt32>])
 ```
 
@@ -347,7 +347,7 @@ enum ReplaceType {
 Replace { ReplaceType }
 ```
 
-Replace all atoms in the selected volume with a new entity.
+Transmute the atoms in the selected volume to a different atom type.
 
 To delete atoms, use `Replace { .empty }`. Removed atoms cannot be restored by a subsequent `Replace`.
 

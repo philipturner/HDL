@@ -348,21 +348,21 @@ struct HexagonalGrid: LatticeGrid {
 
 // MARK: - Utilities
 
-fileprivate func transformHH2KLtoHKL(_ input: SIMD3<Float>) -> SIMD3<Float> {
+private func transformHH2KLtoHKL(_ input: SIMD3<Float>) -> SIMD3<Float> {
   var output = SIMD3(1, 0, 0) * input.x
   output += SIMD3(1, 2, 0) * input.y
   output += SIMD3(0, 0, 1) * input.z
   return output
 }
 
-fileprivate func transformHKLtoHH2KL(_ input: SIMD3<Float>) -> SIMD3<Float> {
+private func transformHKLtoHH2KL(_ input: SIMD3<Float>) -> SIMD3<Float> {
   var output = SIMD3(1, 0, 0) * input.x
   output += SIMD3(-0.5, 0.5, 0) * input.y
   output += SIMD3(0, 0, 1) * input.z
   return output
 }
 
-fileprivate func transformHKLtoXYZ(_ input: SIMD3<Float>) -> SIMD3<Float> {
+private func transformHKLtoXYZ(_ input: SIMD3<Float>) -> SIMD3<Float> {
   var output = SIMD3(1, 0, 0) * input.x
   output += SIMD3(-0.5, 0.8660254038, 0) * input.y
   output += SIMD3(0, 0, 1) * input.z

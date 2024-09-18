@@ -1,38 +1,16 @@
 import XCTest
 import HDL
 import Numerics
-import SystemPackage
-
-private let startTime = ContinuousClock.now
-
-func cross_platform_media_time() -> Double {
-  let duration = ContinuousClock.now.duration(to: startTime)
-  let seconds = duration.components.seconds
-  let attoseconds = duration.components.attoseconds
-  return -(Double(seconds) + Double(attoseconds) * 1e-18)
-}
 
 final class PerformanceTests: XCTestCase {
 #if RELEASE
   func testGoldSurface() throws {
-    let overallStart = cross_platform_media_time()
-    var gridInitStart: Double = 0
-    var gridInitEnd: Double = 0
-    var intersectStart: Double = 0
-    var intersectEnd: Double = 0
-    var replaceStart: Double = 0
-    var replaceEnd: Double = 0
-    
     let scaleFactor: Float = 2
     let lattice = Lattice<Cubic> { h, k, l in
-      gridInitStart = cross_platform_media_time()
       Bounds { scaleFactor * 40 * (h + k + l) }
       Material { .elemental(.gold) }
       
       Volume {
-        gridInitEnd = cross_platform_media_time()
-        intersectStart = cross_platform_media_time()
-        
         Convex {
           Origin { scaleFactor * 20 * (h + k + l) }
           
@@ -62,33 +40,18 @@ final class PerformanceTests: XCTestCase {
           }
         }
         
-        intersectEnd = cross_platform_media_time()
-        replaceStart = cross_platform_media_time()
         Replace { .empty }
-        replaceEnd = cross_platform_media_time()
       }
     }
     XCTAssertEqual(lattice.atoms.count, 57601)
   }
   
   func testSiliconProbe() throws {
-    let overallStart = cross_platform_media_time()
-    var gridInitStart: Double = 0
-    var gridInitEnd: Double = 0
-    var intersectStart: Double = 0
-    var intersectEnd: Double = 0
-    var replaceStart: Double = 0
-    var replaceEnd: Double = 0
-    
     let lattice = Lattice<Cubic> { h, k, l in
-      gridInitStart = cross_platform_media_time()
       Bounds { 50 * (h + k + l) }
       Material { .elemental(.silicon) }
       
       Volume {
-        gridInitEnd = cross_platform_media_time()
-        intersectStart = cross_platform_media_time()
-        
         var directions: [SIMD3<Float>] = []
         directions.append([1, 1, 0])
         directions.append([1, 0, 1])
@@ -146,34 +109,19 @@ final class PerformanceTests: XCTestCase {
           }
         }
         
-        intersectEnd = cross_platform_media_time()
-        replaceStart = cross_platform_media_time()
         Replace { .empty }
-        replaceEnd = cross_platform_media_time()
       }
     }
     XCTAssertEqual(lattice.atoms.count, 81142)
   }
   
   func testGoldSurface2() throws {
-    let overallStart = cross_platform_media_time()
-    var gridInitStart: Double = 0
-    var gridInitEnd: Double = 0
-    var intersectStart: Double = 0
-    var intersectEnd: Double = 0
-    var replaceStart: Double = 0
-    var replaceEnd: Double = 0
-    
     let scaleFactor: Float = 6
     let lattice = Lattice<Cubic> { h, k, l in
-      gridInitStart = cross_platform_media_time()
       Bounds { scaleFactor * 40 * (h + k + l) }
       Material { .elemental(.gold) }
       
       Volume {
-        gridInitEnd = cross_platform_media_time()
-        intersectStart = cross_platform_media_time()
-        
         Convex {
           Origin { scaleFactor * 20 * (h + k + l) }
           
@@ -187,38 +135,19 @@ final class PerformanceTests: XCTestCase {
           }
         }
         
-        intersectEnd = cross_platform_media_time()
-        replaceStart = cross_platform_media_time()
         Replace { .empty }
-        replaceEnd = cross_platform_media_time()
       }
     }
     XCTAssertEqual(lattice.atoms.count, 173517)
   }
   
   func testSiliconProbe2() throws {
-    let overallStart = cross_platform_media_time()
-    var gridInitStart: Double = 0
-    var gridInitEnd: Double = 0
-    var intersectStart: Double = 0
-    var intersectEnd: Double = 0
-    var replaceStart: Double = 0
-    var replaceEnd: Double = 0
-    var intersectStart2: Double = 0
-    var intersectEnd2: Double = 0
-    var replaceStart2: Double = 0
-    var replaceEnd2: Double = 0
-    
     let lattice = Lattice<Cubic> { h, k, l in
-      gridInitStart = cross_platform_media_time()
       Bounds { 80 * (h + k + l) }
       Material { .elemental(.silicon) }
       let topCutoff: Float = 67
       
       Volume {
-        gridInitEnd = cross_platform_media_time()
-        intersectStart = cross_platform_media_time()
-        
         var directions: [SIMD3<Float>] = []
         directions.append([1, 1, 0])
         directions.append([1, 0, 1])
@@ -320,11 +249,7 @@ final class PerformanceTests: XCTestCase {
           }
         }
         
-        intersectEnd = cross_platform_media_time()
-        replaceStart = cross_platform_media_time()
         Replace { .empty }
-        replaceEnd = cross_platform_media_time()
-        intersectStart2 = cross_platform_media_time()
         
         Convex {
           for pass in passes {
@@ -358,22 +283,14 @@ final class PerformanceTests: XCTestCase {
           }
         }
         
-        intersectEnd2 = cross_platform_media_time()
-        replaceStart2 = cross_platform_media_time()
         Replace { .atom(.carbon) }
-        replaceEnd2 = cross_platform_media_time()
       }
     }
     XCTAssertEqual(lattice.atoms.count, 64226)
-    
-    let overallEnd = cross_platform_media_time()
-    intersectEnd += intersectEnd2 - intersectStart2
-    replaceEnd += replaceEnd2 - replaceStart2
   }
   
   func testSort() throws {
     let latticeScale: Float = 10
-    let testParallel = Bool.random() ? true : true
     let lattice = Lattice<Hexagonal> { h, k, l in
       let h2k = h + 2 * k
       Bounds { latticeScale * (2 * h + h2k + l) }
@@ -382,7 +299,6 @@ final class PerformanceTests: XCTestCase {
     
     for trialID in 0..<4 {
       var trialAtoms: [Atom]
-      var trialName: String
       
       switch trialID {
       case 0:
@@ -391,24 +307,19 @@ final class PerformanceTests: XCTestCase {
         topology.sort()
         
         trialAtoms = topology.atoms
-        trialName = "pre-sorted"
       case 1:
         trialAtoms = lattice.atoms
-        trialName = "lattice   "
       case 2:
         trialAtoms = lattice.atoms.shuffled()
-        trialName = "shuffled  "
       case 3:
         trialAtoms = lattice.atoms.reversed()
-        trialName = "reversed  "
       default:
         fatalError("This should never happen.")
       }
       
-      let startParallel = cross_platform_media_time()
       var resultGrid1: [UInt32] = []
       var resultGrid2: [UInt32] = []
-      if testParallel {
+      do {
         DispatchQueue.concurrentPerform(iterations: 2) { z in
           var topology = Topology()
           topology.insert(atoms: trialAtoms)
@@ -420,50 +331,42 @@ final class PerformanceTests: XCTestCase {
           }
         }
       }
-      let endParallel = cross_platform_media_time()
       
-      let startGrid = cross_platform_media_time()
       var topology = Topology()
       topology.insert(atoms: trialAtoms)
       let resultGrid = topology.sort()
-      if testParallel {
+      do {
         var topology = Topology()
         topology.insert(atoms: trialAtoms)
         _ = topology.sort()
       }
-      let endGrid = cross_platform_media_time()
       
-      let startOctree = cross_platform_media_time()
       let octree = OctreeSorter(atoms: trialAtoms)
       let resultOctree = octree.mortonReordering()
-      if testParallel {
+      do {
         let octree = OctreeSorter(atoms: trialAtoms)
         _ = octree.mortonReordering()
       }
-      let endOctree = cross_platform_media_time()
       
       XCTAssertEqual(resultGrid, resultOctree)
-      if testParallel {
-        XCTAssertEqual(resultGrid1, resultOctree)
-        XCTAssertEqual(resultGrid2, resultOctree)
-      }
+      XCTAssertEqual(resultGrid1, resultOctree)
+      XCTAssertEqual(resultGrid2, resultOctree)
     }
   }
   
   // The infamous nanofactory back board that took ~1000 ms to compile.
   func testBackBoard() throws {
     var smallLeft = BackBoardSmallLeft()
-    smallLeft.compile()
-    XCTAssertEqual(smallLeft.topology.atoms.count, 36154)
-    
     var smallRight = BackBoardSmallRight()
-    smallRight.compile()
-    XCTAssertEqual(smallRight.topology.atoms.count, 21324)
-    
     var large = BackBoardLarge()
+    
+    smallLeft.compile()
+    smallRight.compile()
     large.compile()
+    
+    XCTAssertEqual(smallLeft.topology.atoms.count, 36154)
+    XCTAssertEqual(smallRight.topology.atoms.count, 21324)
     XCTAssertEqual(large.topology.atoms.count, 360_350)
   }
-  
 #endif
 }

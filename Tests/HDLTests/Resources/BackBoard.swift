@@ -20,25 +20,17 @@ protocol BackBoardComponent {
 
 extension BackBoardComponent {
   mutating func compile() {
-    let checkpoint0 = cross_platform_media_time()
-    
     compilationPass0()
     XCTAssertEqual(topology.atoms.count, Self.expectedTopologyState[0]![0])
     XCTAssertEqual(topology.bonds.count, Self.expectedTopologyState[0]![1])
-    
-    let checkpoint1 = cross_platform_media_time()
     
     compilationPass1()
     XCTAssertEqual(topology.atoms.count, Self.expectedTopologyState[1]![0])
     XCTAssertEqual(topology.bonds.count, Self.expectedTopologyState[1]![1])
     
-    let checkpoint2 = cross_platform_media_time()
-    
     compilationPass2()
     XCTAssertEqual(topology.atoms.count, Self.expectedTopologyState[2]![0])
     XCTAssertEqual(topology.bonds.count, Self.expectedTopologyState[2]![1])
-    
-    let checkpoint3 = cross_platform_media_time()
   }
   
   mutating func compilationPass1() {

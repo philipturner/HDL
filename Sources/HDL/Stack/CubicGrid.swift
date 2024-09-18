@@ -57,7 +57,7 @@ struct CubicMask: LatticeMask {
     }
     
     #if false
-    // Slower version retained as a backup, in case the faster version has bugs.
+    // Simpler reference implementation of the highly optimized code.
     for z in 0..<dimensions.z {
       for y in 0..<dimensions.y {
         let baseAddress = (z &* dimensions.y &+ y) &* dimensions.x
@@ -71,7 +71,8 @@ struct CubicMask: LatticeMask {
         }
       }
     }
-    #else
+    #endif
+    
     mask.withUnsafeMutableBufferPointer { buffer in
       let opaque = OpaquePointer(buffer.baseAddress.unsafelyUnwrapped)
       let mask8 = UnsafeMutablePointer<UInt8>(opaque)
@@ -190,6 +191,7 @@ struct CubicMask: LatticeMask {
       }
       
       #if false
+      // Simpler reference implementation of the highly optimized code.
       let sectorsX = (dimensions.x &+ 7) / 8
       let sectorsY = (dimensions.y &+ 7) / 8
       let sectorsZ = (dimensions.z &+ 7) / 8
@@ -233,7 +235,7 @@ struct CubicMask: LatticeMask {
           }
         }
       }
-      #else
+      #endif
       
       let largeBlockSize: Int32 = 32
       let boundsBlock = (dimensions &+ largeBlockSize &- 1) / largeBlockSize
@@ -299,8 +301,6 @@ struct CubicMask: LatticeMask {
       }
       
       if tasks.count < 4 {
-        // Fall back to this if the multithreaded version is slow on a
-        // particular platform (e.g. Windows).
         for task in tasks {
           execute(block: task)
         }
@@ -309,9 +309,7 @@ struct CubicMask: LatticeMask {
           execute(block: tasks[z])
         }
       }
-      #endif
     }
-    #endif
   }
   
   static func &= (lhs: inout Self, rhs: Self) {

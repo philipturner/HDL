@@ -149,39 +149,15 @@ struct CBNTripodCage: CBNTripodComponent {
       let germanium = topology.atoms[germaniumID]
       let carbon = topology.atoms[carbonID]
       
-//      print()
-      func logDelta(_ delta: SIMD3<Float>, _ element: Element) {
-//        let length = (delta * delta).sum().squareRoot()
-//        let ideal = (element == .carbon) ? ccBondLength : geCBondLength
-//        print(length, element.description, "-", length - ideal)
-      }
-      func logAngles() {
-//        var geCDelta = atom.position - germanium.position
-//        var ccDelta = atom.position - carbon.position
-//        geCDelta /= (geCDelta * geCDelta).sum().squareRoot()
-//        ccDelta /= (ccDelta * ccDelta).sum().squareRoot()
-//
-//        let dot1 = (ccDelta * -geCDelta).sum()
-//        let dot2 = ccDelta.y
-//        let angle1 = 180 - Float.acos(dot1) * 180 / .pi
-//        let angle2 = Float.acos(dot2) * 180 / .pi
-//        print("-", angle1 - 109.47, angle2)
-      }
-      
       // Iterate until both bonds reach equilibrium length.
-      logAngles()
       for _ in 0..<5 {
         var geCDelta = atom.position - germanium.position
-        logDelta(geCDelta, .germanium)
         geCDelta /= (geCDelta * geCDelta).sum().squareRoot()
         atom.position = germanium.position + geCDelta * geCBondLength
         
         var ccDelta = atom.position - carbon.position
-        logDelta(ccDelta, .carbon)
         ccDelta /= (ccDelta * ccDelta).sum().squareRoot()
         atom.position = carbon.position + ccDelta * ccBondLength
-        
-        logAngles()
       }
       topology.atoms[i] = atom
     }

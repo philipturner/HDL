@@ -8,7 +8,6 @@
 import Foundation
 import HDL
 import Numerics
-import QuaternionModule
 
 protocol CBNTripodComponent {
   var topology: Topology { get }

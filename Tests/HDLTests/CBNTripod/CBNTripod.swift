@@ -8,7 +8,6 @@
 import Foundation
 import HDL
 import Numerics
-import QuaternionModule
 
 // This data structure holds objects wrapping the individual components. At the
 // end, it stitches them all together into one topology. The data structure

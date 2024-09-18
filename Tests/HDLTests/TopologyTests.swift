@@ -496,60 +496,6 @@ final class TopologyTests: XCTestCase {
   // lonsdaleite (only bridgehead carbons). For the sidewall carbons, assert
   // that the majority of generated hydrogens physically overlap a neighbor.
   func testNonbondingOrbitals() throws {
-    func carbonTypeSummary(_ stats: SIMD8<Int>) -> [String] {
-      var passivatedCarbonCount = 0
-      var totalCarbonCount = 0
-      passivatedCarbonCount += stats[1] + stats[2] + stats[3]
-      totalCarbonCount += passivatedCarbonCount
-      totalCarbonCount += stats[0] + stats[4]
-      passivatedCarbonCount = max(1, passivatedCarbonCount)
-      
-      var lines: [String] = []
-      lines.append(
-        "type      " + " | " + "count" + " | " + "total" + " | " + "passivated")
-      lines.append(
-        "----------" + " | " + "-----" + " | " + "-----" + " | " + "-----")
-      
-      for i in 0...4 {
-        var output: String
-        switch i {
-        case 0: output = "malformed "
-        case 1: output = "primary   "
-        case 2: output = "sidewall  "
-        case 3: output = "bridgehead"
-        case 4: output = "bulk      "
-        default:
-          fatalError("This should never happen.")
-        }
-        output += " | "
-        
-        let total = Float(stats[i]) / Float(totalCarbonCount)
-        let passivated = Float(stats[i]) / Float(passivatedCarbonCount)
-        var countRepr = "\(stats[i])"
-        var totalRepr = String(format: "%.1f", 100 * total) + "%"
-        var passivatedRepr = String(format: "%.1f", 100 * passivated) + "%"
-        while countRepr.count < 5 {
-          countRepr = " \(countRepr)"
-        }
-        while totalRepr.count < 5 {
-          totalRepr = " \(totalRepr)"
-        }
-        while passivatedRepr.count < 5 {
-          passivatedRepr = " \(passivatedRepr)"
-        }
-        
-        output += countRepr
-        output += " | "
-        output += totalRepr
-        output += " | "
-        if i >= 1 && i <= 3 {
-          output += passivatedRepr
-        }
-        lines.append(output)
-      }
-      return lines
-    }
-    
     // Test lonsdaleite and bridgehead carbons. Assert that a small fraction of
     // the carbons are sidewall, but none are malformed.
     do {
@@ -633,14 +579,6 @@ final class TopologyTests: XCTestCase {
         stats[neighborRange.count] += 1
       }
       
-#if false
-      let lines = carbonTypeSummary(stats)
-      print()
-      print("lonsdaleite:")
-      for line in lines {
-        print(line)
-      }
-#endif
       XCTAssertEqual(stats[0], 0) // none are malformed
       XCTAssertEqual(stats[1], 0) // none are primary
       XCTAssertEqual(stats[2], 20) // a small fraction are sidewall
@@ -715,14 +653,6 @@ final class TopologyTests: XCTestCase {
         XCTAssertEqual(statsBefore[i], stats[i])
       }
       
-#if false
-      let lines = carbonTypeSummary(stats)
-      print()
-      print("cubic diamond:")
-      for line in lines {
-        print(line)
-      }
-#endif
       XCTAssertEqual(stats[0], 4) // 4 are malformed
       XCTAssertEqual(stats[1], 32) // a small fraction are primary
       XCTAssertEqual(stats[2], 98) // predominantly sidewall
@@ -792,52 +722,4 @@ final class TopologyTests: XCTestCase {
     XCTAssertEqual(map8[7], 21 + 7)
     XCTAssertEqual(map9[7], 31 + 7)
   }
-  
-  // Implementation plan:
-  // - 1) Visualizer for Morton order and bond topology in GitHub gist. ✅
-  //   - 1.1) Test against Lattice -> Diamondoid reordering. ✅
-  //   - 1.2) Test against Topology.sort(). ✅
-  // - 2) Test simple diamond and lonsdaleite lattice formation. ✅
-  //   - 2.1) Demonstrate (100) surface reconstruction, validate that it's
-  //          accepted by MM4RigidBody. ✅
-  //   - 2.2) Add reference code to HDLTests, for generating lonsdaleite, cubic
-  //          diamond, and curved shell structures with the new compiler. ✅
-  //   - 2.3) Add reference code to HDLTests, for generating graphene thiol and
-  //          HAbst tripods with the new compiler. ✅
-  // - 3) Optimize the compiler.
-  //   - 3.1) Add performance test cases for some snippets of real-world code
-  //          from these experiments. ✅
-  //   - 3.2) Enumerate the time spent on different stages of compilation. ✅
-  //   - 3.3) Create an optimized match(), tuned against both extremes of search
-  //          radius and asymmetry. ✅
-  // - 4) Add performance test for the infamous nanofactory back board. ✅
-  
-  // Elaboration on sections 2, 3, and 4:
-  //
-  // Creating some demos for adding to HDL unit tests. Due to the volume of the
-  // code for (100) surface reconstruction, it cannot be added to the test suite.
-  // Therefore, I have to design an alternative strained shell structure built
-  // from hexagonal diamond. This alternative may not be manufacturable.
-  // - small lonsdaleite shell structure ✅
-  // - graphene thiol ✅
-  // - HAbst tripod ✅
-  //
-  // For performance tests, profile variable sizes of cubic diamond crystal.
-  // The following match operations are plausible during (100) reconstruction.
-  // - match carbons against carbons ✅
-  // - match a large number of duplicated hydrogens against each other ✅
-  //   - uses a small absolute radius ✅
-  // - match colliding hydrogens against each other and nearby carbons ✅
-  //   - not actually used, but a good test of asymmetry ✅
-  //
-  // Finally, a performance test of the nanofactory backboard that reports the
-  // time spent in each stage. This includes sorting.
-  // - gather quantitative statistics of how long it took to generate with the
-  //   old Diamondoid API ✅
-  // - create a unit test that would be adversely affected by a hypothesized
-  //   bug. This bug arises when we optimize Lattice<Hexagonal>. One of the
-  //   dimensions is handled incorrectly by the recursive O(nlogn) volume
-  //   narrowing algorithm. ✅
-  // - unit test the performance of all 3 pieces: the monolithic piece before
-  //   the design change, and the 2 pieces after the design change ✅
 }

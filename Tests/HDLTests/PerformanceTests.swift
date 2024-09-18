@@ -12,20 +12,7 @@ func cross_platform_media_time() -> Double {
   return -(Double(seconds) + Double(attoseconds) * 1e-18)
 }
 
-private func fmt(_ start: Double, _ end: Double) -> String {
-  let seconds = end - start
-  if seconds > 1 {
-    return String(format: "%.3f", seconds) + " s"
-  } else if seconds > 1e-3 {
-    return String(format: "%.3f", seconds * 1e3) + " ms"
-  } else {
-    return String(format: "%.3f", seconds * 1e6) + " μs"
-  }
-}
-
 final class PerformanceTests: XCTestCase {
-  static let printPerformanceSummary = false
-  
 #if RELEASE
   func testGoldSurface() throws {
     let overallStart = cross_platform_media_time()
@@ -82,23 +69,6 @@ final class PerformanceTests: XCTestCase {
       }
     }
     XCTAssertEqual(lattice.atoms.count, 57601)
-    
-    let overallEnd = cross_platform_media_time()
-    if Self.printPerformanceSummary {
-      print("gold surface:")
-      print("- overall:   \(fmt(overallStart, overallEnd))")
-      print("- grid init: \(fmt(gridInitStart, gridInitEnd))")
-      print("- intersect: \(fmt(intersectStart, intersectEnd))")
-      print("- replace:   \(fmt(replaceStart, replaceEnd))")
-    }
-    
-    // Before optimizations: ~0.318 seconds
-    // After optimization 1: ~0.066 seconds
-    // After optimization 2: ~0.059 seconds
-    // After optimization 3: ~0.044 seconds
-    // After optimization 5: ~0.017 seconds
-    // After optimization 6: ~0.009 seconds
-    // 35.3x speedup
   }
   
   func testSiliconProbe() throws {
@@ -183,22 +153,6 @@ final class PerformanceTests: XCTestCase {
       }
     }
     XCTAssertEqual(lattice.atoms.count, 81142)
-    
-    let overallEnd = cross_platform_media_time()
-    if Self.printPerformanceSummary {
-      print("silicon probe:")
-      print("- overall:   \(fmt(overallStart, overallEnd))")
-      print("- grid init: \(fmt(gridInitStart, gridInitEnd))")
-      print("- intersect: \(fmt(intersectStart, intersectEnd))")
-      print("- replace:   \(fmt(replaceStart, replaceEnd))")
-    }
-    
-    // Before optimizations: ~0.300 seconds
-    // After optimization 1: ~0.047 seconds
-    // After optimization 3: ~0.031 seconds
-    // After optimization 5: ~0.024 seconds
-    // After optimization 6: ~0.012 seconds
-    // 25.0x speedup
   }
   
   func testGoldSurface2() throws {
@@ -240,22 +194,6 @@ final class PerformanceTests: XCTestCase {
       }
     }
     XCTAssertEqual(lattice.atoms.count, 173517)
-    
-    let overallEnd = cross_platform_media_time()
-    if Self.printPerformanceSummary {
-      print("gold surface 2:")
-      print("- overall:   \(fmt(overallStart, overallEnd))")
-      print("- grid init: \(fmt(gridInitStart, gridInitEnd))")
-      print("- intersect: \(fmt(intersectStart, intersectEnd))")
-      print("- replace:   \(fmt(replaceStart, replaceEnd))")
-    }
-    
-    // Before optimizations: 4.474 seconds
-    // After optimization 3: 0.862 seconds
-    // After optimization 4: 0.822 seconds
-    // After optimization 5: 0.148 seconds
-    // After optimization 6: 0.093 seconds
-    // 48.1x speedup
   }
   
   func testSiliconProbe2() throws {
@@ -431,20 +369,6 @@ final class PerformanceTests: XCTestCase {
     let overallEnd = cross_platform_media_time()
     intersectEnd += intersectEnd2 - intersectStart2
     replaceEnd += replaceEnd2 - replaceStart2
-    if Self.printPerformanceSummary {
-      print("silicon probe 2:")
-      print("- overall:   \(fmt(overallStart, overallEnd))")
-      print("- grid init: \(fmt(gridInitStart, gridInitEnd))")
-      print("- intersect: \(fmt(intersectStart, intersectEnd))")
-      print("- replace:   \(fmt(replaceStart, replaceEnd))")
-    }
-    
-    // Before optimizations: ~9.121 seconds
-    // After optimization 3: ~0.525 seconds
-    // After optimization 4: ~0.452 seconds
-    // After optimization 5: ~0.426 seconds
-    // After optimization 6: ~0.160 seconds
-    // 57.0x speedup
   }
   
   func testSort() throws {
@@ -454,15 +378,6 @@ final class PerformanceTests: XCTestCase {
       let h2k = h + 2 * k
       Bounds { latticeScale * (2 * h + h2k + l) }
       Material { .elemental(.carbon) }
-    }
-    
-    var output: [String] = []
-    if testParallel {
-      output.append("dataset    | octree | serial | parallel")
-      output.append("---------- | ------ | ------ | --------")
-    } else {
-      output.append("dataset    | octree |  grid ")
-      output.append("---------- | ------ | ------")
     }
     
     for trialID in 0..<4 {
@@ -532,295 +447,23 @@ final class PerformanceTests: XCTestCase {
         XCTAssertEqual(resultGrid1, resultOctree)
         XCTAssertEqual(resultGrid2, resultOctree)
       }
-      
-      let usParallel = Int((endParallel - startParallel) * 1e6)
-      let usGrid = Int((endGrid - startGrid) * 1e6)
-      let usOctree = Int((endOctree - startOctree) * 1e6)
-      
-      var reprParallel = "\(usParallel)"
-      var reprGrid = "\(usGrid)"
-      var reprOctree = "\(usOctree)"
-      
-      while reprParallel.count < 6 {
-        reprParallel = " \(reprParallel)"
-      }
-      while reprGrid.count < 6 {
-        reprGrid = " \(reprGrid)"
-      }
-      while reprOctree.count < 6 {
-        reprOctree = " \(reprOctree)"
-      }
-      if testParallel {
-        output.append("\(trialName) | \(reprOctree) | \(reprGrid) | \(reprParallel)")
-      } else {
-        output.append("\(trialName) | \(reprOctree) | \(reprGrid)")
-      }
     }
-    
-    if Self.printPerformanceSummary {
-      print()
-      print("atoms:", lattice.atoms.count)
-      for line in output {
-        print(line)
-      }
-    }
-    
-    // During Topology.match, there are some situations where two similarly
-    // sized grids will be constructed. They might be the exact same, although
-    // the program can't detect that fact in a generalizable/robust manner.
-    // Parallelization offers a simpler alternative that, based on the data
-    // below, provides about the same speedup as eliding the compute work.
-    
-    // 'lattice' configuration, serial
-    //
-    // bounds | atoms  | octree |  0.25 |  0.5 |    1 |    2 |    4 | optimized
-    // ------ | ------ | ------ | ----- | ---- | ---- | ---- | ---- | ----------
-    // 5      |   2100 |    136 |   286 |  142 |  146 |      |      |  174
-    // 7      |   5684 |    411 |   472 |  299 |  315 |  508 |      |  293
-    // 10     |  16400 |   1168 |  2345 |  866 |  698 |  686 | 1276 |  887
-    // 14     |  44688 |   3333 |  3447 | 2122 | 1863 | 1775 | 3512 | 1891
-    // 20     | 129600 |   9245 | 19899 | 6695 | 5882 | 5332 | 4959 | 5403
-    
-    // 'lattice' configuration, 2x duplicated
-    //
-    // bounds | atoms  | octree | serial | parallel | speedup
-    // ------ | ------ | ------ | ------ | -------- | ----------
-    // 5      |   2100 |    314 |    298 |      186 | 1.1 -> 1.7
-    // 7      |   5684 |    750 |    562 |      344 | 1.3 -> 2.2
-    // 10     |  16400 |   2370 |   1555 |      905 | 1.5 -> 2.6
-    // 14     |  44688 |   6085 |   3789 |     2160 | 1.6 -> 2.8
-    // 20     | 129600 |  19932 |  10811 |     6567 | 1.8 -> 3.0
   }
   
   // The infamous nanofactory back board that took ~1000 ms to compile.
   func testBackBoard() throws {
-    let reportingPerformance = Self.printPerformanceSummary
-    
     var smallLeft = BackBoardSmallLeft()
-    smallLeft.compile(reportingPerformance: reportingPerformance)
+    smallLeft.compile()
     XCTAssertEqual(smallLeft.topology.atoms.count, 36154)
     
     var smallRight = BackBoardSmallRight()
-    smallRight.compile(reportingPerformance: reportingPerformance)
+    smallRight.compile()
     XCTAssertEqual(smallRight.topology.atoms.count, 21324)
     
     var large = BackBoardLarge()
-    large.compile(reportingPerformance: reportingPerformance)
+    large.compile()
     XCTAssertEqual(large.topology.atoms.count, 360_350)
   }
-  
-  // Old Diamondoid API:
-  // lattice 1 - 62.4 ms
-  // lattice 2 - 61.9 ms
-  // lattice 3 - 537.2 ms
-  //
-  // New Topology API:
-  // lattice 1 - 21.4 ms
-  // lattice 2 - 33.3 ms
-  // lattice 3 - 335.9 ms
-  //
-  // With bug fixes to sorting:
-  // lattice 1 - 16.3 ms - 36,154 atoms
-  // lattice 2 - 31.1 ms - 21,324 atoms
-  // lattice 3 - 106.5 ms - 360,350 atoms
-  
-  // Before some optimizations to 'lattice' and 'orbitals':
-  // -    atoms: 36,154
-  // -  lattice:  7.0 ms
-  // -    match:  3.9 ms
-  // - orbitals:  2.7 ms
-  // -    total: 13.6 ms
-  //
-  // -    atoms: 21,324
-  // -  lattice: 18.8 ms
-  // -    match:  2.4 ms
-  // - orbitals:  1.5 ms
-  // -    total: 22.7 ms
-  //
-  // -    atoms: 360,350
-  // -  lattice: 34.8 ms
-  // -    match: 42.0 ms
-  // - orbitals: 30.0 ms
-  // -    total: 106.9 ms
-  
-  // After some optimizations to 'lattice':
-  //
-  // -    atoms: 36,154
-  // -  lattice:  4.3 ms
-  // -    match:  4.0 ms
-  // - orbitals:  2.8 ms
-  // -    total: 11.1 ms
-  //
-  // -    atoms: 21,324
-  // -  lattice:  8.5 ms
-  // -    match:  2.5 ms
-  // - orbitals:  1.5 ms
-  // -    total: 12.6 ms
-  //
-  // -    atoms: 360,350
-  // -  lattice: 15.0 ms
-  // -    match: 39.2 ms
-  // - orbitals: 28.3 ms
-  // -    total: 82.5 ms
-  
-  // After the first round of optimizations to 'orbitals':
-  // -    atoms: 36,154
-  // -  lattice:  4.3 ms
-  // -    match:  3.9 ms
-  // - orbitals:  2.2 ms
-  // -    total: 10.4 ms
-  //
-  // -    atoms: 21,324
-  // -  lattice:  8.3 ms
-  // -    match:  2.7 ms
-  // - orbitals:  1.3 ms
-  // -    total: 12.3 ms
-  //
-  // -    atoms: 360,350
-  // -  lattice: 15.2 ms
-  // -    match: 39.2 ms
-  // - orbitals: 23.1 ms
-  // -    total: 77.5 ms
-  
-  // After the second round of optimizations to 'orbitals':
-  // -    atoms: 36,154
-  // -  lattice:  4.3 ms
-  // -    match:  3.8 ms
-  // - orbitals:  1.9 ms
-  // -    total: 10.0 ms
-  //
-  // -    atoms: 21,324
-  // -  lattice:  8.4 ms
-  // -    match:  2.2 ms
-  // - orbitals:  1.1 ms
-  // -    total: 11.7 ms
-  //
-  // -    atoms: 360,350
-  // -  lattice: 15.1 ms
-  // -    match: 40.2 ms
-  // - orbitals: 19.2 ms
-  // -    total: 74.5 ms
-  
-  // After the third round of optimizations to 'orbitals':
-  // -    atoms: 36,154
-  // -  lattice:  4.0 ms
-  // -    match:  3.8 ms
-  // - orbitals:  1.7 ms
-  // -    total:  9.6 ms
-  //
-  // -    atoms: 21,324
-  // -  lattice:  8.3 ms
-  // -    match:  2.3 ms
-  // - orbitals:  1.0 ms
-  // -    total: 11.7 ms
-  //
-  // -    atoms: 360,350
-  // -  lattice: 15.0 ms
-  // -    match: 39.9 ms
-  // - orbitals: 18.1 ms
-  // -    total: 73.1 ms
-  
-  // After using a custom type for orbitals storage:
-  // -    atoms: 36,154
-  // -  lattice:  4.0 ms
-  // -    match:  3.8 ms
-  // - orbitals:  1.6 ms
-  // -    total:  9.3 ms
-  //
-  // -    atoms: 21,324
-  // -  lattice:  8.8 ms
-  // -    match:  2.2 ms
-  // - orbitals:  1.0 ms
-  // -    total: 11.9 ms
-  //
-  // -    atoms: 360,350
-  // -  lattice: 15.6 ms
-  // -    match: 39.4 ms
-  // - orbitals: 14.3 ms
-  // -    total: 69.4 ms
-  
-  // After changing the storage of 'match':
-  // -    atoms: 36,154
-  // -  lattice:  3.9 ms
-  // -    match:  3.8 ms
-  // - orbitals:  1.7 ms
-  // -    total:  9.4 ms
-  //
-  // -    atoms: 21,324
-  // -  lattice:  7.9 ms
-  // -    match:  2.1 ms
-  // - orbitals:  0.9 ms
-  // -    total: 10.9 ms
-  //
-  // -    atoms: 360,350
-  // -  lattice: 15.1 ms
-  // -    match: 38.0 ms
-  // - orbitals: 15.5 ms
-  // -    total: 68.7 ms
-  
-  // After applying a few more optimizations (optimized):
-  // -    atoms: 36,154
-  // -  lattice:  3.9 ms
-  // -    match:  3.6 ms
-  // - orbitals:  1.7 ms
-  // -    total:  9.2 ms
-  //
-  // -    atoms: 21,324
-  // -  lattice:  8.2 ms
-  // -    match:  2.2 ms
-  // - orbitals:  0.9 ms
-  // -    total: 11.4 ms
-  //
-  // -    atoms: 360,350
-  // -  lattice: 14.7 ms
-  // -    match: 37.7 ms
-  // - orbitals: 15.1 ms
-  // -    total: 67.5 ms
-  
-  // Out of the box performance:
-  //
-  // -    atoms: 36,154
-  // -  lattice:  4.1 ms
-  // -    match:  4.1 ms
-  // - orbitals:  1.6 ms
-  // -    total:  9.8 ms
-  //
-  // -    atoms: 21,324
-  // -  lattice:  8.2 ms
-  // -    match:  2.3 ms
-  // - orbitals:  1.0 ms
-  // -    total: 11.5 ms
-  //
-  // -    atoms: 360,350
-  // -  lattice: 14.4 ms
-  // -    match: 40.6 ms
-  // - orbitals: 15.6 ms
-  // -    total: 70.7 ms
-  
-  // With the storage modification reverted:
-  //
-  // -    atoms: 36,154
-  // -  lattice:  4.0 ms
-  // -    match:  4.3 ms
-  // - orbitals:  1.7 ms
-  // -    total: 10.0 ms
-  //
-  // -    atoms: 21,324
-  // -  lattice:  8.2 ms
-  // -    match:  2.3 ms
-  // - orbitals:  1.1 ms
-  // -    total: 11.6 ms
-  //
-  // -    atoms: 360,350
-  // -  lattice: 15.0 ms
-  // -    match: 39.4 ms
-  // - orbitals: 14.5 ms
-  // -    total: 69.0 ms
-  
-  // Overall speedup:
-  // lattice 1 -  62.4 ms -> 10.0 ms (6.24x)
-  // lattice 2 -  61.9 ms -> 11.6 ms (5.33x)
-  // lattice 3 - 537.2 ms -> 69.0 ms (7.79x)
   
 #endif
 }

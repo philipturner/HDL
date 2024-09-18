@@ -19,10 +19,7 @@ protocol BackBoardComponent {
 }
 
 extension BackBoardComponent {
-  // 'optimized' is whether to report out-of-the-box performance. One section
-  // of the code is maximum possible performance available from the public API.
-  // Another is performance of typical code segments.
-  mutating func compile(reportingPerformance: Bool) {
+  mutating func compile() {
     let checkpoint0 = cross_platform_media_time()
     
     compilationPass0()
@@ -42,37 +39,6 @@ extension BackBoardComponent {
     XCTAssertEqual(topology.bonds.count, Self.expectedTopologyState[2]![1])
     
     let checkpoint3 = cross_platform_media_time()
-    
-    guard reportingPerformance else {
-      return
-    }
-    
-    let checkpoints = [checkpoint0, checkpoint1, checkpoint2, checkpoint3]
-    var elapsedTimes: [Double] = []
-    var microseconds: [Int] = []
-    for i in 0..<checkpoints.count - 1 {
-      elapsedTimes.append(checkpoints[i + 1] - checkpoints[i])
-      
-      let thisMicroseconds = Int(elapsedTimes[i] * 1e6)
-      microseconds.append(thisMicroseconds)
-    }
-    
-    func milliseconds(_ microseconds: Int) -> String {
-      let value = Double(microseconds) / 1000
-      var repr = String(format: "%.1f", value)
-      while repr.count < 4 {
-        repr = " " + repr
-      }
-      return repr + " ms"
-    }
-    
-    let atomCount = topology.atoms.count
-    print()
-    print("-    atoms: \(atomCount / 1000),\(atomCount % 1000)")
-    print("-  lattice: \(milliseconds(microseconds[0]))")
-    print("-    match: \(milliseconds(microseconds[1]))")
-    print("- orbitals: \(milliseconds(microseconds[2]))")
-    print("-    total: \(milliseconds(microseconds.reduce(0, +)))")
   }
   
   mutating func compilationPass1() {

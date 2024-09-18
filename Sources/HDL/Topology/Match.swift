@@ -52,13 +52,11 @@ extension Topology {
     }
     
     // Call the actual matching function.
-    var statistics: [Double] = []
     let outputSlices = matchImpl(
       lhs: &lhsOperand,
       rhs: &rhsOperand,
       algorithm: algorithm,
-      maximumNeighborCount: maximumNeighborCount,
-      statistics: &statistics)
+      maximumNeighborCount: maximumNeighborCount)
     
     return outputSlices
   }
@@ -70,8 +68,7 @@ private func matchImpl(
   lhs: inout Operand,
   rhs: inout Operand,
   algorithm: Topology.MatchAlgorithm,
-  maximumNeighborCount: Int,
-  statistics: inout [Double]
+  maximumNeighborCount: Int
 ) -> [Topology.MatchStorage] {
   let lhsSize32 = UInt32(truncatingIfNeeded: lhs.atomCount &+ 31) / 32
   let rhsSize32 = UInt32(truncatingIfNeeded: rhs.atomCount &+ 31) / 32

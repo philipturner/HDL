@@ -12,7 +12,6 @@ public enum MaterialType {
   case checkerboard(Element, Element)
 }
 
-
 // MARK: - Keywords
 
 public struct Material {

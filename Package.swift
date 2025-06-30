@@ -12,7 +12,7 @@ let package = Package(
       targets: ["HDL"]),
   ],
   dependencies: [
-    .package(url: "https://github.com/apple/swift-atomics.git", .upToNextMajor(from: "1.2.0")),
+    .package(url: "https://github.com/apple/swift-atomics.git", .upToNextMajor(from: "1.3.0")),
     .package(url: "https://github.com/philipturner/swift-numerics", branch: "Quaternions"),
   ],
   targets: [

@@ -275,7 +275,7 @@ The order of atoms and bonds is preserved after removal. The removed items are t
 ```swift
 extension Topology {
   enum OrbitalHybridization {
-    case sp1
+    case sp
     case sp2
     case sp3
   }

@@ -332,7 +332,7 @@ struct CBNTripodCage: CBNTripodComponent {
     // Test out the new sp1 orbital generation functionality by adding the
     // second carbon in a separate pass.
     do {
-      let orbitals = topology.nonbondingOrbitals(hybridization: .sp1)
+      let orbitals = topology.nonbondingOrbitals(hybridization: .sp)
       
       var carbonID1: Int = -1
       for i in topology.atoms.indices {

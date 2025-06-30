@@ -9,14 +9,14 @@ import Dispatch
 
 extension Topology {
   public enum OrbitalHybridization {
-    case sp1
+    case sp
     case sp2
     case sp3
     
     // Private API for generating nonbonding orbitals.
     var piBondCount: Int {
       switch self {
-      case .sp1: return 2
+      case .sp: return 2
       case .sp2: return 1
       case .sp3: return 0
       }
@@ -159,7 +159,7 @@ private func addOrbitals(
   
   let neighborIDs = connectionsMap[atomID].storage
   switch (hybridization, neighborIDs[7]) {
-  case (.sp1, 1): break
+  case (.sp, 1): break
   case (.sp2, 2): break
   case (.sp3, 2): break
   case (.sp3, 3): break

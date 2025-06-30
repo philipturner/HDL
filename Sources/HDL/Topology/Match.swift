@@ -53,8 +53,8 @@ extension Topology {
     
     // Call the actual matching function.
     let outputSlices = matchImpl(
-      lhs: &lhsOperand,
-      rhs: &rhsOperand,
+      lhs: lhsOperand,
+      rhs: rhsOperand,
       algorithm: algorithm,
       maximumNeighborCount: maximumNeighborCount)
     
@@ -65,8 +65,8 @@ extension Topology {
 // MARK: - Match
 
 private func matchImpl(
-  lhs: inout Operand,
-  rhs: inout Operand,
+  lhs: Operand,
+  rhs: Operand,
   algorithm: Topology.MatchAlgorithm,
   maximumNeighborCount: Int
 ) -> [Topology.MatchStorage] {

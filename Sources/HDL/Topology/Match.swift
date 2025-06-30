@@ -104,32 +104,58 @@ private func matchImpl(
   nonisolated(unsafe)
   let outRangePointer = outRangeBuffer.withUnsafeMutableBufferPointer { $0 }
   
-  // Define the loop bounds in the I dimension.
-  let loopStartI: UInt32 = 0
-  var loopEndI = loopStartI + UInt32(lhs.atomCount * 2) + 256
-  loopEndI = min(loopEndI, UInt32(lhs.atomCount + 127) / 128)
   
-  // Define the loop bounds in the J dimension.
-  let loopStartJ: UInt32 = 0
-  var loopEndJ = loopStartJ + UInt32(rhs.atomCount * 2) + 256
-  loopEndJ = min(loopEndJ, UInt32(rhs.atomCount + 127) / 128)
   
-  let taskCount = loopEndI - loopStartI
-  if taskCount == 0 {
-    // We should check how the compiler behaves when it receives an empty array,
-    // without adding any special checks/early returns for edge cases.
-  } else if taskCount == 1 {
-    innerLoop3(0)
-    finishInnerLoop3(0)
-  } else {
-    DispatchQueue.concurrentPerform(iterations: Int(taskCount)) { z in
-      innerLoop3(UInt32(z))
-      finishInnerLoop3(UInt32(z))
+  // TODO: Apply the encapsulation structure to all 3 loops.
+  struct LoopScope {
+    var startI: UInt32 = .zero
+    var endI: UInt32 = .zero
+    var startJ: UInt32 = .zero
+    var endJ: UInt32 = .zero
+  }
+  
+//  let loopStartI: UInt32 = 0
+//  var loopEndI = loopStartI + UInt32(lhs.atomCount * 2) + 256
+//  loopEndI = min(loopEndI, UInt32(lhs.atomCount + 127) / 128)
+//  
+//  let loopStartJ: UInt32 = 0
+//  var loopEndJ = loopStartJ + UInt32(rhs.atomCount * 2) + 256
+//  loopEndJ = min(loopEndJ, UInt32(rhs.atomCount + 127) / 128)
+  
+  func createLoopScope3() -> LoopScope {
+    var scope = LoopScope()
+    scope.startI = 0
+    scope.endI = scope.startI + UInt32(lhs.atomCount * 2) + 256
+    scope.endI = min(scope.endI, UInt32(lhs.atomCount + 127) / 128)
+    
+    scope.startJ = 0
+    scope.endJ = scope.startJ + UInt32(rhs.atomCount * 2) + 256
+    scope.endJ = min(scope.endJ, UInt32(rhs.atomCount + 127) / 128)
+    return scope
+  }
+  let loopScope3 = createLoopScope3()
+  
+  // Encapsulate the calculation of the task count.
+  do {
+//    let taskCount = loopEndI - loopStartI
+    let taskCount = loopScope3.endI - loopScope3.startI
+    if taskCount == 0 {
+      // We should check how the compiler behaves when it receives an empty array,
+      // without adding any special checks/early returns for edge cases.
+    } else if taskCount == 1 {
+      innerLoop3(0)
+      finishInnerLoop3(0)
+    } else {
+      DispatchQueue.concurrentPerform(iterations: Int(taskCount)) { z in
+        innerLoop3(UInt32(z))
+        finishInnerLoop3(UInt32(z))
+      }
     }
   }
   
   func innerLoop3(_ vIDi3: UInt32) {
-    for vIDj3 in loopStartJ..<loopEndJ {
+//    for vIDj3 in loopStartJ..<loopEndJ {
+    for vIDj3 in loopScope3.startJ..<loopScope3.endJ {
       let lhsBlockBound = lhs.blockBounds128[Int(vIDi3)]
       let rhsBlockBound = rhs.blockBounds128[Int(vIDj3)]
       let mask = compareBlocks(

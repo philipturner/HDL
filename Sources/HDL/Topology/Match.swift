@@ -81,24 +81,35 @@ private func matchImpl(
   precondition(
     maximumNeighborCount < UInt8.max, "Maximum neighbor count is too large.")
   let matchLimit = UInt32(maximumNeighborCount)
+  
+  // Allocate the match buffer.
+  nonisolated(unsafe)
   let matchBuffer: UnsafeMutablePointer<SIMD2<Float>> =
     .allocate(capacity: Int(lhsSize8) * 8 * (maximumNeighborCount + 1))
+  
+  // Allocate the match count buffer.
+  nonisolated(unsafe)
   let matchCount: UnsafeMutablePointer<SIMD8<UInt8>> =
     .allocate(capacity: Int(lhsSize8))
   matchCount.initialize(repeating: .zero, count: Int(lhsSize8))
   let opaqueCount = OpaquePointer(matchCount)
+  nonisolated(unsafe)
   let castedCount = UnsafeMutablePointer<UInt8>(opaqueCount)
   
+  // Allocate the output range buffer.
   let outRangeCapacity = Int(lhs.atomCount)
   var outRangeBuffer = [ArraySlice<UInt32>?](
     unsafeUninitializedCapacity: outRangeCapacity
   ) { $1 = outRangeCapacity }
+  nonisolated(unsafe)
   let outRangePointer = outRangeBuffer.withUnsafeMutableBufferPointer { $0 }
   
+  // Define the loop bounds in the I dimension.
   let loopStartI: UInt32 = 0
   var loopEndI = loopStartI + UInt32(lhs.atomCount * 2) + 256
   loopEndI = min(loopEndI, UInt32(lhs.atomCount + 127) / 128)
   
+  // Define the loop bounds in the J dimension.
   let loopStartJ: UInt32 = 0
   var loopEndJ = loopStartJ + UInt32(rhs.atomCount * 2) + 256
   loopEndJ = min(loopEndJ, UInt32(rhs.atomCount + 127) / 128)

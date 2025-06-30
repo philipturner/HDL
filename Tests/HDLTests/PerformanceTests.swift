@@ -37,7 +37,7 @@ private func fmt(_ start: Double, _ end: Double) -> String {
 }
 
 final class PerformanceTests: XCTestCase {
-  static let printPerformanceSummary = false
+  static let printPerformanceSummary = true
   
   // Expected performance on original benchmarked computer (M1 Max):
   //
@@ -53,6 +53,25 @@ final class PerformanceTests: XCTestCase {
   // bounds | atoms  | octree | serial | parallel | speedup
   // ------ | ------ | ------ | ------ | -------- | ----------
   // 10     |  16400 |   2370 |   1555 |      905 | 1.5 -> 2.6
+  
+  // With latest version of Swift compiler:
+  //
+  // gold surface    |   9 ms
+  // gold surface 2  |  74 ms
+  // silicon probe   |  11 ms
+  // silicon probe 2 | 151 ms
+  //
+  // total:  9.1 ms
+  // total: 12.4 ms
+  // total: 65.1 ms
+  //
+  // atoms: 16400
+  // dataset    | octree | serial | parallel
+  // ---------- | ------ | ------ | --------
+  // pre-sorted |   2060 |   1597 |    872
+  // lattice    |   2072 |   1571 |    907
+  // shuffled   |   2341 |   1697 |    898
+  // reversed   |   2069 |   1590 |    830
   
 #if RELEASE
   func testGoldSurface() throws {

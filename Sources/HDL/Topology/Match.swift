@@ -355,7 +355,7 @@ private func transform8(
   blockBoxes32.reserveCapacity(paddedAtomCount / 32)
   
   let taskCount = paddedAtomCount / 128
-  if atoms.count < 10_000 {
+  if true {
     for vID128 in 0..<taskCount {
       block1(UInt32(truncatingIfNeeded: vID128))
     }

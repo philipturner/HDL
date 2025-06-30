@@ -129,8 +129,8 @@ private func matchImpl(
     let taskCount = scope.endI - scope.startI
     
     if taskCount == 0 {
-      // We should check how the compiler behaves when it receives an empty array,
-      // without adding any special checks/early returns for edge cases.
+      // TODO: Unit test how the compiler behaves when it receives an empty
+      // array, without adding any special checks/early returns for edge cases.
     } else if taskCount == 1 {
       innerLoop3(0)
       finishInnerLoop3(0)
@@ -367,6 +367,9 @@ private func transform8(
       block4(UInt32(truncatingIfNeeded: vID128))
     }
   } else {
+    // TODO: Remove this questionable optimization, which may highly depend on
+    // the specific CPU architecture and cache hits.
+    
     // A producer-follower scheme that decreases the execution time marginally.
     // Only two CPU cores are used. The first task, which consumes ~70-80% of
     // execution time, failed to parallelize. However, the reduction afterward

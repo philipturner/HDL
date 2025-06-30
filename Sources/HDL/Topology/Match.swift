@@ -104,23 +104,12 @@ private func matchImpl(
   nonisolated(unsafe)
   let outRangePointer = outRangeBuffer.withUnsafeMutableBufferPointer { $0 }
   
-  
-  
-  // TODO: Apply the encapsulation structure to all 3 loops.
   struct LoopScope {
     var startI: UInt32 = .zero
     var endI: UInt32 = .zero
     var startJ: UInt32 = .zero
     var endJ: UInt32 = .zero
   }
-  
-//  let loopStartI: UInt32 = 0
-//  var loopEndI = loopStartI + UInt32(lhs.atomCount * 2) + 256
-//  loopEndI = min(loopEndI, UInt32(lhs.atomCount + 127) / 128)
-//  
-//  let loopStartJ: UInt32 = 0
-//  var loopEndJ = loopStartJ + UInt32(rhs.atomCount * 2) + 256
-//  loopEndJ = min(loopEndJ, UInt32(rhs.atomCount + 127) / 128)
   
   func createLoopScope3() -> LoopScope {
     var scope = LoopScope()
@@ -133,12 +122,11 @@ private func matchImpl(
     scope.endJ = min(scope.endJ, UInt32(rhs.atomCount + 127) / 128)
     return scope
   }
-  let loopScope3 = createLoopScope3()
   
-  // Encapsulate the calculation of the task count.
   do {
-//    let taskCount = loopEndI - loopStartI
-    let taskCount = loopScope3.endI - loopScope3.startI
+    let scope = createLoopScope3()
+    let taskCount = scope.endI - scope.startI
+    
     if taskCount == 0 {
       // We should check how the compiler behaves when it receives an empty array,
       // without adding any special checks/early returns for edge cases.
@@ -154,8 +142,8 @@ private func matchImpl(
   }
   
   func innerLoop3(_ vIDi3: UInt32) {
-//    for vIDj3 in loopStartJ..<loopEndJ {
-    for vIDj3 in loopScope3.startJ..<loopScope3.endJ {
+    let scope = createLoopScope3()
+    for vIDj3 in scope.startJ..<scope.endJ {
       let lhsBlockBound = lhs.blockBounds128[Int(vIDi3)]
       let rhsBlockBound = rhs.blockBounds128[Int(vIDj3)]
       let mask = compareBlocks(
@@ -228,16 +216,17 @@ private func matchImpl(
   
   @inline(__always)
   func innerLoop2(_ vIDi3: UInt32, _ vIDj3: UInt32) {
-    let loopStartI = vIDi3 * 4
-    var loopEndI = loopStartI + 4
-    loopEndI = min(loopEndI, lhsSize32)
+    var scope = LoopScope()
+    scope.startI = vIDi3 * 4
+    scope.endI = scope.startI + 4
+    scope.endI = min(scope.endI, lhsSize32)
     
-    let loopStartJ = vIDj3 * 4
-    var loopEndJ = loopStartJ + 4
-    loopEndJ = min(loopEndJ, rhsSize32)
+    scope.startJ = vIDj3 * 4
+    scope.endJ = scope.startJ + 4
+    scope.endJ = min(scope.endJ, rhsSize32)
     
-    for vIDi2 in loopStartI..<loopEndI {
-      for vIDj2 in loopStartJ..<loopEndJ {
+    for vIDi2 in scope.startI..<scope.endI {
+      for vIDj2 in scope.startJ..<scope.endJ {
         let lhsBlockBound = lhs.blockBounds32[Int(vIDi2)]
         let rhsBlockBound = rhs.blockBounds32[Int(vIDj2)]
         let mask = compareBlocks(
@@ -253,15 +242,16 @@ private func matchImpl(
   
   @inline(__always)
   func innerLoop1(_ vIDi2: UInt32, _ vIDj2: UInt32) {
-    let loopStartI = vIDi2 * 4
-    var loopEndI = loopStartI + 4
-    loopEndI = min(loopEndI, lhsSize8)
+    var scope = LoopScope()
+    scope.startI = vIDi2 * 4
+    scope.endI = scope.startI + 4
+    scope.endI = min(scope.endI, lhsSize8)
     
-    let loopStartJ = vIDj2 * 4
-    var loopEndJ = loopStartJ + 4
-    loopEndJ = min(loopEndJ, rhsSize8)
+    scope.startJ = vIDj2 * 4
+    scope.endJ = scope.startJ + 4
+    scope.endJ = min(scope.endJ, rhsSize8)
     
-    for vIDi in loopStartI..<loopEndI {
+    for vIDi in scope.startI..<scope.endI {
       let pointer = Int(vIDi &* 4)
       let lhsX = lhs.transformed8[pointer &+ 0]
       let lhsY = lhs.transformed8[pointer &+ 1]
@@ -273,7 +263,7 @@ private func matchImpl(
         matchCount[Int(vIDi)] = lhsMatchCount
       }
       
-      for vIDj in loopStartJ..<loopEndJ {
+      for vIDj in scope.startJ..<scope.endJ {
         let rhsBlockBound = rhs.blockBounds8[Int(vIDj)]
         guard compareBlocks(
           lhsBlockBound, rhsBlockBound, paddedCutoff: paddedCutoff) else {

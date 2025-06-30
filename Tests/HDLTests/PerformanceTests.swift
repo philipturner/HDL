@@ -20,10 +20,8 @@ func ticksPerSecond() -> Int {
   #endif
 }
 
-private let startTicks = queryTickCount()
-
 func cross_platform_media_time() -> Double {
-  let elapsedTicks = queryTickCount() - startTicks
+  let elapsedTicks = queryTickCount()
   return Double(elapsedTicks) / Double(ticksPerSecond())
 }
 

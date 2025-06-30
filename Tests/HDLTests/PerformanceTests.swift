@@ -1,15 +1,30 @@
 import XCTest
 import HDL
 import Numerics
-import SystemPackage
 
-private let startTime = ContinuousClock.now
+func queryTickCount() -> UInt64 {
+  #if os(macOS)
+  return mach_continuous_time()
+  #else
+  var largeInteger = LARGE_INTEGER()
+  QueryPerformanceCounter(&largeInteger)
+  return UInt64(largeInteger.QuadPart)
+  #endif
+}
+
+func ticksPerSecond() -> Int {
+  #if os(macOS)
+  return 24_000_000
+  #else
+  return 10_000_000
+  #endif
+}
+
+private let startTicks = queryTickCount()
 
 func cross_platform_media_time() -> Double {
-  let duration = ContinuousClock.now.duration(to: startTime)
-  let seconds = duration.components.seconds
-  let attoseconds = duration.components.attoseconds
-  return -(Double(seconds) + Double(attoseconds) * 1e-18)
+  let elapsedTicks = queryTickCount() - startTicks
+  return Double(elapsedTicks) / Double(ticksPerSecond())
 }
 
 private func fmt(_ start: Double, _ end: Double) -> String {

@@ -111,6 +111,7 @@ private func matchImpl(
     var endJ: UInt32 = .zero
   }
   
+  @Sendable
   func createLoopScope3() -> LoopScope {
     var scope = LoopScope()
     scope.startI = 0
@@ -214,6 +215,7 @@ private func matchImpl(
     }
   }
   
+  @Sendable
   @inline(__always)
   func innerLoop2(_ vIDi3: UInt32, _ vIDj3: UInt32) {
     var scope = LoopScope()
@@ -240,6 +242,7 @@ private func matchImpl(
   
   // MARK: - Search
   
+  @Sendable
   @inline(__always)
   func innerLoop1(_ vIDi2: UInt32, _ vIDj2: UInt32) {
     var scope = LoopScope()

@@ -283,7 +283,7 @@ extension Reconstruction {
           // Easiest case:
           //
           // The list only has a single hydrogen.
-          guard !collisionMask[0] else {
+          guard collisionMask[0] == false else {
             fatalError("This should never happen.")
           }
           addBond(atomID, orbital: orbital[orbital.startIndex])
@@ -303,8 +303,10 @@ extension Reconstruction {
             (collisionMask[0]) ? hydrogenList[0] : hydrogenList[1]
             let nonCollisionID =
             (collisionMask[0]) ? hydrogenList[1] : hydrogenList[0]
-            precondition(collisionID != UInt32(i))
-            precondition(nonCollisionID == UInt32(i))
+            guard UInt32(i) == nonCollisionID,
+                  UInt32(i) != collisionID else {
+              fatalError("Unexpected atom IDs for collision.")
+            }
             
             let atomList = hydrogensToAtomsMap[Int(collisionID)]
             let center = createCenter(atomList)!

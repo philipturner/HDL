@@ -38,21 +38,12 @@ extension Reconstruction {
       }
     }
     
-    // Bring out the high-level loop structure to make it easier to read,
-    // avoiding a curse of infinite indentation levels.
-    func withTwoWayCollisions(_ closure: (UInt32, [UInt32]) -> Void) {
-      for i in hydrogensToAtomsMap.indices {
-        let atomList = hydrogensToAtomsMap[i]
-        guard atomList.count == 2 else {
-          continue
-        }
-        
-        closure(UInt32(i), atomList)
-      }
-    }
-    
-    // We have now guaranteed that the atom list have 2 elements.
-    withTwoWayCollisions { sourceAtomID, atomList in
+    // This needs to be a separate function because of strange control flow,
+    // including a 'return' statement.
+    func loopIteration(
+      sourceAtomID: UInt32,
+      atomList: [UInt32]
+    ) {
       var bridgeheadID: Int = -1
       var sidewallID: Int = -1
       var bothBridgehead = true
@@ -212,6 +203,17 @@ extension Reconstruction {
       }
     }
     
+    // High-level specification of the algorithm structure.
+    for i in hydrogensToAtomsMap.indices {
+      let atomList = hydrogensToAtomsMap[i]
+      guard atomList.count == 2 else {
+        continue
+      }
+      
+      loopIteration(
+        sourceAtomID: UInt32(i),
+        atomList: atomList)
+    }
     updateCollisions(updates.map { $0 ?? .keep })
   }
   

@@ -212,25 +212,7 @@ extension Reconstruction {
   }
   
   mutating func createHydrogenBonds() {
-    var insertedAtoms: [Atom] = []
-    var insertedBonds: [SIMD2<UInt32>] = []
-    func addBond(_ atomID: Int, orbital: SIMD3<Float>) {
-      let atom = topology.atoms[atomID]
-      guard let element = Element(rawValue: atom.atomicNumber) else {
-        fatalError("This should never happen.")
-      }
-      
-      var bondLength = element.covalentRadius
-      bondLength += Element.hydrogen.covalentRadius
-      let position = atom.position + bondLength * orbital
-      let hydrogenID = topology.atoms.count + insertedAtoms.count
-      
-      let hydrogen = Atom(position: position, element: .hydrogen)
-      let bond = SIMD2(UInt32(atomID), UInt32(hydrogenID))
-      insertedAtoms.append(hydrogen)
-      insertedBonds.append(bond)
-    }
-    
+    // Utility function: 'withClosestOrbitals'
     let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)
     func withClosestOrbitals(
       _ atomList: [UInt32],
@@ -250,6 +232,125 @@ extension Reconstruction {
       }
     }
     
+    // Utility function: 'addBond'
+    var insertedAtoms: [Atom] = []
+    var insertedBonds: [SIMD2<UInt32>] = []
+    func addBond(
+      sourceAtomID: UInt32,
+      orbital: SIMD3<Float>
+    ) {
+      let atom = topology.atoms[Int(sourceAtomID)]
+      guard let element = Element(rawValue: atom.atomicNumber) else {
+        fatalError("This should never happen.")
+      }
+      
+      var bondLength = element.covalentRadius
+      bondLength += Element.hydrogen.covalentRadius
+      let position = atom.position + bondLength * orbital
+      let hydrogenID = topology.atoms.count + insertedAtoms.count
+      
+      let hydrogen = Atom(position: position, element: .hydrogen)
+      let bond = SIMD2(sourceAtomID, UInt32(hydrogenID))
+      insertedAtoms.append(hydrogen)
+      insertedBonds.append(bond)
+    }
+    
+    // Utility function: 'handleAtomListCount1'
+    func handleAtomListCount1(
+      sourceAtomID: UInt32,
+      neighborID: UInt32
+    ) {
+      // Create a list of collision marks.
+      let hydrogenList = atomsToHydrogensMap[Int(neighborID)]
+      let collisionMask: [Bool] = hydrogenList.map {
+        let atomList = hydrogensToAtomsMap[Int($0)]
+        switch atomList.count {
+        case 0:
+          fatalError("This should never happen.")
+        case 1:
+          return false
+        default:
+          return true
+        }
+      }
+      
+      // Retrieve the list of orbitals.
+      let orbital = orbitals[Int(neighborID)]
+      guard orbital.count == hydrogenList.count else {
+        fatalError("Unexpected orbital count.")
+      }
+      
+      // Switch over the different cases of the atom's hydrogen list.
+      switch hydrogenList.count {
+      case 1:
+        // Easiest case:
+        //
+        // The list only has a single hydrogen.
+        guard collisionMask[0] == false else {
+          fatalError("This should never happen.")
+        }
+        addBond(
+          sourceAtomID: neighborID,
+          orbital: orbital[orbital.startIndex])
+        
+      case 2:
+        let orbital0 = orbital[orbital.startIndex]
+        let orbital1 = orbital[orbital.endIndex - 1]
+        
+        if collisionMask[0] && collisionMask[1] {
+          fatalError("This should never happen.")
+        } else if collisionMask[0] || collisionMask[1] {
+          // If 1 orbital has a collision:
+          //
+          // Use a scoring function to match collision(s) to orbitals.
+          
+          let collisionID =
+          (collisionMask[0]) ? hydrogenList[0] : hydrogenList[1]
+          let nonCollisionID =
+          (collisionMask[0]) ? hydrogenList[1] : hydrogenList[0]
+          guard sourceAtomID == nonCollisionID,
+                sourceAtomID != collisionID else {
+            fatalError("Unexpected atom IDs for collision.")
+          }
+          
+          let atomList = hydrogensToAtomsMap[Int(collisionID)]
+          let siteCenter = hydrogenSiteCenter(atomList)
+          let neighborCenter = topology.atoms[Int(neighborID)].position
+          
+          let delta = siteCenter - neighborCenter
+          let score0 = (orbital0 * delta).sum()
+          let score1 = (orbital1 * delta).sum()
+          
+          if score0 > score1 {
+            addBond(
+              sourceAtomID: neighborID,
+              orbital: orbital1)
+          } else if score0 < score1 {
+            addBond(
+              sourceAtomID: neighborID,
+              orbital: orbital0)
+          } else {
+            fatalError("Scores were equal.")
+          }
+        } else {
+          // If there are 2 orbitals and both are collision-free:
+          //
+          // The compiler uses a deterministic method to generate orbitals.
+          // Plus, the orbitals are already generated once. Assign the first
+          // hydrogen in the list to the first orbital.
+          let isFirst = hydrogenList[0] == sourceAtomID
+          let orbital = isFirst ? orbital0 : orbital1
+          addBond(
+            sourceAtomID: neighborID,
+            orbital: orbital)
+        }
+        
+      default:
+        fatalError("Large hydrogen lists not handled yet.")
+      }
+    }
+    
+    // High-level specification of the algorithm structure.
     for i in hydrogensToAtomsMap.indices {
       let atomList = hydrogensToAtomsMap[i]
       guard atomList.count > 0 else {
@@ -260,97 +361,23 @@ extension Reconstruction {
       switch atomList.count {
       case 1:
         // Move this out of the conditional statement for legibility.
-        handleAtomListCount1()
+        handleAtomListCount1(
+          sourceAtomID: UInt32(i),
+          neighborID: atomList[0])
       case 2:
         withClosestOrbitals(atomList) { atomID, orbital in
-          addBond(Int(atomID), orbital: orbital)
+          addBond(
+            sourceAtomID: atomID,
+            orbital: orbital)
         }
       case 3:
         withClosestOrbitals(atomList) { atomID, orbital in
-          addBond(Int(atomID), orbital: orbital)
+          addBond(
+            sourceAtomID: atomID,
+            orbital: orbital)
         }
       default:
         fatalError("This should never happen.")
-      }
-      
-      // TODO: Make atomList an argument, move out of the calling scope.
-      func handleAtomListCount1() {
-        let atomID = Int(atomList[0])
-        let hydrogenList = atomsToHydrogensMap[atomID]
-        let collisionMask = hydrogenList.map {
-          let neighborAtomList = hydrogensToAtomsMap[Int($0)]
-          switch neighborAtomList.count {
-          case 0:
-            fatalError("This should never happen.")
-          case 1:
-            return false
-          default:
-            return true
-          }
-        }
-        let orbital = orbitals[atomID]
-        guard orbital.count == hydrogenList.count else {
-          fatalError("Unexpected orbital count.")
-        }
-        
-        // Switch over the different cases of the atom's hydrogen list.
-        switch hydrogenList.count {
-        case 1:
-          // Easiest case:
-          //
-          // The list only has a single hydrogen.
-          guard collisionMask[0] == false else {
-            fatalError("This should never happen.")
-          }
-          addBond(atomID, orbital: orbital[orbital.startIndex])
-          
-        case 2:
-          let orbital0 = orbital[orbital.startIndex]
-          let orbital1 = orbital[orbital.endIndex - 1]
-          
-          if collisionMask[0] && collisionMask[1] {
-            fatalError("This should never happen.")
-          } else if collisionMask[0] || collisionMask[1] {
-            // If 1 orbital has a collision:
-            //
-            // Use a scoring function to match collision(s) to orbitals.
-            
-            let collisionID =
-            (collisionMask[0]) ? hydrogenList[0] : hydrogenList[1]
-            let nonCollisionID =
-            (collisionMask[0]) ? hydrogenList[1] : hydrogenList[0]
-            guard UInt32(i) == nonCollisionID,
-                  UInt32(i) != collisionID else {
-              fatalError("Unexpected atom IDs for collision.")
-            }
-            
-            let atomList = hydrogensToAtomsMap[Int(collisionID)]
-            let center = hydrogenSiteCenter(atomList)
-            let delta = center - topology.atoms[atomID].position
-            let score0 = (orbital0 * delta).sum()
-            let score1 = (orbital1 * delta).sum()
-            
-            if score0 > score1 {
-              addBond(atomID, orbital: orbital1)
-            } else if score0 < score1 {
-              addBond(atomID, orbital: orbital0)
-            } else {
-              fatalError("Scores were equal.")
-            }
-          } else {
-            // If there are 2 orbitals and both are collision-free:
-            //
-            // The compiler uses a deterministic method to generate orbitals.
-            // Plus, the orbitals are already generated once. Assign the first
-            // hydrogen in the list to the first orbital.
-            let isFirst = hydrogenList[0] == UInt32(i)
-            let orbital = isFirst ? orbital0 : orbital1
-            addBond(atomID, orbital: orbital)
-          }
-          
-        default:
-          fatalError("Large hydrogen lists not handled yet.")
-        }
       }
     }
     topology.insert(atoms: insertedAtoms)

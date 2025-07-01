@@ -125,6 +125,7 @@ extension Reconstruction {
     hydrogenID: UInt32,
     dimerGeometry: DimerGeometry
   ) -> SIMD3<UInt32>? {
+    // This list is guaranteed to have 2 elements.
     let atomList = hydrogensToAtomsMap[Int(hydrogenID)]
     
     if dimerGeometry.bothBridgehead {
@@ -138,44 +139,39 @@ extension Reconstruction {
         hydrogens[0],
         atomList[1])
     } else if dimerGeometry.bothSidewall {
-      // 'neighborID' corresponds to a carbon.
-      for neighborID in atomList {
-        let neighborHydrogenList = atomsToHydrogensMap[Int(neighborID)]
-        guard neighborHydrogenList.count == 2 else {
+      for atomID in atomList {
+        let hydrogenList = atomsToHydrogensMap[Int(atomID)]
+        guard hydrogenList.count == 2 else {
           fatalError("Sidewall site did not have 2 hydrogens.")
         }
         
-        // 'oppositeAtomID' corresponds to a hydrogen.
-        let oppositeAtomID = Self.opposite(
+        let oppositeHydrogenID = Self.opposite(
           original: hydrogenID,
-          unsortedList: neighborHydrogenList)
-        let oppositeAtomList = hydrogensToAtomsMap[Int(oppositeAtomID)]
+          unsortedList: hydrogenList)
+        let oppositeAtomList = hydrogensToAtomsMap[Int(oppositeHydrogenID)]
         
-        // At a bare minimum, the list should contain neighborID.
-        guard oppositeAtomList.count > 0 else {
-          fatalError("This should never happen.")
-        }
+        // Cases for 'oppositeAtomList.count':
+        // 0: guaranteed to be impossible
+        // 1: (oppositeHydrogenID, atomID, hydrogenID) is a terminator
+        //    (H, C, H, ...)
+        // 2: (something else, oppositeHydrogenID, atomID, hydrogenID)
+        //    (..., C, H, C, H, ...)
+        // 3: guaranteed to be impossible (?)
         guard oppositeAtomList.count == 1 else {
-          // Cases for 'oppositeAtomList.count':
-          // 1: (oppositeAtomID, neighborID, atomID) is a terminator
-          //    (H, C, H, ...)
-          // 2: (something else, oppositeAtomID, neighborID, atomID)
-          //    (C, H, C, H, ...)
           continue
         }
         
-        // 'oppositeNeighborID' corresponds to a carbon.
-        let oppositeNeighborID = Self.opposite(
-          original: neighborID,
+        let oppositeAtomID = Self.opposite(
+          original: atomID,
           unsortedList: atomList)
         
         // Making sense of all the opposites:
-        // (oppositeAtomID, neighborID, atomID, oppositeNeighborID)
-        // (H, C, H, C)
+        // (oppositeHydrogenID, atomID, hydrogenID, oppositeAtomID)
+        // (H, C, H, C, ...)
         return SIMD3(
-          neighborID,
+          atomID,
           hydrogenID,
-          oppositeNeighborID)
+          oppositeAtomID)
       }
       
       // We found a dimer in the middle of a chain.
@@ -190,7 +186,6 @@ extension Reconstruction {
       return nil
     } else if let bridgeheadID = dimerGeometry.bridgeheadID,
               let sidewallID = dimerGeometry.sidewallID {
-      
       return SIMD3(
         bridgeheadID,
         hydrogenID,

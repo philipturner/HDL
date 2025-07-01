@@ -167,13 +167,11 @@ extension Reconstruction {
           continue
         }
         
+        // (oppositeHydrogenID, atomID, hydrogenID, oppositeAtomID)
+        // (H, C, H, C, ...)
         let oppositeAtomID = Self.opposite(
           original: atomID,
           unsortedList: atomList)
-        
-        // Making sense of all the opposites:
-        // (oppositeHydrogenID, atomID, hydrogenID, oppositeAtomID)
-        // (H, C, H, C, ...)
         return SIMD3(
           atomID,
           hydrogenID,
@@ -221,8 +219,9 @@ extension Reconstruction {
           fatalError("Took too many iterations to find length of dimer chain.")
         }
       }
-      let atomID = linkedList[linkedList.count - 1]
+      
       let hydrogenID = linkedList[linkedList.count - 2]
+      let atomID = linkedList[linkedList.count - 1]
       
       // Change this to a loop structure that calls a function, which returns
       // whether or not the chain terminated.
@@ -242,28 +241,30 @@ extension Reconstruction {
         let oppositeHydrogenID = Self.opposite(
           original: hydrogenID,
           unsortedList: hydrogenList)
-        var atomList = hydrogensToAtomsMap[Int(oppositeHydrogenID)]
-        guard atomList.count == 2 else {
-          guard atomList.count == 1 else {
+        let oppositeAtomList = hydrogensToAtomsMap[Int(oppositeHydrogenID)]
+        
+        // Cases for 'oppositeAtomList.count':
+        // 0: guaranteed to be impossible
+        // 1: (hydrogenID, atomID, oppositeHydrogenID) is a terminator
+        //    (..., H, C, H)
+        // 2: (hydrogenID, atomID, oppositeHydrogenID, something else)
+        //    (..., H, C, H, C, ...)
+        // 3: supposedly impossible
+        guard oppositeAtomList.count == 2 else {
+          guard oppositeAtomList.count == 1 else {
             fatalError("This should never happen.")
           }
           break outer
         }
         
-        // Add to the linked list.
+        // (hydrogenID, atomID, oppositeHydrogenID, expandingAtomID)
+        // (..., H, C, H, C, ...)
+        let expandingAtomID = Self.opposite(
+          original: atomID,
+          unsortedList: oppositeAtomList)
         appendedListElements.append(oppositeHydrogenID)
+        appendedListElements.append(expandingAtomID)
         
-        // TODO: What do you mean, "this may not always be true"?
-        // Why is this conditional statement needed?
-        precondition(atomList.count == 2) // this may not always be true
-        
-        precondition(atomList.contains(atomID))
-        atomList.removeAll(where: { $0 == atomID })
-        precondition(atomList.count == 1)
-        appendedListElements.append(atomList[0])
-        
-        break
-      
       default:
         fatalError("This should never happen.")
       }

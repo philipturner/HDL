@@ -8,7 +8,7 @@
 import Dispatch
 
 extension Topology {
-  public enum OrbitalHybridization {
+  public enum OrbitalHybridization: Sendable {
     case sp
     case sp2
     case sp3

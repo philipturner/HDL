@@ -41,10 +41,10 @@ final class PerformanceTests: XCTestCase {
   
   // Expected performance on original benchmarked computer (M1 Max):
   //
-  // gold surface    |   9 ms
   // gold surface 2  |  93 ms
-  // silicon probe   |  12 ms
+  // gold surface    |   9 ms
   // silicon probe 2 | 160 ms
+  // silicon probe   |  12 ms
   //
   // total: 10.0 ms
   // total: 11.6 ms
@@ -56,10 +56,10 @@ final class PerformanceTests: XCTestCase {
   
   // With latest version of the codebase (2 years later) + Swift 5.8:
   //
-  // gold surface    |   9 ms
   // gold surface 2  |  74 ms
-  // silicon probe   |  11 ms
+  // gold surface    |   9 ms
   // silicon probe 2 | 151 ms
+  // silicon probe   |  11 ms
   //
   // total:  9.1 ms
   // total: 12.4 ms
@@ -73,7 +73,34 @@ final class PerformanceTests: XCTestCase {
   // shuffled   |   2341 |   1697 |    898
   // reversed   |   2069 |   1590 |    830
   
-#if true
+  // After removing a troublesome producer-follower optimization, and
+  // continuing to check for regressions:
+  //
+  // grid init:
+  // gold surface 2  | 44.6 ms
+  // gold surface    |  3.1 ms
+  // silicon probe 2 |  3.2 ms
+  // silicon probe   |  1.3 ms
+  //
+  // intersect:
+  // gold surface 2  |   6.6 ms
+  // gold surface    |   2.3 ms
+  // silicon probe 2 | 132.4 ms
+  // silicon probe   |   8.0 ms
+  //
+  // lattice:  4.4 ms
+  // lattice:  9.4 ms
+  // lattice: 17.2 ms
+  //
+  // match:  4.0 ms
+  // match:  2.2 ms
+  // match: 39.7 ms
+  //
+  // orbitals: 1.0 ms
+  // orbitals: 0.6 ms
+  // orbitals: 8.7 ms
+  
+#if RELEASE
   func testGoldSurface() throws {
     let overallStart = cross_platform_media_time()
     var gridInitStart: Double = 0

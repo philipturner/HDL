@@ -236,7 +236,7 @@ extension Reconstruction {
       _ atomList: [UInt32],
       _ closure: (UInt32, SIMD3<Float>) -> Void
     ) {
-      let siteCenter = createSiteCenter(atomList)
+      let siteCenter = hydrogenSiteCenter(atomList)
       for atomID in atomList {
         let orbital = orbitals[Int(atomID)]
         let delta = siteCenter - topology.atoms[Int(atomID)].position
@@ -251,33 +251,35 @@ extension Reconstruction {
     }
     
     for i in hydrogensToAtomsMap.indices {
-      // Neighbor list for the atom at index i.
       let atomList = hydrogensToAtomsMap[i]
-      
-      if atomList.count == 0 {
+      guard atomList.count > 0 else {
         // This collision was resolved.
         continue
-      } else if atomList.count == 1 {
+      }
+      
+      switch atomList.count {
+      case 1:
+        // Move this out of the conditional statement for legibility.
         handleAtomListCount1()
-      } else if atomList.count == 2 {
+      case 2:
         withClosestOrbitals(atomList) { atomID, orbital in
           addBond(Int(atomID), orbital: orbital)
         }
-      } else if atomList.count == 3 {
+      case 3:
         withClosestOrbitals(atomList) { atomID, orbital in
           addBond(Int(atomID), orbital: orbital)
         }
-      } else if atomList.count > 3 {
+      default:
         fatalError("This should never happen.")
       }
       
+      // TODO: Make atomList an argument, move out of the calling scope.
       func handleAtomListCount1() {
         let atomID = Int(atomList[0])
         let hydrogenList = atomsToHydrogensMap[atomID]
         let collisionMask = hydrogenList.map {
-          // Neighbor list for the neighbor.
-          let atomList = hydrogensToAtomsMap[Int($0)]
-          switch atomList.count {
+          let neighborAtomList = hydrogensToAtomsMap[Int($0)]
+          switch neighborAtomList.count {
           case 0:
             fatalError("This should never happen.")
           case 1:
@@ -323,7 +325,7 @@ extension Reconstruction {
             }
             
             let atomList = hydrogensToAtomsMap[Int(collisionID)]
-            let center = createSiteCenter(atomList)
+            let center = hydrogenSiteCenter(atomList)
             let delta = center - topology.atoms[atomID].position
             let score0 = (orbital0 * delta).sum()
             let score1 = (orbital1 * delta).sum()
@@ -355,16 +357,13 @@ extension Reconstruction {
     topology.insert(bonds: insertedBonds)
   }
   
-  private func createSiteCenter(_ atomList: [UInt32]) -> SIMD3<Float> {
-    guard atomList.count > 1 else {
-      fatalError("This should never happen.")
-    }
-    var output: SIMD3<Float> = .zero
+  private func hydrogenSiteCenter(_ atomList: [UInt32]) -> SIMD3<Float> {
+    var center: SIMD3<Float> = .zero
     for atomID in atomList {
       let atom = topology.atoms[Int(atomID)]
-      output += atom.position
+      center += atom.position
     }
-    output /= Float(atomList.count)
-    return output
+    center /= Float(atomList.count)
+    return center
   }
 }

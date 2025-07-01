@@ -89,21 +89,21 @@ extension Reconstruction {
       let dimerGeometry = DimerGeometry(
         centerTypes: centerTypes,
         atomList: atomList)
-      let initialLinkedList = createInitialLinkedList(
+      let initialDimerChain = startDimerChain(
         hydrogenID: UInt32(hydrogenID),
         dimerGeometry: dimerGeometry)
-      guard let initialLinkedList else {
+      guard let initialDimerChain else {
         continue
       }
       
       // Append several groups of (..., H, C)
-      let linkedList = expandLinkedList(
-        initialLinkedList: initialLinkedList)
+      let dimerChain = growDimerChain(
+        initialDimerChain: initialDimerChain)
       
       // Even indices: carbon sites
       // Odd indices: hydrogen sites / collision sites
-      for i in linkedList.indices where i % 2 == 1 {
-        let listElement = Int(linkedList[i])
+      for i in dimerChain.indices where i % 2 == 1 {
+        let listElement = Int(dimerChain[i])
         if updates[listElement] == nil {
           if i % 4 == 1 {
             updates[listElement] = .bond
@@ -122,7 +122,7 @@ extension Reconstruction {
   }
   
   
-  private func createInitialLinkedList(
+  private func startDimerChain(
     hydrogenID: UInt32,
     dimerGeometry: DimerGeometry
   ) -> SIMD3<UInt32>? {
@@ -202,13 +202,59 @@ extension Reconstruction {
     }
   }
   
-  private func expandLinkedList(
-    initialLinkedList: SIMD3<UInt32>
+  private func nextDimer(
+    hydrogenID: UInt32,
+    atomID: UInt32
+  ) -> SIMD2<UInt32>? {
+    let hydrogenList = atomsToHydrogensMap[Int(atomID)]
+    switch hydrogenList.count {
+    case 1:
+      guard hydrogenID == hydrogenList[0] else {
+        fatalError("Unexpected hydrogen list.")
+      }
+      
+      // (..., H, C)
+      return nil
+    case 2:
+      let oppositeHydrogenID = Self.opposite(
+        original: hydrogenID,
+        unsortedList: hydrogenList)
+      let oppositeAtomList = hydrogensToAtomsMap[Int(oppositeHydrogenID)]
+      
+      // Cases for 'oppositeAtomList.count':
+      // 0: guaranteed to be impossible
+      // 1: (hydrogenID, atomID, oppositeHydrogenID) is a terminator
+      //    (..., H, C, H)
+      // 2: (hydrogenID, atomID, oppositeHydrogenID, something else)
+      //    (..., H, C, H, C, ...)
+      // 3: supposedly impossible
+      guard oppositeAtomList.count == 2 else {
+        guard oppositeAtomList.count == 1 else {
+          fatalError("This should never happen.")
+        }
+        return nil
+      }
+      
+      // (hydrogenID, atomID, oppositeHydrogenID, expandingAtomID)
+      // (..., H, C, H, C, ...)
+      let expandingAtomID = Self.opposite(
+        original: atomID,
+        unsortedList: oppositeAtomList)
+      return SIMD2(
+        oppositeHydrogenID,
+        expandingAtomID)
+    default:
+      fatalError("This should never happen.")
+    }
+  }
+  
+  private func growDimerChain(
+    initialDimerChain: SIMD3<UInt32>
   ) -> [UInt32] {
-    var linkedList = [
-      initialLinkedList[0],
-      initialLinkedList[1],
-      initialLinkedList[2],
+    var dimerChain = [
+      initialDimerChain[0],
+      initialDimerChain[1],
+      initialDimerChain[2],
     ]
     
     // Iteratively search through the topology, seeing whether the chain
@@ -223,66 +269,28 @@ extension Reconstruction {
         }
       }
       
-      func getAppendedListElements(
-        hydrogenID: UInt32,
-        atomID: UInt32
-      ) -> SIMD2<UInt32>? {
-        let hydrogenList = atomsToHydrogensMap[Int(atomID)]
-        switch hydrogenList.count {
-        case 1:
-          guard hydrogenID == hydrogenList[0] else {
-            fatalError("Unexpected hydrogen list.")
-          }
-          
-          // (..., H, C)
-          return nil
-        case 2:
-          let oppositeHydrogenID = Self.opposite(
-            original: hydrogenID,
-            unsortedList: hydrogenList)
-          let oppositeAtomList = hydrogensToAtomsMap[Int(oppositeHydrogenID)]
-          
-          // Cases for 'oppositeAtomList.count':
-          // 0: guaranteed to be impossible
-          // 1: (hydrogenID, atomID, oppositeHydrogenID) is a terminator
-          //    (..., H, C, H)
-          // 2: (hydrogenID, atomID, oppositeHydrogenID, something else)
-          //    (..., H, C, H, C, ...)
-          // 3: supposedly impossible
-          guard oppositeAtomList.count == 2 else {
-            guard oppositeAtomList.count == 1 else {
-              fatalError("This should never happen.")
-            }
-            return nil
-          }
-          
-          // (hydrogenID, atomID, oppositeHydrogenID, expandingAtomID)
-          // (..., H, C, H, C, ...)
-          let expandingAtomID = Self.opposite(
-            original: atomID,
-            unsortedList: oppositeAtomList)
-          return SIMD2(
-            oppositeHydrogenID,
-            expandingAtomID)
-        default:
-          fatalError("This should never happen.")
-        }
-      }
-      
-      let appendedListElements = getAppendedListElements(
-        hydrogenID: linkedList[linkedList.count - 2],
-        atomID: linkedList[linkedList.count - 1])
-      if let appendedListElements {
-        linkedList += [
-          appendedListElements[0],
-          appendedListElements[1],
+      let dimer = nextDimer(
+        hydrogenID: dimerChain[dimerChain.count - 2],
+        atomID: dimerChain[dimerChain.count - 1])
+      if let dimer {
+        dimerChain += [
+          dimer[0],
+          dimer[1],
         ]
       } else {
         break outer
       }
     }
     
-    return linkedList
+//    var converged = false
+//    for _ in 0..<1000 {
+//
+//    }
+//    guard converged else {
+//      fatalError("Took too many iterations to find length of dimer chain.")
+//    }
+    
+    return dimerChain
   }
   
   private mutating func updateCollisions(_ states: [CollisionState]) {

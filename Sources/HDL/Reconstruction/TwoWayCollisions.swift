@@ -181,8 +181,8 @@ extension Reconstruction {
       // an O(n^2) scaling algorithm. Instead, we only travel when the starting
       // point is one of the two ends.
       //
-      // If the chain wraps around itself into a ring, the entire chain fails
-      // to reconstruct.
+      // If the chain wraps back onto itself, forming a ring, the entire thing
+      // fails to reconstruct.
       return nil
     } else if let bridgeheadID = dimerGeometry.bridgeheadID,
               let sidewallID = dimerGeometry.sidewallID {

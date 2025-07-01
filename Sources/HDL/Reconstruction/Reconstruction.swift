@@ -156,6 +156,7 @@ extension Reconstruction {
     }
     atomsToHydrogensMap = Array(repeating: [], count: topology.atoms.count)
     
+    // This is why 'Reconstruction' only applies to sp3-hybridized crystals.
     let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)
     let bondLength = createBondLength()
     var hydrogenData: [SIMD4<Float>] = []

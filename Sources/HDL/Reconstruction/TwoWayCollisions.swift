@@ -17,7 +17,7 @@ extension Reconstruction {
       repeating: nil, count: hydrogensToAtomsMap.count)
     
     // Validate the integrity of 'initialTypeRawValues'.
-    let orbitals = topology.nonbondingOrbitals()
+    let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)
     for i in orbitals.indices {
       let orbital = orbitals[i]
       var expectedRawValue: UInt8

@@ -143,7 +143,6 @@ extension Reconstruction {
         let nextHydrogen = Int(sortedHydrogens.last!)
         let nextHydrogenList = hydrogensToAtomsMap[nextHydrogen]
         if nextHydrogenList.count == 1 {
-          // This is the end of the dimer chain.
           var listCopy = sourceAtomList
           listCopy.removeAll(where: { $0 == neighborAtomID })
           guard listCopy.count == 1 else {
@@ -156,8 +155,8 @@ extension Reconstruction {
             listCopy[0])
         }
       }
-        
-      // Edge case: middle of a bond chain.
+      
+      // We found a dimer in the middle of a chain.
       //
       // If there is a long list of dimers, we don't try to travel the entire
       // row length when encountering each bond in the middle. That would be
@@ -207,13 +206,14 @@ extension Reconstruction {
       var hydrogens = atomsToHydrogensMap[Int(endOfList)]
       switch hydrogens.count {
       case 1:
-        // If this happens, the end of the list is a bridgehead carbon.
+        // We found a bridgehead site.
         precondition(
           hydrogens[0] == UInt32(existingHydrogen),
           "Unexpected hydrogen list.")
         
         break outer
       case 2:
+        // We found a sidewall site.
         if hydrogens[0] == UInt32(existingHydrogen) {
           
         } else if hydrogens[1] == UInt32(existingHydrogen) {
@@ -227,7 +227,6 @@ extension Reconstruction {
         let nextHydrogen = hydrogens.last!
         var atomList = hydrogensToAtomsMap[Int(nextHydrogen)]
         if atomList.count == 1 {
-          // This is the end of the list.
           break outer
         }
         linkedList.append(nextHydrogen)

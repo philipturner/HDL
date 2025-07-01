@@ -16,6 +16,30 @@ extension Reconstruction {
     var updates = [CollisionState?](
       repeating: nil, count: hydrogensToAtomsMap.count)
     
+    // Validate the integrity of 'initialTypeRawValues'.
+    let orbitals = topology.nonbondingOrbitals()
+    for i in orbitals.indices {
+      let orbital = orbitals[i]
+      var expectedRawValue: UInt8
+      
+      switch orbital.count {
+      case 2:
+        expectedRawValue = 2
+      case 1:
+        expectedRawValue = 3
+      case 0:
+        expectedRawValue = 4
+      default:
+        fatalError("This should never happen.")
+      }
+      
+      guard initialTypeRawValues[i] == expectedRawValue else {
+        fatalError("Incorrect raw value.")
+      }
+    }
+    
+    // Bring out the high-level loop structure to make it easier to read,
+    // avoiding a curse of infinite indentation levels.
     func withTwoWayCollisions(_ closure: (UInt32, [UInt32]) -> Void) {
       for i in hydrogensToAtomsMap.indices {
         let atomList = hydrogensToAtomsMap[i]
@@ -34,18 +58,6 @@ extension Reconstruction {
         default:
           fatalError("Too many atoms in collision.")
         }
-      }
-    }
-    
-    let orbitals = topology.nonbondingOrbitals()
-    for i in orbitals.indices {
-      let orbital = orbitals[i]
-      if orbital.count == 2 {
-        precondition(initialTypeRawValues[i] == 2)
-      } else if orbital.count == 1 {
-        precondition(initialTypeRawValues[i] == 3)
-      } else if orbital.count == 0 {
-        precondition(initialTypeRawValues[i] == 4)
       }
     }
     

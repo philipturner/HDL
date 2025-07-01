@@ -37,6 +37,20 @@ extension Reconstruction {
     }
   }
   
+  // The unsorted list must already be guaranteed to have 2 elements.
+  private static func opposite(
+    original: UInt32,
+    unsortedList: [UInt32]
+  ) -> UInt32 {
+    if original == unsortedList[0] {
+      return unsortedList[1]
+    } else if original == unsortedList[1] {
+      return unsortedList[0]
+    } else {
+      fatalError("Unexpected hydrogen list.")
+    }
+  }
+  
   func validate(centerTypes: [UInt8]) {
     let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)
     for i in orbitals.indices {
@@ -75,7 +89,7 @@ extension Reconstruction {
         centerTypes: centerTypes,
         atomList: atomList)
       let initialLinkedList = createInitialLinkedList(
-        sourceAtomID: UInt32(i),
+        atomID: UInt32(i),
         dimerGeometry: dimerGeometry)
       guard let initialLinkedList else {
         continue
@@ -100,60 +114,62 @@ extension Reconstruction {
     updateCollisions(definedUpdates)
   }
   
+  // 'atomID' corresponds to a hydrogen.
   private func createInitialLinkedList(
-    sourceAtomID: UInt32,
+    atomID: UInt32,
     dimerGeometry: DimerGeometry
   ) -> SIMD3<UInt32>? {
-    let sourceAtomList = hydrogensToAtomsMap[Int(sourceAtomID)]
+    let atomList = hydrogensToAtomsMap[Int(atomID)]
     
     if dimerGeometry.bothBridgehead {
-      let hydrogens = atomsToHydrogensMap[Int(sourceAtomList[0])]
+      let hydrogens = atomsToHydrogensMap[Int(atomList[0])]
       guard hydrogens.count == 1 else {
         fatalError("Bridgehead site did not have 1 hydrogen.")
       }
       
       return SIMD3(
-        sourceAtomList[0],
+        atomList[0],
         hydrogens[0],
-        sourceAtomList[1])
+        atomList[1])
     } else if dimerGeometry.bothSidewall {
-      // Sort the hydrogens, so the source atom appears first.
-      func sort(hydrogens: [UInt32]) -> [UInt32] {
-        if sourceAtomID == hydrogens[0] {
-          return [hydrogens[0], hydrogens[1]]
-        } else if sourceAtomID == hydrogens[1] {
-          return [hydrogens[1], hydrogens[0]]
-        } else {
-          fatalError("Unexpected hydrogen list.")
-        }
-      }
-      
-      for neighborAtomID in sourceAtomList {
-        let unsortedHydrogens = atomsToHydrogensMap[Int(neighborAtomID)]
-        guard unsortedHydrogens.count == 2 else {
+      // 'neighborID' corresponds to a carbon.
+      for neighborID in atomList {
+        let neighborHydrogenList = atomsToHydrogensMap[Int(neighborID)]
+        guard neighborHydrogenList.count == 2 else {
           fatalError("Sidewall site did not have 2 hydrogens.")
         }
         
-        let sortedHydrogens = sort(hydrogens: unsortedHydrogens)
-        guard sourceAtomID == sortedHydrogens[0],
-              sourceAtomID != sortedHydrogens[1] else {
-          fatalError("Unexpected sorted hydrogen list.")
+        // 'oppositeAtomID' corresponds to a hydrogen.
+        let oppositeAtomID = Self.opposite(
+          original: atomID,
+          unsortedList: neighborHydrogenList)
+        let oppositeAtomList = hydrogensToAtomsMap[Int(oppositeAtomID)]
+        
+        // At a bare minimum, the list should contain neighborID.
+        guard oppositeAtomList.count > 0 else {
+          fatalError("This should never happen.")
+        }
+        guard oppositeAtomList.count == 1 else {
+          // Cases for 'oppositeAtomList.count':
+          // 1: (oppositeAtomID, neighborID, atomID) is a terminator
+          //    (H, C, H, ...)
+          // 2: (something else, oppositeAtomID, neighborID, atomID)
+          //    (C, H, C, H, ...)
+          continue
         }
         
-        let nextHydrogen = Int(sortedHydrogens.last!)
-        let nextHydrogenList = hydrogensToAtomsMap[nextHydrogen]
-        if nextHydrogenList.count == 1 {
-          var listCopy = sourceAtomList
-          listCopy.removeAll(where: { $0 == neighborAtomID })
-          guard listCopy.count == 1 else {
-            fatalError("This should never happen.")
-          }
-          
-          return SIMD3(
-            neighborAtomID,
-            sortedHydrogens.first!,
-            listCopy[0])
-        }
+        // 'oppositeNeighborID' corresponds to a carbon.
+        let oppositeNeighborID = Self.opposite(
+          original: neighborID,
+          unsortedList: atomList)
+        
+        // Making sense of all the opposites:
+        // (oppositeAtomID, neighborID, atomID, oppositeNeighborID)
+        // (H, C, H, C)
+        return SIMD3(
+          neighborID,
+          atomID,
+          oppositeNeighborID)
       }
       
       // We found a dimer in the middle of a chain.
@@ -173,7 +189,7 @@ extension Reconstruction {
       // must always be a carbon.
       return SIMD3(
         bridgeheadID,
-        sourceAtomID,
+        atomID,
         sidewallID)
     } else {
       fatalError("This should never happen.")
@@ -205,49 +221,56 @@ extension Reconstruction {
       
       // Change this to a loop structure that calls a function, which returns
       // whether or not the chain terminated.
+      var appendedListElements: [UInt32] = []
       var hydrogens = atomsToHydrogensMap[Int(endOfList)]
       switch hydrogens.count {
       case 1:
         // We found a bridgehead site.
         precondition(
-          hydrogens[0] == UInt32(existingHydrogen),
+          hydrogens[0] == existingHydrogen,
           "Unexpected hydrogen list.")
         
         break outer
+        
       case 2:
         // We found a sidewall site.
-        if hydrogens[0] == UInt32(existingHydrogen) {
+        
+        // TODO: This is very similar to a function for sorting.
+        if hydrogens[0] == existingHydrogen {
           
-        } else if hydrogens[1] == UInt32(existingHydrogen) {
+        } else if hydrogens[1] == existingHydrogen {
           hydrogens = [hydrogens[1], hydrogens[0]]
         } else {
           fatalError("Unexpected hydrogen list.")
         }
-        precondition(hydrogens.first! == UInt32(existingHydrogen))
-        precondition(hydrogens.last! != UInt32(existingHydrogen))
+        precondition(hydrogens.first! == existingHydrogen)
+        precondition(hydrogens.last! != existingHydrogen)
         
         let nextHydrogen = hydrogens.last!
         var atomList = hydrogensToAtomsMap[Int(nextHydrogen)]
         if atomList.count == 1 {
           break outer
         }
-        linkedList.append(nextHydrogen)
+        
+        // Add to the linked list.
+        appendedListElements.append(nextHydrogen)
         
         // TODO: What do you mean, "this may not always be true"?
         // Why is this conditional statement needed?
         precondition(atomList.count == 2) // this may not always be true
         
-        precondition(atomList.contains(UInt32(endOfList)))
-        atomList.removeAll(where: { $0 == UInt32(endOfList) })
+        precondition(atomList.contains(endOfList))
+        atomList.removeAll(where: { $0 == endOfList })
         precondition(atomList.count == 1)
-        linkedList.append(atomList[0])
+        appendedListElements.append(atomList[0])
         
         break
-      case 3:
-        fatalError("Chain terminated at 3-way collision.")
+      
       default:
-        fatalError("Unexpected hydrogen count: \(hydrogens.count)")
+        fatalError("This should never happen.")
       }
+      
+      linkedList += appendedListElements
     }
     
     return linkedList

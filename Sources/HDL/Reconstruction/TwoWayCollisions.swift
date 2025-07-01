@@ -203,6 +203,8 @@ extension Reconstruction {
       let endOfList = linkedList.last!
       let existingHydrogen = linkedList[linkedList.count - 2]
       
+      // Change this to a loop structure that calls a function, which returns
+      // whether or not the chain terminated.
       var hydrogens = atomsToHydrogensMap[Int(endOfList)]
       switch hydrogens.count {
       case 1:

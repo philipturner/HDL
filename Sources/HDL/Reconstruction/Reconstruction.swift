@@ -23,7 +23,6 @@
 // let topology = reconstruction.compile()
 
 public struct Reconstruction {
-  
   var _material: MaterialType?
   
   public var material: MaterialType {

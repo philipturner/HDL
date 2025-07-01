@@ -7,9 +7,24 @@
 
 // Only applies to crystals with sp3 hybridization. Makes heavy use of
 // 'Topology.nonbondingOrbitals' with sp3 hybridization.
+
+// Revised user-facing API:
+//
+// struct Reconstruction {
+//   var material: MaterialType?
+//   var atoms: [SIMD4<Float>]?
+//
+//   func compile() -> Topology
+// }
+//
+// var reconstruction = Reconstruction()
+// reconstruction.materialType = ...
+// reconstruction.atoms = ...
+// let topology = reconstruction.compile()
+
 public struct Reconstruction {
-  // TODO: Why is this public?
-  public var _material: MaterialType?
+  
+  var _material: MaterialType?
   
   public var material: MaterialType {
     get {

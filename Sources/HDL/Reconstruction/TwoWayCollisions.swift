@@ -12,7 +12,7 @@ extension Reconstruction {
     case oneHydrogen(Int)
   }
   
-  private struct SiteGeometry {
+  private struct DimerGeometry {
     var bridgeheadID: UInt32?
     var sidewallID: UInt32?
     var bothBridgehead: Bool = true
@@ -71,12 +71,12 @@ extension Reconstruction {
         continue
       }
       
-      let siteGeometry = SiteGeometry(
+      let dimerGeometry = DimerGeometry(
         centerTypes: centerTypes,
         atomList: atomList)
       let initialLinkedList = createInitialLinkedList(
         sourceAtomID: UInt32(i),
-        siteGeometry: siteGeometry)
+        dimerGeometry: dimerGeometry)
       guard let initialLinkedList else {
         continue
       }
@@ -102,11 +102,11 @@ extension Reconstruction {
   
   private func createInitialLinkedList(
     sourceAtomID: UInt32,
-    siteGeometry: SiteGeometry
+    dimerGeometry: DimerGeometry
   ) -> SIMD3<UInt32>? {
     let sourceAtomList = hydrogensToAtomsMap[Int(sourceAtomID)]
     
-    if siteGeometry.bothBridgehead {
+    if dimerGeometry.bothBridgehead {
       let hydrogens = atomsToHydrogensMap[Int(sourceAtomList[0])]
       guard hydrogens.count == 1 else {
         fatalError("Bridgehead site did not have 1 hydrogen.")
@@ -116,7 +116,7 @@ extension Reconstruction {
         sourceAtomList[0],
         hydrogens[0],
         sourceAtomList[1])
-    } else if siteGeometry.bothSidewall {
+    } else if dimerGeometry.bothSidewall {
       // Sort the hydrogens, so the source atom appears first.
       func sort(hydrogens: [UInt32]) -> [UInt32] {
         if sourceAtomID == hydrogens[0] {
@@ -166,8 +166,8 @@ extension Reconstruction {
       // If the chain wraps around itself into a ring, the entire chain fails
       // to reconstruct.
       return nil
-    } else if let bridgeheadID = siteGeometry.bridgeheadID,
-              let sidewallID = siteGeometry.sidewallID {
+    } else if let bridgeheadID = dimerGeometry.bridgeheadID,
+              let sidewallID = dimerGeometry.sidewallID {
       // The IDs of the elements are interleaved. First a carbon, then the
       // connecting collision, then a carbon, then a collision, etc. The end
       // must always be a carbon.
@@ -200,7 +200,7 @@ extension Reconstruction {
           fatalError("Took too many iterations to find length of dimer chain.")
         }
       }
-      let endOfList = linkedList.last!
+      let endOfList = linkedList[linkedList.count - 1]
       let existingHydrogen = linkedList[linkedList.count - 2]
       
       // Change this to a loop structure that calls a function, which returns

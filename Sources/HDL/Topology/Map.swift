@@ -52,7 +52,7 @@ extension Topology {
   ) -> [MapStorage] {
     switch (sourceNode, targetNode) {
     case (.atoms, _):
-      let connectionsMap = createConnnectionsMap(targetNode: targetNode)
+      let connectionsMap = createConnectionsMap(targetNode: targetNode)
       return unsafeBitCast(connectionsMap, to: [_].self)
     case (.bonds, .atoms):
       var outputStorage: [MapStorage] = []
@@ -73,7 +73,7 @@ extension Topology {
 }
 
 extension Topology {
-  private func createConnnectionsMap(
+  private func createConnectionsMap(
     targetNode: MapNode
   ) -> [SIMD8<Int32>] {
     var connectionsMap = [SIMD8<Int32>](
@@ -113,11 +113,15 @@ extension Topology {
           for i in scalarStart..<scalarEnd {
             let atomID = Int(truncatingIfNeeded: bondsCasted[i])
             var idToWrite: Int32
+            
             if targetNode == .atoms {
-              // TODO: Make this more legible, without introducing a regression.
-              let otherID = (i % 2 == 0)
-                          ? bondsCasted[i &+ 1]
-                          : bondsCasted[i &- 1]
+              var otherID: UInt32
+              if i % 2 == 0 {
+                otherID = bondsCasted[i &+ 1]
+              } else {
+                otherID = bondsCasted[i &- 1]
+              }
+              
               idToWrite = Int32(truncatingIfNeeded: otherID)
             } else {
               idToWrite = Int32(truncatingIfNeeded: i / 2)

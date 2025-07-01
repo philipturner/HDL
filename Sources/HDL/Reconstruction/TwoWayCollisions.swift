@@ -230,6 +230,9 @@ extension Reconstruction {
           break outer
         }
         linkedList.append(nextHydrogen)
+        
+        // TODO: What do you mean, "this may not always be true"?
+        // Why is this conditional statement needed?
         precondition(atomList.count == 2) // this may not always be true
         
         precondition(atomList.contains(UInt32(endOfList)))

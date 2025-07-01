@@ -36,8 +36,6 @@ public struct Reconstruction {
   
   public var topology: Topology = Topology()
   
-  var centerTypes: [UInt8] = []
-  
   // These lists must always be sorted.
   var hydrogensToAtomsMap: [[UInt32]] = []
   var atomsToHydrogensMap: [[UInt32]] = []
@@ -66,11 +64,14 @@ extension Reconstruction {
     // Invoke this function once.
     removePathologicalAtoms()
     
-    // Loop over this several times.
-    var converged = false
+    // When there are no more 3-way collisions, the list of atoms will stop
+    // growing. That means the center types will stabilize.
+    var stableCenterTypes: [UInt8]?
+    
+    // Loop over this a few times (typically less than 10).
     for _ in 0..<100 {
       // Fill the list of center types.
-      createBulkAtomBonds()
+      let centerTypes = createBulkAtomBonds()
       
       // Crash if 4-way collisions exist.
       createHydrogenSites()
@@ -82,16 +83,14 @@ extension Reconstruction {
         
         // Reverse the actions from the start of this iteration.
         topology.bonds = []
-        centerTypes = []
         hydrogensToAtomsMap = []
         atomsToHydrogensMap = []
       } else {
-        // There are no more 3-way collisions.
-        converged = true
+        stableCenterTypes = centerTypes
         break
       }
     }
-    guard converged else {
+    guard let stableCenterTypes else {
       fatalError("Could not resolve 3-way collisions.")
     }
     
@@ -103,8 +102,8 @@ extension Reconstruction {
     }
     
     // Add hydrogens after the center atoms are fixed.
-    validateCenterTypes()
-    resolveTwoWayCollisions()
+    validate(centerTypes: stableCenterTypes)
+    resolveTwoWayCollisions(centerTypes: stableCenterTypes)
     createHydrogenBonds()
   }
 }
@@ -142,11 +141,14 @@ extension Reconstruction {
     }
   }
   
-  // Form all center atom bonds in the lattice interior, assign center types.
-  mutating func createBulkAtomBonds() {
+  // Form all center atom bonds in the lattice interior.
+  //
+  // Returns the center type of each atom.
+  mutating func createBulkAtomBonds() -> [UInt8] {
     let matches = topology.match(
       topology.atoms, algorithm: .absoluteRadius(createBondLength() * 1.1))
     var insertedBonds: [SIMD2<UInt32>] = []
+    var centerTypes: [UInt8] = []
     
     for i in topology.atoms.indices {
       let match = matches[i]
@@ -164,6 +166,7 @@ extension Reconstruction {
     }
     
     topology.insert(bonds: insertedBonds)
+    return centerTypes
   }
   
   // Next, form the hydrogen bonds. Place hydrogens at the C-C bond length

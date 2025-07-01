@@ -37,7 +37,7 @@ extension Reconstruction {
     }
   }
   
-  func validateCenterTypes() {
+  func validate(centerTypes: [UInt8]) {
     let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)
     for i in orbitals.indices {
       let orbital = orbitals[i]
@@ -60,7 +60,7 @@ extension Reconstruction {
     }
   }
   
-  mutating func resolveTwoWayCollisions() {
+  mutating func resolveTwoWayCollisions(centerTypes: [UInt8]) {
     var updates = [CollisionState?](
       repeating: nil, count: hydrogensToAtomsMap.count)
     
@@ -71,8 +71,12 @@ extension Reconstruction {
         continue
       }
       
+      let siteGeometry = SiteGeometry(
+        centerTypes: centerTypes,
+        atomList: atomList)
       let initialLinkedList = createInitialLinkedList(
-        sourceAtomID: UInt32(i))
+        sourceAtomID: UInt32(i),
+        siteGeometry: siteGeometry)
       guard let initialLinkedList else {
         continue
       }
@@ -97,16 +101,11 @@ extension Reconstruction {
   }
   
   private func createInitialLinkedList(
-    sourceAtomID: UInt32
+    sourceAtomID: UInt32,
+    siteGeometry: SiteGeometry
   ) -> SIMD3<UInt32>? {
     let sourceAtomList = hydrogensToAtomsMap[Int(sourceAtomID)]
-    let siteGeometry = SiteGeometry(
-      centerTypes: centerTypes,
-      atomList: sourceAtomList)
     
-    // Extract this into an isolated function, initializeLinkedList().
-    // Isolate it as much as possible from the local scope of the function
-    // 'resolveTwoWayCollisions()'.
     if siteGeometry.bothBridgehead {
       let hydrogens = atomsToHydrogensMap[Int(sourceAtomList[0])]
       guard hydrogens.count == 1 else {
@@ -215,8 +214,6 @@ extension Reconstruction {
           hydrogens[0] == UInt32(existingHydrogen),
           "Unexpected hydrogen list.")
         
-        let centerType = centerTypes[Int(endOfList)]
-        precondition(centerType == 3, "Must be a bridgehead carbon.")
         break outer
       case 2:
         if hydrogens[0] == UInt32(existingHydrogen) {

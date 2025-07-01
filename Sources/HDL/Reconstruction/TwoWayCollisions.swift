@@ -12,6 +12,31 @@ extension Reconstruction {
     case oneHydrogen(Int)
   }
   
+  private struct SiteGeometry {
+    var bridgeheadID: UInt32?
+    var sidewallID: UInt32?
+    var bothBridgehead: Bool = true
+    var bothSidewall: Bool = true
+    
+    init(
+      initialTypeRawValues: [UInt8],
+      atomList: [UInt32]
+    ) {
+      for atomID in atomList {
+        switch initialTypeRawValues[Int(atomID)] {
+        case 2:
+          sidewallID = atomID
+          bothBridgehead = false
+        case 3:
+          bridgeheadID = atomID
+          bothSidewall = false
+        default:
+          fatalError("This should never happen.")
+        }
+      }
+    }
+  }
+  
   mutating func resolveTwoWayCollisions() {
     var updates = [CollisionState?](
       repeating: nil, count: hydrogensToAtomsMap.count)
@@ -44,42 +69,39 @@ extension Reconstruction {
       sourceAtomID: UInt32,
       atomList: [UInt32]
     ) {
-      var bridgeheadID: Int = -1
-      var sidewallID: Int = -1
-      var bothBridgehead = true
-      var bothSidewall = true
-      guard atomList.count == 2 else {
-        fatalError("Edge case not handled yet.")
-      }
-      for atomID in atomList {
-        switch initialTypeRawValues[Int(atomID)] {
-        case 2:
-          sidewallID = Int(atomID)
-          bothBridgehead = false
-        case 3:
-          bridgeheadID = Int(atomID)
-          bothSidewall = false
-        default:
-          fatalError("This should never happen.")
-        }
-      }
+      let siteGeometry = SiteGeometry(
+        initialTypeRawValues: initialTypeRawValues,
+        atomList: atomList)
       
-      var linkedList: [Int] = []
+//      var bridgeheadID: Int = -1
+//      var sidewallID: Int = -1
+//      var bothBridgehead = true
+//      var bothSidewall = true
+//      for atomID in atomList {
+//        switch initialTypeRawValues[Int(atomID)] {
+//        case 2:
+//          sidewallID = Int(atomID)
+//          bothBridgehead = false
+//        case 3:
+//          bridgeheadID = Int(atomID)
+//          bothSidewall = false
+//        default:
+//          fatalError("This should never happen.")
+//        }
+//      }
       
-      if bothBridgehead {
-        if atomList.count == 2 {
-          let hydrogens = atomsToHydrogensMap[Int(atomList[0])]
-          guard hydrogens.count == 1 else {
-            fatalError("Bridgehead site did not have 1 hydrogen.")
-          }
-          
-          linkedList.append(Int(atomList[0]))
-          linkedList.append(Int(hydrogens.first!))
-          linkedList.append(Int(atomList[1]))
-        } else {
-          fatalError("Edge case not handled yet.")
+      var linkedList: [UInt32] = []
+      
+      if siteGeometry.bothBridgehead {
+        let hydrogens = atomsToHydrogensMap[Int(atomList[0])]
+        guard hydrogens.count == 1 else {
+          fatalError("Bridgehead site did not have 1 hydrogen.")
         }
-      } else if bothSidewall {
+        
+        linkedList.append(atomList[0])
+        linkedList.append(hydrogens.first!)
+        linkedList.append(atomList[1])
+      } else if siteGeometry.bothSidewall {
       outer:
         for atomID in atomList {
           var hydrogens = atomsToHydrogensMap[Int(atomID)]
@@ -100,8 +122,8 @@ extension Reconstruction {
           let atomList2 = hydrogensToAtomsMap[nextHydrogen]
           if atomList2.count == 1 {
             // This is the end of the list.
-            linkedList.append(Int(atomID))
-            linkedList.append(Int(hydrogens.first!))
+            linkedList.append(atomID)
+            linkedList.append(hydrogens.first!)
             precondition(
               hydrogensToAtomsMap[Int(hydrogens.first!)].count == 2)
             
@@ -110,7 +132,7 @@ extension Reconstruction {
             atomListCopy.removeAll(where: { $0 == atomID })
             precondition(atomListCopy.count == 1)
             
-            linkedList.append(Int(atomListCopy[0]))
+            linkedList.append(atomListCopy[0])
             break outer
           }
         }
@@ -118,19 +140,25 @@ extension Reconstruction {
         if linkedList.count == 0 {
           // Edge case: middle of a bond chain. This is never handled. If there
           // is a self-referential ring, the entire ring is skipped.
+          //
+          // This is one of the most important parts of the algorithm for
+          // detecting dimer chains (?)
           return
+        } else if linkedList.count == 3 {
+          // Proceed with the remainder of the loop iteration.
+        } else {
+          fatalError("This should never happen.")
         }
-        
-        precondition(linkedList.count == 3, "Unexpected linked list length.")
-      } else {
-        precondition(bridgeheadID >= 0 && sidewallID >= 0)
-        
+      } else if let bridgeheadID = siteGeometry.bridgeheadID,
+                let sidewallID = siteGeometry.sidewallID {
         // The IDs of the elements are interleaved. First a carbon, then the
         // connecting collision, then a carbon, then a collision, etc. The end
         // must always be a carbon.
         linkedList.append(bridgeheadID)
-        linkedList.append(Int(sourceAtomID))
+        linkedList.append(sourceAtomID)
         linkedList.append(sidewallID)
+      } else {
+        fatalError("This should never happen.")
       }
       
       // Iteratively search through the topology, seeing whether the chain
@@ -147,7 +175,7 @@ extension Reconstruction {
         let endOfList = linkedList.last!
         let existingHydrogen = linkedList[linkedList.count - 2]
         
-        var hydrogens = atomsToHydrogensMap[endOfList]
+        var hydrogens = atomsToHydrogensMap[Int(endOfList)]
         switch hydrogens.count {
         case 1:
           // If this happens, the end of the list is a bridgehead carbon.
@@ -155,7 +183,7 @@ extension Reconstruction {
             hydrogens[0] == UInt32(existingHydrogen),
             "Unexpected hydrogen list.")
           
-          let centerType = initialTypeRawValues[endOfList]
+          let centerType = initialTypeRawValues[Int(endOfList)]
           precondition(centerType == 3, "Must be a bridgehead carbon.")
           break outer
         case 2:
@@ -169,8 +197,8 @@ extension Reconstruction {
           precondition(hydrogens.first! == UInt32(existingHydrogen))
           precondition(hydrogens.last! != UInt32(existingHydrogen))
           
-          let nextHydrogen = Int(hydrogens.last!)
-          var atomList = hydrogensToAtomsMap[nextHydrogen]
+          let nextHydrogen = hydrogens.last!
+          var atomList = hydrogensToAtomsMap[Int(nextHydrogen)]
           if atomList.count == 1 {
             // This is the end of the list.
             break outer
@@ -181,7 +209,7 @@ extension Reconstruction {
           precondition(atomList.contains(UInt32(endOfList)))
           atomList.removeAll(where: { $0 == UInt32(endOfList) })
           precondition(atomList.count == 1)
-          linkedList.append(Int(atomList[0]))
+          linkedList.append(atomList[0])
           
           break
         case 3:
@@ -192,7 +220,7 @@ extension Reconstruction {
       }
       
       for i in linkedList.indices where i % 2 == 1 {
-        let listElement = linkedList[i]
+        let listElement = Int(linkedList[i])
         if updates[listElement] == nil {
           if i % 4 == 1 {
             updates[listElement] = .bond

@@ -139,6 +139,8 @@ struct HexagonalMask: LatticeMask {
     }
     let boundsBlock = (dimensions &+ largeBlockSize &- 1) / largeBlockSize
     
+    // TODO: Fix the multiple errors that spawn when marking this function
+    // as @Sendable.
     func execute(block: SIMD3<Int32>) {
       let start = block &* largeBlockSize
       let end = start &+ largeBlockSize

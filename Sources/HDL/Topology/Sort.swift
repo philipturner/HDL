@@ -235,6 +235,8 @@ extension GridSorter {
       }
     }
     
+    // TODO: Fix the multiple errors that spawn when marking this function
+    // as @Sendable.
     func executeIteration(_ z: Int) {
       let gridCell = gridCells[z]
       

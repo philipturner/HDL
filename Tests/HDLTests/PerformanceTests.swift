@@ -73,7 +73,7 @@ final class PerformanceTests: XCTestCase {
   // shuffled   |   2341 |   1697 |    898
   // reversed   |   2069 |   1590 |    830
   
-#if RELEASE
+#if true
   func testGoldSurface() throws {
     let overallStart = cross_platform_media_time()
     var gridInitStart: Double = 0
@@ -512,38 +512,46 @@ final class PerformanceTests: XCTestCase {
       output.append("---------- | ------ | ------")
     }
     
-    for trialID in 0..<4 {
-      var trialAtoms: [Atom]
-      var trialName: String
+    struct Trial {
+      var atoms: [Atom] = []
+      var name: String = ""
       
-      switch trialID {
-      case 0:
-        var topology = Topology()
-        topology.insert(atoms: lattice.atoms)
-        topology.sort()
-        
-        trialAtoms = topology.atoms
-        trialName = "pre-sorted"
-      case 1:
-        trialAtoms = lattice.atoms
-        trialName = "lattice   "
-      case 2:
-        trialAtoms = lattice.atoms.shuffled()
-        trialName = "shuffled  "
-      case 3:
-        trialAtoms = lattice.atoms.reversed()
-        trialName = "reversed  "
-      default:
-        fatalError("This should never happen.")
+      init(lattice: Lattice<Hexagonal>, index: Int) {
+        switch index {
+        case 0:
+          var topology = Topology()
+          topology.insert(atoms: lattice.atoms)
+          topology.sort()
+          
+          atoms = topology.atoms
+          name = "pre-sorted"
+        case 1:
+          atoms = lattice.atoms
+          name = "lattice   "
+        case 2:
+          atoms = lattice.atoms.shuffled()
+          name = "shuffled  "
+        case 3:
+          atoms = lattice.atoms.reversed()
+          name = "reversed  "
+        default:
+          fatalError("This should never happen.")
+        }
       }
+    }
+    
+    for trialID in 0..<4 {
+      let trial = Trial(lattice: lattice, index: trialID)
       
       let startParallel = cross_platform_media_time()
+      nonisolated(unsafe)
       var resultGrid1: [UInt32] = []
+      nonisolated(unsafe)
       var resultGrid2: [UInt32] = []
       if testParallel {
         DispatchQueue.concurrentPerform(iterations: 2) { z in
           var topology = Topology()
-          topology.insert(atoms: trialAtoms)
+          topology.insert(atoms: trial.atoms)
           let resultGrid = topology.sort()
           if z == 0 {
             resultGrid1 = resultGrid
@@ -556,20 +564,20 @@ final class PerformanceTests: XCTestCase {
       
       let startGrid = cross_platform_media_time()
       var topology = Topology()
-      topology.insert(atoms: trialAtoms)
+      topology.insert(atoms: trial.atoms)
       let resultGrid = topology.sort()
       if testParallel {
         var topology = Topology()
-        topology.insert(atoms: trialAtoms)
+        topology.insert(atoms: trial.atoms)
         _ = topology.sort()
       }
       let endGrid = cross_platform_media_time()
       
       let startOctree = cross_platform_media_time()
-      let octree = OctreeSorter(atoms: trialAtoms)
+      let octree = OctreeSorter(atoms: trial.atoms)
       let resultOctree = octree.mortonReordering()
       if testParallel {
-        let octree = OctreeSorter(atoms: trialAtoms)
+        let octree = OctreeSorter(atoms: trial.atoms)
         _ = octree.mortonReordering()
       }
       let endOctree = cross_platform_media_time()
@@ -598,9 +606,9 @@ final class PerformanceTests: XCTestCase {
         reprOctree = " \(reprOctree)"
       }
       if testParallel {
-        output.append("\(trialName) | \(reprOctree) | \(reprGrid) | \(reprParallel)")
+        output.append("\(trial.name) | \(reprOctree) | \(reprGrid) | \(reprParallel)")
       } else {
-        output.append("\(trialName) | \(reprOctree) | \(reprGrid)")
+        output.append("\(trial.name) | \(reprOctree) | \(reprGrid)")
       }
     }
     

@@ -238,6 +238,8 @@ struct CubicMask: LatticeMask {
       let largeBlockSize: Int32 = 32
       let boundsBlock = (dimensions &+ largeBlockSize &- 1) / largeBlockSize
       
+      // TODO: Fix the multiple errors that spawn when marking this function
+      // as @Sendable.
       @inline(never)
       func execute(block: SIMD3<Int32>) {
         let start = block &* (largeBlockSize / 8)

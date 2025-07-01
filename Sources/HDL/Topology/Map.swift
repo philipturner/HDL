@@ -101,6 +101,8 @@ extension Topology {
         let taskSize: Int = 5_000
         let taskCount = (2 * bonds.count + taskSize - 1) / taskSize
         
+        // TODO: Fix the multiple errors that spawn when marking this function
+        // as @Sendable.
         func execute(taskID: Int) {
           let scalarStart = taskID &* taskSize
           let scalarEnd = min(scalarStart &+ taskSize, 2 * bonds.count)

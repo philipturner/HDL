@@ -8,7 +8,7 @@
 import Dispatch
 
 extension Topology {
-  public enum MatchAlgorithm {
+  public enum MatchAlgorithm: Sendable {
     /// Search for neighbors within a fixed radius (in nanometers).
     case absoluteRadius(Float)
     
@@ -24,6 +24,7 @@ extension Topology {
     maximumNeighborCount: Int = 8
   ) -> [MatchStorage] {
     let rmsAtomCount = (Float(source.count) * Float(atoms.count)).squareRoot()
+    @Sendable
     func reorder(_ atoms: [Atom]) -> [UInt32] {
       if rmsAtomCount < 10_000 {
         return atoms.indices.map {
@@ -35,7 +36,9 @@ extension Topology {
       }
     }
     
+    nonisolated(unsafe)
     var lhsOperand: Operand = .init(atomCount: 0)
+    nonisolated(unsafe)
     var rhsOperand: Operand = .init(atomCount: 0)
     DispatchQueue.concurrentPerform(iterations: 2) { z in
       if z == 0 {
@@ -142,6 +145,7 @@ private func matchImpl(
     }
   }
   
+  @Sendable
   func innerLoop3(_ vIDi3: UInt32) {
     let scope = createLoopScope3()
     for vIDj3 in scope.startJ..<scope.endJ {
@@ -155,6 +159,7 @@ private func matchImpl(
     }
   }
   
+  @Sendable
   func finishInnerLoop3(_ vIDi3: UInt32) {
     let scalarStart = vIDi3 &* 128
     let scalarEnd = min(

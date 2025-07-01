@@ -14,7 +14,7 @@ extension Topology {
     case bonds
   }
   
-  public struct MapStorage: Collection, Equatable {
+  public struct MapStorage: Collection, Equatable, Sendable {
     @usableFromInline var storage: SIMD8<Int32>
     
     public typealias Index = Int

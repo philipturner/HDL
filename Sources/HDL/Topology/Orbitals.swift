@@ -23,7 +23,7 @@ extension Topology {
     }
   }
   
-  public struct OrbitalStorage: Collection, Equatable {
+  public struct OrbitalStorage: Collection, Equatable, Sendable {
     @usableFromInline var storage: SIMD16<Float>
     
     public typealias Index = Int
@@ -73,14 +73,18 @@ extension Topology {
     hybridization: OrbitalHybridization = .sp3
   ) -> [OrbitalStorage] {
     let connectionsMap = map(.atoms, to: .atoms)
-    var storageBuffer = [OrbitalStorage](
-      repeating: .init(storage: .zero), count: atoms.count)
+    
+    // TODO: Create a global center for all the task sizes in parallelized
+    // loops across the framework.
     
     let taskSize: Int = 5_000
     let safeAtoms = self.atoms
+    let safeBonds = self.bonds
+    nonisolated(unsafe)
+    var storageBuffer = [OrbitalStorage](
+      repeating: .init(storage: .zero), count: atoms.count)
     
-    // TODO: Fix the multiple errors that spawn when marking this function
-    // as @Sendable.
+    @Sendable
     func execute(taskID: Int) {
       let scalarStart = taskID &* taskSize
       let scalarEnd = min(scalarStart &+ taskSize, safeAtoms.count)
@@ -88,7 +92,7 @@ extension Topology {
         let (orbitalCount, orbital1, orbital2) = addOrbitals(
           atoms: safeAtoms,
           atomID: atomID,
-          bonds: bonds,
+          bonds: safeBonds,
           connectionsMap: connectionsMap,
           hybridization: hybridization)
         

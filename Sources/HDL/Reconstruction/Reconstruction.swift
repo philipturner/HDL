@@ -55,6 +55,7 @@ extension Reconstruction {
       createBulkAtomBonds()
       createHydrogenSites()
       
+      // There are still 3/4-way collisions.
       if hydrogensToAtomsMap.contains(where: { $0.count > 2 }) {
         // Add center atoms to problematic sites.
         resolveThreeWayCollisions()
@@ -65,6 +66,7 @@ extension Reconstruction {
         hydrogensToAtomsMap = []
         atomsToHydrogensMap = []
       } else {
+        // There are no more 3/4-way collisions.
         converged = true
         break
       }
@@ -194,6 +196,10 @@ extension Reconstruction {
         atomList.append(atomID)
       }
       atomList.sort()
+      guard atomList.count <= 3 else {
+        fatalError("Edge case with 4 hydrogens in a site not handled yet.")
+      }
+      
       hydrogensToAtomsMap.append(atomList)
       for j in atomList {
         atomsToHydrogensMap[Int(j)].append(hydrogenID)
@@ -208,18 +214,6 @@ extension Reconstruction {
   mutating func createHydrogenBonds() {
     var insertedAtoms: [Atom] = []
     var insertedBonds: [SIMD2<UInt32>] = []
-    func createCenter(_ atomList: [UInt32]) -> SIMD3<Float>? {
-      guard atomList.count > 1 else {
-        return nil
-      }
-      var output: SIMD3<Float> = .zero
-      for atomID in atomList {
-        let atom = topology.atoms[Int(atomID)]
-        output += atom.position
-      }
-      output /= Float(atomList.count)
-      return output
-    }
     func addBond(_ atomID: Int, orbital: SIMD3<Float>) {
       let atom = topology.atoms[atomID]
       guard let element = Element(rawValue: atom.atomicNumber) else {
@@ -236,11 +230,13 @@ extension Reconstruction {
       insertedAtoms.append(hydrogen)
       insertedBonds.append(bond)
     }
+    
+    let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)
     func withClosestOrbitals(
       _ atomList: [UInt32],
       _ closure: (UInt32, SIMD3<Float>) -> Void
     ) {
-      let siteCenter = createCenter(atomList)!
+      let siteCenter = createSiteCenter(atomList)
       for atomID in atomList {
         let orbital = orbitals[Int(atomID)]
         let delta = siteCenter - topology.atoms[Int(atomID)].position
@@ -253,7 +249,6 @@ extension Reconstruction {
         closure(atomID, closestOrbital)
       }
     }
-    let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)
     
     for i in hydrogensToAtomsMap.indices {
       // Neighbor list for the atom at index i.
@@ -263,6 +258,20 @@ extension Reconstruction {
         // This collision was resolved.
         continue
       } else if atomList.count == 1 {
+        handleAtomListCount1()
+      } else if atomList.count == 2 {
+        withClosestOrbitals(atomList) { atomID, orbital in
+          addBond(Int(atomID), orbital: orbital)
+        }
+      } else if atomList.count == 3 {
+        withClosestOrbitals(atomList) { atomID, orbital in
+          addBond(Int(atomID), orbital: orbital)
+        }
+      } else if atomList.count > 3 {
+        fatalError("This should never happen.")
+      }
+      
+      func handleAtomListCount1() {
         let atomID = Int(atomList[0])
         let hydrogenList = atomsToHydrogensMap[atomID]
         let collisionMask = hydrogenList.map {
@@ -314,7 +323,7 @@ extension Reconstruction {
             }
             
             let atomList = hydrogensToAtomsMap[Int(collisionID)]
-            let center = createCenter(atomList)!
+            let center = createSiteCenter(atomList)
             let delta = center - topology.atoms[atomID].position
             let score0 = (orbital0 * delta).sum()
             let score1 = (orbital1 * delta).sum()
@@ -340,19 +349,22 @@ extension Reconstruction {
         default:
           fatalError("Large hydrogen lists not handled yet.")
         }
-      } else if atomList.count == 2 {
-        withClosestOrbitals(atomList) { atomID, orbital in
-          addBond(Int(atomID), orbital: orbital)
-        }
-      } else if atomList.count == 3 {
-        withClosestOrbitals(atomList) { atomID, orbital in
-          addBond(Int(atomID), orbital: orbital)
-        }
-      } else if atomList.count > 3 {
-        fatalError("Edge case with >3 hydrogens in a site not handled yet.")
       }
     }
     topology.insert(atoms: insertedAtoms)
     topology.insert(bonds: insertedBonds)
+  }
+  
+  private func createSiteCenter(_ atomList: [UInt32]) -> SIMD3<Float> {
+    guard atomList.count > 1 else {
+      fatalError("This should never happen.")
+    }
+    var output: SIMD3<Float> = .zero
+    for atomID in atomList {
+      let atom = topology.atoms[Int(atomID)]
+      output += atom.position
+    }
+    output /= Float(atomList.count)
+    return output
   }
 }

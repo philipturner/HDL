@@ -139,8 +139,10 @@ extension Reconstruction {
   // Next, form the hydrogen bonds. Place hydrogens at the C-C bond length
   // instead of the C-H bond length.
   mutating func createHydrogenSites() {
-    precondition(hydrogensToAtomsMap.count == 0, "Map not empty.")
-    precondition(atomsToHydrogensMap.count == 0, "Map not empty.")
+    guard hydrogensToAtomsMap.count == 0,
+          atomsToHydrogensMap.count == 0 else {
+      fatalError("Maps were not empty.")
+    }
     atomsToHydrogensMap = Array(repeating: [], count: topology.atoms.count)
     
     let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)
@@ -249,6 +251,7 @@ extension Reconstruction {
     let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)
     
     for i in hydrogensToAtomsMap.indices {
+      // Neighbor list for the atom at index i.
       let atomList = hydrogensToAtomsMap[i]
       
       if atomList.count == 0 {
@@ -258,26 +261,36 @@ extension Reconstruction {
         let atomID = Int(atomList[0])
         let hydrogenList = atomsToHydrogensMap[atomID]
         let collisionMask = hydrogenList.map {
+          // Neighbor list for the neighbor.
           let atomList = hydrogensToAtomsMap[Int($0)]
-          precondition(atomList.count > 0)
-          return atomList.count > 1
+          switch atomList.count {
+          case 0:
+            fatalError("This should never happen.")
+          case 1:
+            return false
+          default:
+            return true
+          }
         }
         let orbital = orbitals[atomID]
-        precondition(orbital.count > 0, "No orbitals.")
+        guard orbital.count == hydrogenList.count else {
+          fatalError("Unexpected orbital count.")
+        }
         
         // Switch over the different cases of the atom's hydrogen list.
-        if hydrogenList.count == 1 {
-          precondition(orbital.count == 1, "Unexpected orbital count.")
-          
+        switch hydrogenList.count {
+        case 1:
           // Easiest case:
           //
           // The list only has a single hydrogen.
-          precondition(!collisionMask[0])
+          guard !collisionMask[0] else {
+            fatalError("This should never happen.")
+          }
           addBond(atomID, orbital: orbital[orbital.startIndex])
-        } else if hydrogenList.count == 2 {
-          precondition(orbital.count == 2, "Unexpected orbital count.")
+          
+        case 2:
           let orbital0 = orbital[orbital.startIndex]
-          let orbital1 = orbital[orbital.endIndex-1]
+          let orbital1 = orbital[orbital.endIndex - 1]
           
           if collisionMask[0] && collisionMask[1] {
             fatalError("This should never happen.")
@@ -316,7 +329,8 @@ extension Reconstruction {
             let orbital = isFirst ? orbital0 : orbital1
             addBond(atomID, orbital: orbital)
           }
-        } else {
+          
+        default:
           fatalError("Large hydrogen lists not handled yet.")
         }
       } else if atomList.count == 2 {

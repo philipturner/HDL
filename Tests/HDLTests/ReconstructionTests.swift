@@ -128,7 +128,7 @@ final class ReconstructionTests: XCTestCase {
       let formatted = String(format: "%.1f", elapsedMilliseconds)
       print("reproducerBefore: \(formatted) ms")
       
-      // expected: 3.3 ms
+      // expected: 3.1 ms
     }
     
     let topology = reconstruction.topology
@@ -179,7 +179,7 @@ final class ReconstructionTests: XCTestCase {
       let formatted = String(format: "%.1f", elapsedMilliseconds)
       print("reproducerAfter: \(formatted) ms")
       
-      // expected: 6.8 ms
+      // expected: 6.6 ms
     }
     
     let topology = reconstruction.topology

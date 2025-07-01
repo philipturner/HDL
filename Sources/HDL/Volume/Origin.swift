@@ -5,6 +5,7 @@
 //  Created by Philip Turner on 9/1/23.
 //
 
+@MainActor
 public struct Origin {
   @discardableResult
   public init(_ closure: () -> SIMD3<Float>) {

@@ -10,6 +10,8 @@ Table of Contents
     - [Volume](#volume)
 - [Testing](#testing)
 
+> TODO: Document `Reconstruction`, and potentially make any breaking API changes before the next era of API stability. The DSL needs stability much more than the simulators, which will be noted as beta software if/when they're shipped.
+
 ## Overview
 
 For an introduction, visit the [tutorial](./Documentation/GrapheneSiliceneBilayer.md).

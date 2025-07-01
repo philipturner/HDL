@@ -5,6 +5,7 @@
 //  Created by Philip Turner on 9/15/23.
 //
 
+@MainActor
 struct LatticeStackDescriptor {
   // The global descriptor resets as soon as it is used.
   static var global: LatticeStackDescriptor = .init()
@@ -16,6 +17,7 @@ struct LatticeStackDescriptor {
 }
 
 // `class` instead of `struct` to overcome an issue with Swift references.
+@MainActor
 class LatticeStack {
   var basis: any _Basis.Type
   var grid: any LatticeGrid

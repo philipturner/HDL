@@ -6,6 +6,7 @@
 //
 
 /// Utility for checking that you're using each keyword in the correct scope.
+@MainActor
 enum GlobalScope {
   case lattice
   

@@ -5,6 +5,7 @@
 //  Created by Philip Turner on 9/16/23.
 //
 
+@MainActor
 public struct Bounds {
   @discardableResult
   public init(_ closure: () -> SIMD3<Float>) {

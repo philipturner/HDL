@@ -5,6 +5,7 @@
 //  Created by Philip Turner on 10/29/23.
 //
 
+@MainActor
 public struct Plane {
   @discardableResult
   public init(_ closure: () -> SIMD3<Float>) {

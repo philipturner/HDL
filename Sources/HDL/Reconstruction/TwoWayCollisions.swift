@@ -228,6 +228,10 @@ extension Reconstruction {
       
       let atomList = hydrogensToAtomsMap[Int(i)]
       if atomList.count != 2 {
+        // TODO: Important debug diagnostic? Is there a better way to handle
+        // this than undesired console writing?
+        //
+        // Perhaps use a precondition.
         print("Not a two-way collision: \(atomList)")
       }
       

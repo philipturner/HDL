@@ -74,12 +74,9 @@ extension Topology {
   ) -> [OrbitalStorage] {
     let connectionsMap = map(.atoms, to: .atoms)
     
-    // TODO: Create a global center for all the task sizes in parallelized
-    // loops across the framework.
-    
     let taskSize: Int = 5_000
-    let safeAtoms = self.atoms
-    let safeBonds = self.bonds
+    let safeAtoms = atoms
+    let safeBonds = bonds
     nonisolated(unsafe)
     var storageBuffer = [OrbitalStorage](
       repeating: .init(storage: .zero), count: atoms.count)

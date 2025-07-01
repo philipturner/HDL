@@ -9,7 +9,7 @@ import Atomics
 import Dispatch
 
 extension Topology {
-  public enum MapNode {
+  public enum MapNode: Sendable {
     case atoms
     case bonds
   }
@@ -83,6 +83,7 @@ extension Topology {
     }
     
     // Optimization: use atomics with 16 bits instead of 32 bits
+    nonisolated(unsafe)
     let atomicPointer: UnsafeMutablePointer<Int16.AtomicRepresentation> =
       .allocate(capacity: atoms.count)
     let atomicOpaque = OpaquePointer(atomicPointer)
@@ -92,25 +93,31 @@ extension Topology {
     connectionsMap.withUnsafeMutableBufferPointer {
       let connectionsPointer = $0.baseAddress.unsafelyUnwrapped
       let connectionsOpaque = OpaquePointer(connectionsPointer)
+      nonisolated(unsafe)
       let connectionsCasted = UnsafeMutablePointer<Int32>(connectionsOpaque)
       
       bonds.withUnsafeBufferPointer {
-        let opaque = OpaquePointer($0.baseAddress.unsafelyUnwrapped)
-        let casted = UnsafePointer<UInt32>(opaque)
+        let bondsPointer = $0.baseAddress.unsafelyUnwrapped
+        let bondsOpaque = OpaquePointer($0.baseAddress.unsafelyUnwrapped)
+        nonisolated(unsafe)
+        let bondsCasted = UnsafePointer<UInt32>(bondsOpaque)
         
         let taskSize: Int = 5_000
+        let safeBondCount = bonds.count
         
-        // TODO: Fix the multiple errors that spawn when marking this function
-        // as @Sendable.
+        @Sendable
         func execute(taskID: Int) {
           let scalarStart = taskID &* taskSize
-          let scalarEnd = min(scalarStart &+ taskSize, 2 * bonds.count)
+          let scalarEnd = min(scalarStart &+ taskSize, 2 * safeBondCount)
           
           for i in scalarStart..<scalarEnd {
-            let atomID = Int(truncatingIfNeeded: casted[i])
+            let atomID = Int(truncatingIfNeeded: bondsCasted[i])
             var idToWrite: Int32
             if targetNode == .atoms {
-              let otherID = (i % 2 == 0) ? casted[i &+ 1] : casted[i &- 1]
+              // TODO: Make this more legible, without introducing a regression.
+              let otherID = (i % 2 == 0)
+                          ? bondsCasted[i &+ 1]
+                          : bondsCasted[i &- 1]
               idToWrite = Int32(truncatingIfNeeded: otherID)
             } else {
               idToWrite = Int32(truncatingIfNeeded: i / 2)

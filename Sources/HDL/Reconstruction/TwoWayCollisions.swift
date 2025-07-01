@@ -128,47 +128,45 @@ extension Reconstruction {
         }
       }
       
-      func createSidewallList() -> SIMD3<UInt32>? {
-        for neighborAtomID in sourceAtomList {
-          let unsortedHydrogens = atomsToHydrogensMap[Int(neighborAtomID)]
-          guard unsortedHydrogens.count == 2 else {
-            fatalError("Sidewall site did not have 2 hydrogens.")
-          }
-          
-          let sortedHydrogens = sort(hydrogens: unsortedHydrogens)
-          guard sourceAtomID == sortedHydrogens[0],
-                sourceAtomID != sortedHydrogens[1] else {
-            fatalError("Unexpected sorted hydrogen list.")
-          }
-          
-          let nextHydrogen = Int(sortedHydrogens.last!)
-          let nextHydrogenList = hydrogensToAtomsMap[nextHydrogen]
-          if nextHydrogenList.count == 1 {
-            // This is the end of the dimer chain.
-            var listCopy = sourceAtomList
-            listCopy.removeAll(where: { $0 == neighborAtomID })
-            guard listCopy.count == 1 else {
-              fatalError("This should never happen.")
-            }
-            
-            return SIMD3(
-              neighborAtomID,
-              sortedHydrogens.first!,
-              listCopy[0])
-          }
+      for neighborAtomID in sourceAtomList {
+        let unsortedHydrogens = atomsToHydrogensMap[Int(neighborAtomID)]
+        guard unsortedHydrogens.count == 2 else {
+          fatalError("Sidewall site did not have 2 hydrogens.")
         }
         
-        return nil
+        let sortedHydrogens = sort(hydrogens: unsortedHydrogens)
+        guard sourceAtomID == sortedHydrogens[0],
+              sourceAtomID != sortedHydrogens[1] else {
+          fatalError("Unexpected sorted hydrogen list.")
+        }
+        
+        let nextHydrogen = Int(sortedHydrogens.last!)
+        let nextHydrogenList = hydrogensToAtomsMap[nextHydrogen]
+        if nextHydrogenList.count == 1 {
+          // This is the end of the dimer chain.
+          var listCopy = sourceAtomList
+          listCopy.removeAll(where: { $0 == neighborAtomID })
+          guard listCopy.count == 1 else {
+            fatalError("This should never happen.")
+          }
+          
+          return SIMD3(
+            neighborAtomID,
+            sortedHydrogens.first!,
+            listCopy[0])
+        }
       }
-      
-      let createdLinkedList = createSidewallList()
-      guard let createdLinkedList else {
-        // Edge case: middle of a bond chain. This is never handled. If there
-        // is a self-referential ring, the entire ring is skipped.
-        return nil
-      }
-      
-      return createdLinkedList
+        
+      // Edge case: middle of a bond chain.
+      //
+      // If there is a long list of dimers, we don't try to travel the entire
+      // row length when encountering each bond in the middle. That would be
+      // an O(n^2) scaling algorithm. Instead, we only travel when the starting
+      // point is one of the two ends.
+      //
+      // If the chain wraps around itself into a ring, the entire chain fails
+      // to reconstruct.
+      return nil
     } else if let bridgeheadID = siteGeometry.bridgeheadID,
               let sidewallID = siteGeometry.sidewallID {
       // The IDs of the elements are interleaved. First a carbon, then the

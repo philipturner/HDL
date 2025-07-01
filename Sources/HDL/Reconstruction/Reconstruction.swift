@@ -36,7 +36,8 @@ public struct Reconstruction {
   
   public var topology: Topology = Topology()
   
-  // These lists must always be sorted.
+  // Each atom has a list corresponding to it. That list is guaranteed to
+  // always be sorted in a deterministic order.
   var hydrogensToAtomsMap: [[UInt32]] = []
   var atomsToHydrogensMap: [[UInt32]] = []
   

@@ -114,7 +114,6 @@ extension Reconstruction {
     updateCollisions(definedUpdates)
   }
   
-  // 'atomID' corresponds to a hydrogen.
   private func createInitialLinkedList(
     atomID: UInt32,
     dimerGeometry: DimerGeometry

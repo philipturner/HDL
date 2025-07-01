@@ -10,7 +10,6 @@ public enum MaterialType {
   case checkerboard(Element, Element)
 }
 
-@MainActor
 public struct Material {
   @discardableResult
   public init(_ closure: () -> MaterialType) {

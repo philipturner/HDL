@@ -10,7 +10,6 @@ public enum ReplaceType {
   case empty
 }
 
-@MainActor
 public struct Replace {
   @discardableResult
   public init(_ closure: () -> ReplaceType) {

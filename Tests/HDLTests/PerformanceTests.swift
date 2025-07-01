@@ -54,7 +54,7 @@ final class PerformanceTests: XCTestCase {
   // ------ | ------ | ------ | ------ | -------- | ----------
   // 10     |  16400 |   2370 |   1555 |      905 | 1.5 -> 2.6
   
-  // With latest version of Swift compiler:
+  // With latest version of the codebase (2 years later) + Swift 5.8:
   //
   // gold surface    |   9 ms
   // gold surface 2  |  74 ms

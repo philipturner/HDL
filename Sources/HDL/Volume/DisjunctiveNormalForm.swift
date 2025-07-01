@@ -7,7 +7,6 @@
 
 // A pair of keywords for disjunctive normal form on planes.
 
-@MainActor
 public struct Convex {
   @discardableResult
   public init(_ closure: () -> Void) {
@@ -21,7 +20,6 @@ public struct Convex {
   }
 }
 
-@MainActor
 public struct Concave {
   @discardableResult
   public init(_ closure: () -> Void) {

@@ -5,9 +5,9 @@
 //  Created by Philip Turner on 9/15/23.
 //
 
-@MainActor
 struct LatticeStackDescriptor {
   // The global descriptor resets as soon as it is used.
+  nonisolated(unsafe)
   static var global: LatticeStackDescriptor = .init()
   
   // The user may only set each of these once.
@@ -17,7 +17,6 @@ struct LatticeStackDescriptor {
 }
 
 // `class` instead of `struct` to overcome an issue with Swift references.
-@MainActor
 class LatticeStack {
   var basis: any _Basis.Type
   var grid: any LatticeGrid
@@ -56,7 +55,8 @@ class LatticeStack {
   }
   
   // The getter will never return 'nil', so it is okay to force-unwrap. It is
-  // only nullable to the setter can be used to destroy it.
+  // only nullable so the setter can be used to destroy it.
+  nonisolated(unsafe)
   static var global: LatticeStack?
   
   init(

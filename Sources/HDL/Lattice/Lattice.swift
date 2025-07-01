@@ -5,7 +5,6 @@
 //  Created by Philip Turner on 9/1/23.
 //
 
-@MainActor
 public struct Lattice<T: Basis> {
   var stack: LatticeStack
   

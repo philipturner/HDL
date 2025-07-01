@@ -6,7 +6,6 @@
 //
 
 /// Utility for checking that you're using each keyword in the correct scope.
-@MainActor
 enum GlobalScope {
   case lattice
   
@@ -19,6 +18,7 @@ enum GlobalScope {
   // You cannot instantiate an object while in the middle of defining
   // another one. This will cause an error because the global scope
   // doesn't have a FILO stack.
+  nonisolated(unsafe)
   static var global: GlobalScope? = nil
   
   static func push(_ newValue: GlobalScope) {

@@ -311,8 +311,6 @@ private func matchImpl(
     }
   }
   
-  // MARK: - Sort
-  
   matchBuffer.deallocate()
   matchCount.deallocate()
   
@@ -354,78 +352,18 @@ private func transform8(
   var blockBoxes32: [SIMD8<Float>] = []
   blockBoxes32.reserveCapacity(paddedAtomCount / 32)
   
-  let taskCount = paddedAtomCount / 128
-  if true {
+  do {
+    let taskCount = paddedAtomCount / 128
     for vID128 in 0..<taskCount {
       block1(UInt32(truncatingIfNeeded: vID128))
     }
-    if  paddedAtomCount > 0 {
+    if paddedAtomCount > 0 {
       block2(UInt32(truncatingIfNeeded: paddedAtomCount / 128) &- 1)
     }
     for vID128 in 0..<taskCount {
       block3(UInt32(truncatingIfNeeded: vID128))
       block4(UInt32(truncatingIfNeeded: vID128))
     }
-  } else {
-    // TODO: Remove this questionable optimization, which may highly depend on
-    // the specific CPU architecture and cache hits.
-    
-    // A producer-follower scheme that decreases the execution time marginally.
-    // Only two CPU cores are used. The first task, which consumes ~70-80% of
-    // execution time, failed to parallelize. However, the reduction afterward
-    // seems to work asynchronously.
-    //
-    /*
-     Performance peak without this scheme (lower is better on far right):
-     4505 x   4505 |   815 |    4059 | 0.165
-     8631 x   8631 |  1346 |   14898 | 0.152
-    34353 x  34353 |  5285 |  236025 | 0.149
-   114121 x 114121 | 18136 | 2604720 | 0.159
-     
-     /*
-      Performance peak with this scheme (lower is better on far right):
-      4505 x   4505 |   761 |    4059 | 0.163
-      8631 x   8631 |  1336 |   14898 | 0.151
-     34353 x  34353 |  5062 |  236025 | 0.144
-    114121 x 114121 | 17940 | 2604720 | 0.155
-      */
-     */
-    let divisions = max(3, taskCount / 40)
-    for vID128 in 0..<(taskCount / divisions) {
-      innerLoop1(UInt32(truncatingIfNeeded: vID128))
-    }
-    for i in 0..<(divisions - 1) {
-      DispatchQueue.concurrentPerform(iterations: 2) { z in
-        let range0 = i * taskCount / divisions
-        let range1 = (i + 1) * taskCount / divisions
-        let range2 = (i + 2) * taskCount / divisions
-        if z == 0 {
-          for vID128 in range1..<range2 {
-            innerLoop1(UInt32(truncatingIfNeeded: vID128))
-          }
-        } else if z == 1 {
-          for vID128 in range0..<range1 {
-            innerLoop2(UInt32(truncatingIfNeeded: vID128))
-          }
-        }
-      }
-    }
-    for vID128 in ((divisions - 1) * taskCount / divisions)..<taskCount {
-      innerLoop2(UInt32(truncatingIfNeeded: vID128))
-    }
-  }
-  
-  func innerLoop1(_ vID128: UInt32) {
-    block1(vID128)
-  }
-  
-  func innerLoop2(_ vID128: UInt32) {
-    // Pad the smaller arrays to the granularity of 128 atoms.
-    if vID128 == (paddedAtomCount / 128) &- 1 && paddedAtomCount > 0 {
-      block2(UInt32(truncatingIfNeeded: paddedAtomCount / 128) &- 1)
-    }
-    block3(vID128)
-    block4(vID128)
   }
   
   @inline(__always)

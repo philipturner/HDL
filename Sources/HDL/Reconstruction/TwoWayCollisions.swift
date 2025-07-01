@@ -73,23 +73,6 @@ extension Reconstruction {
         initialTypeRawValues: initialTypeRawValues,
         atomList: atomList)
       
-//      var bridgeheadID: Int = -1
-//      var sidewallID: Int = -1
-//      var bothBridgehead = true
-//      var bothSidewall = true
-//      for atomID in atomList {
-//        switch initialTypeRawValues[Int(atomID)] {
-//        case 2:
-//          sidewallID = Int(atomID)
-//          bothBridgehead = false
-//        case 3:
-//          bridgeheadID = Int(atomID)
-//          bothSidewall = false
-//        default:
-//          fatalError("This should never happen.")
-//        }
-//      }
-      
       var linkedList: [UInt32] = []
       
       if siteGeometry.bothBridgehead {
@@ -99,37 +82,55 @@ extension Reconstruction {
         }
         
         linkedList.append(atomList[0])
-        linkedList.append(hydrogens.first!)
+        linkedList.append(hydrogens[0])
         linkedList.append(atomList[1])
       } else if siteGeometry.bothSidewall {
-      outer:
-        for atomID in atomList {
-          var hydrogens = atomsToHydrogensMap[Int(atomID)]
-          precondition(
-            hydrogens.count == 2, "Sidewall site did not have 2 hydrogens.")
-          
+        // Sort the hydrogens so the source atom appears first.
+        func sort(hydrogens: [UInt32]) -> [UInt32] {
           if sourceAtomID == hydrogens[0] {
-            
+            return [hydrogens[0], hydrogens[1]]
           } else if sourceAtomID == hydrogens[1] {
-            hydrogens = [hydrogens[1], hydrogens[0]]
+            return [hydrogens[1], hydrogens[0]]
           } else {
             fatalError("Unexpected hydrogen list.")
           }
-          precondition(sourceAtomID == hydrogens.first!)
-          precondition(sourceAtomID != hydrogens.last!)
+        }
+        
+      outer:
+        for neighborAtomID in atomList {
+          let unsortedHydrogens = atomsToHydrogensMap[Int(neighborAtomID)]
+          guard unsortedHydrogens.count == 2 else {
+            fatalError("Sidewall site did not have 2 hydrogens.")
+          }
           
-          let nextHydrogen = Int(hydrogens.last!)
+          let sortedHydrogens = sort(hydrogens: unsortedHydrogens)
+          guard sourceAtomID == sortedHydrogens[0],
+                sourceAtomID != sortedHydrogens[1] else {
+            fatalError("Unexpected sorted hydrogen list.")
+          }
+          
+          let nextHydrogen = Int(sortedHydrogens.last!)
           let atomList2 = hydrogensToAtomsMap[nextHydrogen]
           if atomList2.count == 1 {
             // This is the end of the list.
-            linkedList.append(atomID)
-            linkedList.append(hydrogens.first!)
-            precondition(
-              hydrogensToAtomsMap[Int(hydrogens.first!)].count == 2)
+            linkedList.append(neighborAtomID)
+            linkedList.append(sortedHydrogens.first!)
+            guard
+              hydrogensToAtomsMap[Int(sortedHydrogens.first!)].count == 2 else {
+              fatalError("This should never happen.")
+            }
+            guard
+              hydrogensToAtomsMap[Int(sourceAtomID)].count == 2 else {
+              fatalError("This should never happen.")
+            }
+            guard sourceAtomID == sortedHydrogens.first! else {
+              fatalError("This should never happen.")
+            }
+            
             
             var atomListCopy = atomList
             precondition(atomListCopy.count == 2)
-            atomListCopy.removeAll(where: { $0 == atomID })
+            atomListCopy.removeAll(where: { $0 == neighborAtomID })
             precondition(atomListCopy.count == 1)
             
             linkedList.append(atomListCopy[0])

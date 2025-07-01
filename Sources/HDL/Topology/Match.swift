@@ -36,6 +36,7 @@ extension Topology {
       }
     }
     
+    let safeAtoms = self.atoms
     nonisolated(unsafe)
     var lhsOperand: Operand = .init(atomCount: 0)
     nonisolated(unsafe)
@@ -47,9 +48,9 @@ extension Topology {
           source, lhsReordering, include4: false, algorithm: algorithm)
         lhsOperand.reordering = lhsReordering
       } else if z == 1 {
-        let rhsReordering = reorder(atoms)
+        let rhsReordering = reorder(safeAtoms)
         rhsOperand = transform8(
-          atoms, rhsReordering, include4: true, algorithm: algorithm)
+          safeAtoms, rhsReordering, include4: true, algorithm: algorithm)
         rhsOperand.reordering = rhsReordering
       }
     }

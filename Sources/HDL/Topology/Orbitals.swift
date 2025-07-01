@@ -66,6 +66,9 @@ extension Topology {
   
   // After reducing the overhead of array slice generation, elide the creation
   // of the atoms-to-atoms map. Just use the connections buffer directly.
+  //
+  // TODO: Implement this optimization, if possible. Otherwise, delete the
+  // comment above.
   public func nonbondingOrbitals(
     hybridization: OrbitalHybridization = .sp3
   ) -> [OrbitalStorage] {
@@ -74,16 +77,16 @@ extension Topology {
       repeating: .init(storage: .zero), count: atoms.count)
     
     let taskSize: Int = 5_000
-    let taskCount = (atoms.count + taskSize - 1) / taskSize
+    let safeAtoms = self.atoms
     
     // TODO: Fix the multiple errors that spawn when marking this function
     // as @Sendable.
     func execute(taskID: Int) {
       let scalarStart = taskID &* taskSize
-      let scalarEnd = min(scalarStart &+ taskSize, atoms.count)
+      let scalarEnd = min(scalarStart &+ taskSize, safeAtoms.count)
       for atomID in scalarStart..<scalarEnd {
         let (orbitalCount, orbital1, orbital2) = addOrbitals(
-          atoms: atoms,
+          atoms: safeAtoms,
           atomID: atomID,
           bonds: bonds,
           connectionsMap: connectionsMap,
@@ -97,6 +100,7 @@ extension Topology {
       }
     }
     
+    let taskCount = (atoms.count + taskSize - 1) / taskSize
     if taskCount == 0 {
       // TODO: Unit test how the compiler behaves when it receives an empty
       // array, without adding any special checks/early returns for edge cases.

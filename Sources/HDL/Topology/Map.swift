@@ -82,7 +82,7 @@ extension Topology {
       return []
     }
     
-    // Optimization: try atomics with smaller numbers of bits
+    // Optimization: use atomics with 16 bits instead of 32 bits
     let atomicPointer: UnsafeMutablePointer<Int16.AtomicRepresentation> =
       .allocate(capacity: atoms.count)
     let atomicOpaque = OpaquePointer(atomicPointer)
@@ -99,7 +99,6 @@ extension Topology {
         let casted = UnsafePointer<UInt32>(opaque)
         
         let taskSize: Int = 5_000
-        let taskCount = (2 * bonds.count + taskSize - 1) / taskSize
         
         // TODO: Fix the multiple errors that spawn when marking this function
         // as @Sendable.
@@ -131,6 +130,7 @@ extension Topology {
         
         // TODO: Unit test how the compiler behaves when it receives an empty
         // array, without adding any special checks/early returns for edge cases.
+        let taskCount = (2 * bonds.count + taskSize - 1) / taskSize
         if taskCount <= 1 {
           for taskID in 0..<taskCount {
             execute(taskID: taskID)

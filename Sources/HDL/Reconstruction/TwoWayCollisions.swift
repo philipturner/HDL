@@ -259,36 +259,22 @@ extension Reconstruction {
     
     // Iteratively search through the topology, seeing whether the chain
     // of linked center atoms finally ends.
-    var iterationCount = 0
-  outer:
-    while true {
-      defer {
-        iterationCount += 1
-        if iterationCount > 1000 {
-          fatalError("Took too many iterations to find length of dimer chain.")
-        }
-      }
-      
+    var converged = false
+    for _ in 0..<4096 {
       let dimer = nextDimer(
         hydrogenID: dimerChain[dimerChain.count - 2],
         atomID: dimerChain[dimerChain.count - 1])
       if let dimer {
-        dimerChain += [
-          dimer[0],
-          dimer[1],
-        ]
+        dimerChain.append(dimer[0])
+        dimerChain.append(dimer[1])
       } else {
-        break outer
+        converged = true
+        break
       }
     }
-    
-//    var converged = false
-//    for _ in 0..<1000 {
-//
-//    }
-//    guard converged else {
-//      fatalError("Took too many iterations to find length of dimer chain.")
-//    }
+    guard converged else {
+      fatalError("Took too many iterations to find length of dimer chain.")
+    }
     
     return dimerChain
   }

@@ -2,6 +2,8 @@ import XCTest
 import HDL
 
 final class ReconstructionTests: XCTestCase {
+  static let printPerformanceSummary = true
+  
   func testUnitTest() throws {
     let lattice = Lattice<Cubic> { h, k, l in
       Bounds { 5 * h + 5 * k + 5 * l }
@@ -116,7 +118,18 @@ final class ReconstructionTests: XCTestCase {
     var reconstruction = Reconstruction()
     reconstruction.material = .elemental(.carbon)
     reconstruction.topology.insert(atoms: lattice.atoms)
+    
+    let start = cross_platform_media_time()
     reconstruction.compile()
+    let end = cross_platform_media_time()
+    if Self.printPerformanceSummary {
+      let elapsedSeconds = end - start
+      let elapsedMilliseconds = 1000 * elapsedSeconds
+      let formatted = String(format: "%.1f", elapsedMilliseconds)
+      print("reproducerBefore: \(formatted) ms")
+      
+      // expected: 3.3 ms
+    }
     
     let topology = reconstruction.topology
     XCTAssertEqual(topology.atoms.count, 5735)
@@ -156,7 +169,18 @@ final class ReconstructionTests: XCTestCase {
     var reconstruction = Reconstruction()
     reconstruction.material = .elemental(.carbon)
     reconstruction.topology.insert(atoms: lattice.atoms)
+    
+    let start = cross_platform_media_time()
     reconstruction.compile()
+    let end = cross_platform_media_time()
+    if Self.printPerformanceSummary {
+      let elapsedSeconds = end - start
+      let elapsedMilliseconds = 1000 * elapsedSeconds
+      let formatted = String(format: "%.1f", elapsedMilliseconds)
+      print("reproducerAfter: \(formatted) ms")
+      
+      // expected: 6.8 ms
+    }
     
     let topology = reconstruction.topology
     XCTAssertEqual(topology.atoms.count, 5720)

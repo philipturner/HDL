@@ -129,6 +129,8 @@ extension Topology {
           }
         }
         
+        // TODO: Unit test how the compiler behaves when it receives an empty
+        // array, without adding any special checks/early returns for edge cases.
         if taskCount <= 1 {
           for taskID in 0..<taskCount {
             execute(taskID: taskID)

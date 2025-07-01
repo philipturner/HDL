@@ -137,6 +137,7 @@ extension Reconstruction {
         fatalError("Unexpected hydrogen list.")
       }
       
+      // (C, H, C)
       return SIMD3(
         atomList[0],
         hydrogenID,
@@ -190,6 +191,7 @@ extension Reconstruction {
       return nil
     } else if let bridgeheadID = dimerGeometry.bridgeheadID,
               let sidewallID = dimerGeometry.sidewallID {
+      // (C, H, C, ...)
       return SIMD3(
         bridgeheadID,
         hydrogenID,
@@ -220,56 +222,63 @@ extension Reconstruction {
         }
       }
       
-      let hydrogenID = linkedList[linkedList.count - 2]
-      let atomID = linkedList[linkedList.count - 1]
-      
-      // Change this to a loop structure that calls a function, which returns
-      // whether or not the chain terminated.
-      
-      var appendedListElements: [UInt32] = []
-      let hydrogenList = atomsToHydrogensMap[Int(atomID)]
-      switch hydrogenList.count {
-      case 1:
-        // We found a bridgehead site.
-        guard hydrogenID == hydrogenList[0] else {
-          fatalError("Unexpected hydrogen list.")
-        }
-        break outer
-        
-      case 2:
-        // We found a sidewall site.
-        let oppositeHydrogenID = Self.opposite(
-          original: hydrogenID,
-          unsortedList: hydrogenList)
-        let oppositeAtomList = hydrogensToAtomsMap[Int(oppositeHydrogenID)]
-        
-        // Cases for 'oppositeAtomList.count':
-        // 0: guaranteed to be impossible
-        // 1: (hydrogenID, atomID, oppositeHydrogenID) is a terminator
-        //    (..., H, C, H)
-        // 2: (hydrogenID, atomID, oppositeHydrogenID, something else)
-        //    (..., H, C, H, C, ...)
-        // 3: supposedly impossible
-        guard oppositeAtomList.count == 2 else {
-          guard oppositeAtomList.count == 1 else {
-            fatalError("This should never happen.")
+      func getAppendedListElements(
+        hydrogenID: UInt32,
+        atomID: UInt32
+      ) -> SIMD2<UInt32>? {
+        let hydrogenList = atomsToHydrogensMap[Int(atomID)]
+        switch hydrogenList.count {
+        case 1:
+          guard hydrogenID == hydrogenList[0] else {
+            fatalError("Unexpected hydrogen list.")
           }
-          break outer
+          
+          // (..., H, C)
+          return nil
+        case 2:
+          let oppositeHydrogenID = Self.opposite(
+            original: hydrogenID,
+            unsortedList: hydrogenList)
+          let oppositeAtomList = hydrogensToAtomsMap[Int(oppositeHydrogenID)]
+          
+          // Cases for 'oppositeAtomList.count':
+          // 0: guaranteed to be impossible
+          // 1: (hydrogenID, atomID, oppositeHydrogenID) is a terminator
+          //    (..., H, C, H)
+          // 2: (hydrogenID, atomID, oppositeHydrogenID, something else)
+          //    (..., H, C, H, C, ...)
+          // 3: supposedly impossible
+          guard oppositeAtomList.count == 2 else {
+            guard oppositeAtomList.count == 1 else {
+              fatalError("This should never happen.")
+            }
+            return nil
+          }
+          
+          // (hydrogenID, atomID, oppositeHydrogenID, expandingAtomID)
+          // (..., H, C, H, C, ...)
+          let expandingAtomID = Self.opposite(
+            original: atomID,
+            unsortedList: oppositeAtomList)
+          return SIMD2(
+            oppositeHydrogenID,
+            expandingAtomID)
+        default:
+          fatalError("This should never happen.")
         }
-        
-        // (hydrogenID, atomID, oppositeHydrogenID, expandingAtomID)
-        // (..., H, C, H, C, ...)
-        let expandingAtomID = Self.opposite(
-          original: atomID,
-          unsortedList: oppositeAtomList)
-        appendedListElements.append(oppositeHydrogenID)
-        appendedListElements.append(expandingAtomID)
-        
-      default:
-        fatalError("This should never happen.")
       }
       
-      linkedList += appendedListElements
+      let appendedListElements = getAppendedListElements(
+        hydrogenID: linkedList[linkedList.count - 2],
+        atomID: linkedList[linkedList.count - 1])
+      if let appendedListElements {
+        linkedList += [
+          appendedListElements[0],
+          appendedListElements[1],
+        ]
+      } else {
+        break outer
+      }
     }
     
     return linkedList

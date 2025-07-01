@@ -53,9 +53,11 @@ extension Reconstruction {
     var converged = false
     for _ in 0..<100 {
       createBulkAtomBonds()
+      
+      // Crash if 4-way collisions exist.
       createHydrogenSites()
       
-      // There are still 3/4-way collisions.
+      // Check whether there are still 3-way collisions.
       if hydrogensToAtomsMap.contains(where: { $0.count > 2 }) {
         // Add center atoms to problematic sites.
         resolveThreeWayCollisions()
@@ -66,7 +68,7 @@ extension Reconstruction {
         hydrogensToAtomsMap = []
         atomsToHydrogensMap = []
       } else {
-        // There are no more 3/4-way collisions.
+        // There are no more 3-way collisions.
         converged = true
         break
       }
@@ -75,12 +77,14 @@ extension Reconstruction {
       fatalError("Could not resolve 3-way collisions.")
     }
     
-    // Add hydrogens after the center atoms are fixed.
+    // Assert that there are no 3-way or 4-way collisions.
     for atomList in hydrogensToAtomsMap {
       if atomList.count > 2 {
         fatalError("3/4-way collisions should have been caught.")
       }
     }
+    
+    // Add hydrogens after the center atoms are fixed.
     resolveTwoWayCollisions()
     createHydrogenBonds()
   }

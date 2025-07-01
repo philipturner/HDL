@@ -129,14 +129,17 @@ extension Reconstruction {
     let atomList = hydrogensToAtomsMap[Int(hydrogenID)]
     
     if dimerGeometry.bothBridgehead {
-      let hydrogens = atomsToHydrogensMap[Int(atomList[0])]
-      guard hydrogens.count == 1 else {
+      let hydrogenList = atomsToHydrogensMap[Int(atomList[0])]
+      guard hydrogenList.count == 1 else {
         fatalError("Bridgehead site did not have 1 hydrogen.")
+      }
+      guard hydrogenID == hydrogenList[0] else {
+        fatalError("Unexpected hydrogen list.")
       }
       
       return SIMD3(
         atomList[0],
-        hydrogens[0],
+        hydrogenID,
         atomList[1])
     } else if dimerGeometry.bothSidewall {
       for atomID in atomList {
@@ -156,8 +159,11 @@ extension Reconstruction {
         //    (H, C, H, ...)
         // 2: (something else, oppositeHydrogenID, atomID, hydrogenID)
         //    (..., C, H, C, H, ...)
-        // 3: guaranteed to be impossible (?)
+        // 3: supposedly impossible
         guard oppositeAtomList.count == 1 else {
+          guard oppositeAtomList.count == 2 else {
+            fatalError("This should never happen.")
+          }
           continue
         }
         
@@ -215,51 +221,44 @@ extension Reconstruction {
           fatalError("Took too many iterations to find length of dimer chain.")
         }
       }
-      let endOfList = linkedList[linkedList.count - 1]
-      let existingHydrogen = linkedList[linkedList.count - 2]
+      let atomID = linkedList[linkedList.count - 1]
+      let hydrogenID = linkedList[linkedList.count - 2]
       
       // Change this to a loop structure that calls a function, which returns
       // whether or not the chain terminated.
+      
       var appendedListElements: [UInt32] = []
-      var hydrogens = atomsToHydrogensMap[Int(endOfList)]
-      switch hydrogens.count {
+      let hydrogenList = atomsToHydrogensMap[Int(atomID)]
+      switch hydrogenList.count {
       case 1:
         // We found a bridgehead site.
-        precondition(
-          hydrogens[0] == existingHydrogen,
-          "Unexpected hydrogen list.")
-        
+        guard hydrogenID == hydrogenList[0] else {
+          fatalError("Unexpected hydrogen list.")
+        }
         break outer
         
       case 2:
         // We found a sidewall site.
-        
-        // TODO: This is very similar to a function for sorting.
-        if hydrogens[0] == existingHydrogen {
-          
-        } else if hydrogens[1] == existingHydrogen {
-          hydrogens = [hydrogens[1], hydrogens[0]]
-        } else {
-          fatalError("Unexpected hydrogen list.")
-        }
-        precondition(hydrogens.first! == existingHydrogen)
-        precondition(hydrogens.last! != existingHydrogen)
-        
-        let nextHydrogen = hydrogens.last!
-        var atomList = hydrogensToAtomsMap[Int(nextHydrogen)]
-        if atomList.count == 1 {
+        let oppositeHydrogenID = Self.opposite(
+          original: hydrogenID,
+          unsortedList: hydrogenList)
+        var atomList = hydrogensToAtomsMap[Int(oppositeHydrogenID)]
+        guard atomList.count == 2 else {
+          guard atomList.count == 1 else {
+            fatalError("This should never happen.")
+          }
           break outer
         }
         
         // Add to the linked list.
-        appendedListElements.append(nextHydrogen)
+        appendedListElements.append(oppositeHydrogenID)
         
         // TODO: What do you mean, "this may not always be true"?
         // Why is this conditional statement needed?
         precondition(atomList.count == 2) // this may not always be true
         
-        precondition(atomList.contains(endOfList))
-        atomList.removeAll(where: { $0 == endOfList })
+        precondition(atomList.contains(atomID))
+        atomList.removeAll(where: { $0 == atomID })
         precondition(atomList.count == 1)
         appendedListElements.append(atomList[0])
         

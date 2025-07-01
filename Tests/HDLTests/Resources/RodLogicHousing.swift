@@ -10,12 +10,14 @@ import HDL
 struct RodLogicHousing {
   var topology: Topology = .init()
   
+  @MainActor
   mutating func compilationPass0() {
     let lattice = createHousingLattice()
     topology.insert(atoms: lattice.atoms)
   }
 }
 
+@MainActor
 private func createHousingLattice() -> Lattice<Hexagonal> {
   let housingLattice = Lattice<Hexagonal> { h, k, l in
     let h2k = h + 2 * k

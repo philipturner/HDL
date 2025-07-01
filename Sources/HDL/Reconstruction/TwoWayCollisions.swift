@@ -73,17 +73,21 @@ extension Reconstruction {
         initialTypeRawValues: initialTypeRawValues,
         atomList: sourceAtomList)
       
-      var linkedList: [UInt32] = []
-      
+      // Extract this into an isolated function, initializeLinkedList().
+      // Isolate it as much as possible from the local scope of the function
+      // 'resolveTwoWayCollisions()'.
+      var linkedList: [UInt32]
       if siteGeometry.bothBridgehead {
         let hydrogens = atomsToHydrogensMap[Int(sourceAtomList[0])]
         guard hydrogens.count == 1 else {
           fatalError("Bridgehead site did not have 1 hydrogen.")
         }
         
-        linkedList.append(sourceAtomList[0])
-        linkedList.append(hydrogens[0])
-        linkedList.append(sourceAtomList[1])
+        linkedList = [
+          sourceAtomList[0],
+          hydrogens[0],
+          sourceAtomList[1],
+        ]
       } else if siteGeometry.bothSidewall {
         // Sort the hydrogens, so the source atom appears first.
         func sort(hydrogens: [UInt32]) -> [UInt32] {
@@ -96,9 +100,7 @@ extension Reconstruction {
           }
         }
         
-        // Wrap this in a nested function, to make the control flow more
-        // legible.
-        func createLinkedList() -> [UInt32]? {
+        func createSidewallList() -> [UInt32]? {
           for neighborAtomID in sourceAtomList {
             let unsortedHydrogens = atomsToHydrogensMap[Int(neighborAtomID)]
             guard unsortedHydrogens.count == 2 else {
@@ -112,58 +114,27 @@ extension Reconstruction {
             }
             
             let nextHydrogen = Int(sortedHydrogens.last!)
-            let atomList2 = hydrogensToAtomsMap[nextHydrogen]
-            if atomList2.count == 1 {
-              // This is the end of the list.
-              var atomListCopy = sourceAtomList
-              atomListCopy.removeAll(where: { $0 == neighborAtomID })
-              guard atomListCopy.count == 1 else {
+            let nextHydrogenList = hydrogensToAtomsMap[nextHydrogen]
+            if nextHydrogenList.count == 1 {
+              // This is the end of the dimer chain.
+              var listCopy = sourceAtomList
+              listCopy.removeAll(where: { $0 == neighborAtomID })
+              guard listCopy.count == 1 else {
                 fatalError("This should never happen.")
               }
               
-              var output: [UInt32] = []
-              output.append(neighborAtomID)
-              output.append(sortedHydrogens.first!)
-              output.append(atomListCopy[0])
-              return output
+              return [
+                neighborAtomID,
+                sortedHydrogens.first!,
+                listCopy[0],
+              ]
             }
           }
           
           return nil
         }
         
-//      outer:
-//        for neighborAtomID in sourceAtomList {
-//          let unsortedHydrogens = atomsToHydrogensMap[Int(neighborAtomID)]
-//          guard unsortedHydrogens.count == 2 else {
-//            fatalError("Sidewall site did not have 2 hydrogens.")
-//          }
-//          
-//          let sortedHydrogens = sort(hydrogens: unsortedHydrogens)
-//          guard sourceAtomID == sortedHydrogens[0],
-//                sourceAtomID != sortedHydrogens[1] else {
-//            fatalError("Unexpected sorted hydrogen list.")
-//          }
-//          
-//          let nextHydrogen = Int(sortedHydrogens.last!)
-//          let atomList2 = hydrogensToAtomsMap[nextHydrogen]
-//          if atomList2.count == 1 {
-//            // This is the end of the list.
-//            linkedList.append(neighborAtomID)
-//            linkedList.append(sortedHydrogens.first!)
-//            
-//            var atomListCopy = sourceAtomList
-//            atomListCopy.removeAll(where: { $0 == neighborAtomID })
-//            guard atomListCopy.count == 1 else {
-//              fatalError("This should never happen.")
-//            }
-//            
-//            linkedList.append(atomListCopy[0])
-//            break outer
-//          }
-//        }
-        
-        let createdLinkedList = createLinkedList()
+        let createdLinkedList = createSidewallList()
         guard let createdLinkedList else {
           // Edge case: middle of a bond chain. This is never handled. If there
           // is a self-referential ring, the entire ring is skipped.
@@ -171,29 +142,22 @@ extension Reconstruction {
         }
         
         linkedList = createdLinkedList
-        
-//        if linkedList.count == 0 {
-//          // Edge case: middle of a bond chain. This is never handled. If there
-//          // is a self-referential ring, the entire ring is skipped.
-//          //
-//          // This is one of the most important parts of the algorithm for
-//          // detecting dimer chains (?)
-//          return
-//        } else if linkedList.count == 3 {
-//          // Proceed with the remainder of the loop iteration.
-//        } else {
-//          fatalError("This should never happen.")
-//        }
       } else if let bridgeheadID = siteGeometry.bridgeheadID,
                 let sidewallID = siteGeometry.sidewallID {
         // The IDs of the elements are interleaved. First a carbon, then the
         // connecting collision, then a carbon, then a collision, etc. The end
         // must always be a carbon.
-        linkedList.append(bridgeheadID)
-        linkedList.append(sourceAtomID)
-        linkedList.append(sidewallID)
+        linkedList = [
+          bridgeheadID,
+          sourceAtomID,
+          sidewallID,
+        ]
       } else {
         fatalError("This should never happen.")
+      }
+      
+      guard linkedList.count == 3 else {
+        fatalError("Unexpected starting size.")
       }
       
       // Iteratively search through the topology, seeing whether the chain

@@ -85,6 +85,7 @@ extension Reconstruction {
         continue
       }
       
+      // First elements: (C, H, C)
       let dimerGeometry = DimerGeometry(
         centerTypes: centerTypes,
         atomList: atomList)
@@ -95,14 +96,12 @@ extension Reconstruction {
         continue
       }
       
-      // The IDs of the elements are interleaved. First a carbon, then the
-      // connecting collision, then a carbon, then a collision, etc. The end
-      // must always be a carbon.
-      //
-      // Even indices: carbon sites
-      // Odd indices:  hydrogen sites / collision sites
+      // Append several groups of (..., H, C)
       let linkedList = expandLinkedList(
         initialLinkedList: initialLinkedList)
+      
+      // Even indices: carbon sites
+      // Odd indices: hydrogen sites / collision sites
       for i in linkedList.indices where i % 2 == 1 {
         let listElement = Int(linkedList[i])
         if updates[listElement] == nil {
@@ -115,7 +114,9 @@ extension Reconstruction {
       }
     }
     
-    // Replace undefined updates with '.keep'.
+    // Define the remaining updates as '.keep'.
+    //
+    // TODO: Identify the reason some dimers aren't registered at this point.
     let definedUpdates = updates.map { $0 ?? .keep }
     updateCollisions(definedUpdates)
   }

@@ -1,5 +1,7 @@
 # Graphene-Silicene Bilayer
 
+> Note: Working on dedicated DSL support for 2D lattices, with 2 basis vectors. The feature will make heavy use of the backend machinery for processing 3D hexagonal lattices. The new crystal basis will be `Planar`. It will only support graphene and h-BN. The surface reconstruction utility (`Reconstruction`) is not applicable to 2D lattices, so no need to add any dedicated support there.
+
 This tutorial is an introduction to the domain-specific language for
 prototyping crystal geometries. It shows how the 3D geometry compiler can
 be used to create 2D shapes. Restriction to 3D shapes was one important design 

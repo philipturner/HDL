@@ -343,11 +343,15 @@ extension Reconstruction {
           // The compiler uses a deterministic method to generate orbitals.
           // Plus, the orbitals are already generated once. Assign the first
           // hydrogen in the list to the first orbital.
-          let isFirst = hydrogenList[0] == sourceAtomID
-          let orbital = isFirst ? orbital0 : orbital1
-          addBond(
-            sourceAtomID: neighborID,
-            orbital: orbital)
+          if sourceAtomID == hydrogenList[0] {
+            addBond(
+              sourceAtomID: neighborID,
+              orbital: orbital0)
+          } else {
+            addBond(
+              sourceAtomID: neighborID,
+              orbital: orbital1)
+          }
         }
         
       default:

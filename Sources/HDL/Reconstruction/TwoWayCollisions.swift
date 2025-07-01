@@ -41,12 +41,6 @@ extension Reconstruction {
     // Bring out the high-level loop structure to make it easier to read,
     // avoiding a curse of infinite indentation levels.
     func withTwoWayCollisions(_ closure: (UInt32, [UInt32]) -> Void) {
-//      for atomList in hydrogensToAtomsMap {
-//        if atomList.count > 2 {
-//          fatalError("3/4-way collisions should have been caught.")
-//        }
-//      }
-      
       for i in hydrogensToAtomsMap.indices {
         let atomList = hydrogensToAtomsMap[i]
         guard atomList.count == 2 else {
@@ -58,7 +52,7 @@ extension Reconstruction {
     }
     
     // We have now guaranteed that the atom list have 2 elements.
-    withTwoWayCollisions { i, atomList in
+    withTwoWayCollisions { sourceAtomID, atomList in
       var bridgeheadID: Int = -1
       var sidewallID: Int = -1
       var bothBridgehead = true
@@ -101,15 +95,15 @@ extension Reconstruction {
           precondition(
             hydrogens.count == 2, "Sidewall site did not have 2 hydrogens.")
           
-          if hydrogens[0] == UInt32(i) {
+          if sourceAtomID == hydrogens[0] {
             
-          } else if hydrogens[1] == UInt32(i) {
+          } else if sourceAtomID == hydrogens[1] {
             hydrogens = [hydrogens[1], hydrogens[0]]
           } else {
             fatalError("Unexpected hydrogen list.")
           }
-          precondition(hydrogens.first! == UInt32(i))
-          precondition(hydrogens.last! != UInt32(i))
+          precondition(sourceAtomID == hydrogens.first!)
+          precondition(sourceAtomID != hydrogens.last!)
           
           let nextHydrogen = Int(hydrogens.last!)
           let atomList2 = hydrogensToAtomsMap[nextHydrogen]
@@ -144,7 +138,7 @@ extension Reconstruction {
         // connecting collision, then a carbon, then a collision, etc. The end
         // must always be a carbon.
         linkedList.append(bridgeheadID)
-        linkedList.append(Int(i))
+        linkedList.append(Int(sourceAtomID))
         linkedList.append(sidewallID)
       }
       

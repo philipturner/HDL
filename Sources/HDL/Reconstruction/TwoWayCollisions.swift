@@ -79,8 +79,8 @@ extension Reconstruction {
       repeating: nil, count: hydrogensToAtomsMap.count)
     
     // High-level specification of the algorithm structure.
-    for i in hydrogensToAtomsMap.indices {
-      let atomList = hydrogensToAtomsMap[i]
+    for hydrogenID in hydrogensToAtomsMap.indices {
+      let atomList = hydrogensToAtomsMap[hydrogenID]
       guard atomList.count == 2 else {
         continue
       }
@@ -89,12 +89,18 @@ extension Reconstruction {
         centerTypes: centerTypes,
         atomList: atomList)
       let initialLinkedList = createInitialLinkedList(
-        atomID: UInt32(i),
+        hydrogenID: UInt32(hydrogenID),
         dimerGeometry: dimerGeometry)
       guard let initialLinkedList else {
         continue
       }
       
+      // The IDs of the elements are interleaved. First a carbon, then the
+      // connecting collision, then a carbon, then a collision, etc. The end
+      // must always be a carbon.
+      //
+      // Even indices: carbon sites
+      // Odd indices:  hydrogen sites / collision sites
       let linkedList = expandLinkedList(
         initialLinkedList: initialLinkedList)
       for i in linkedList.indices where i % 2 == 1 {
@@ -114,11 +120,12 @@ extension Reconstruction {
     updateCollisions(definedUpdates)
   }
   
+  
   private func createInitialLinkedList(
-    atomID: UInt32,
+    hydrogenID: UInt32,
     dimerGeometry: DimerGeometry
   ) -> SIMD3<UInt32>? {
-    let atomList = hydrogensToAtomsMap[Int(atomID)]
+    let atomList = hydrogensToAtomsMap[Int(hydrogenID)]
     
     if dimerGeometry.bothBridgehead {
       let hydrogens = atomsToHydrogensMap[Int(atomList[0])]
@@ -140,7 +147,7 @@ extension Reconstruction {
         
         // 'oppositeAtomID' corresponds to a hydrogen.
         let oppositeAtomID = Self.opposite(
-          original: atomID,
+          original: hydrogenID,
           unsortedList: neighborHydrogenList)
         let oppositeAtomList = hydrogensToAtomsMap[Int(oppositeAtomID)]
         
@@ -167,7 +174,7 @@ extension Reconstruction {
         // (H, C, H, C)
         return SIMD3(
           neighborID,
-          atomID,
+          hydrogenID,
           oppositeNeighborID)
       }
       
@@ -183,12 +190,10 @@ extension Reconstruction {
       return nil
     } else if let bridgeheadID = dimerGeometry.bridgeheadID,
               let sidewallID = dimerGeometry.sidewallID {
-      // The IDs of the elements are interleaved. First a carbon, then the
-      // connecting collision, then a carbon, then a collision, etc. The end
-      // must always be a carbon.
+      
       return SIMD3(
         bridgeheadID,
-        atomID,
+        hydrogenID,
         sidewallID)
     } else {
       fatalError("This should never happen.")

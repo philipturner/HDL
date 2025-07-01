@@ -5,7 +5,10 @@
 //  Created by Philip Turner on 6/11/24.
 //
 
+// Only applies to crystals with sp3 hybridization. Makes heavy use of
+// 'Topology.nonbondingOrbitals' with sp3 hybridization.
 public struct Reconstruction {
+  // TODO: Why is this public?
   public var _material: MaterialType?
   
   public var material: MaterialType {
@@ -19,7 +22,7 @@ public struct Reconstruction {
   
   public var topology: Topology = Topology()
   
-  var initialTypeRawValues: [UInt8] = []
+  var centerTypes: [UInt8] = []
   
   // These lists must always be sorted.
   var hydrogensToAtomsMap: [[UInt32]] = []
@@ -52,6 +55,7 @@ extension Reconstruction {
     // Loop over this several times.
     var converged = false
     for _ in 0..<100 {
+      // Fill the list of center types.
       createBulkAtomBonds()
       
       // Crash if 4-way collisions exist.
@@ -64,7 +68,7 @@ extension Reconstruction {
         
         // Reverse the actions from the start of this iteration.
         topology.bonds = []
-        initialTypeRawValues = []
+        centerTypes = []
         hydrogensToAtomsMap = []
         atomsToHydrogensMap = []
       } else {
@@ -85,6 +89,7 @@ extension Reconstruction {
     }
     
     // Add hydrogens after the center atoms are fixed.
+    validateCenterTypes()
     resolveTwoWayCollisions()
     createHydrogenBonds()
   }
@@ -134,7 +139,7 @@ extension Reconstruction {
       if match.count > 5 {
         fatalError("Unexpected situation: match count > 5")
       } else if match.count > 2 {
-        initialTypeRawValues.append(UInt8(match.count - 1))
+        centerTypes.append(UInt8(match.count - 1))
         
         for j in match where i < j {
           insertedBonds.append(SIMD2(UInt32(i), j))
@@ -156,7 +161,6 @@ extension Reconstruction {
     }
     atomsToHydrogensMap = Array(repeating: [], count: topology.atoms.count)
     
-    // This is why 'Reconstruction' only applies to sp3-hybridized crystals.
     let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)
     let bondLength = createBondLength()
     var hydrogenData: [SIMD4<Float>] = []

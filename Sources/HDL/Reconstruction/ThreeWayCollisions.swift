@@ -11,7 +11,6 @@ extension Reconstruction {
       fatalError("Material not specified.")
     }
     
-    // This is why 'Reconstruction' only applies to sp3-hybridized crystals.
     let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)
     
     var insertedAtoms: [Atom] = []

@@ -19,11 +19,11 @@ extension Reconstruction {
     var bothSidewall: Bool = true
     
     init(
-      initialTypeRawValues: [UInt8],
+      centerTypes: [UInt8],
       atomList: [UInt32]
     ) {
       for atomID in atomList {
-        switch initialTypeRawValues[Int(atomID)] {
+        switch centerTypes[Int(atomID)] {
         case 2:
           sidewallID = atomID
           bothBridgehead = false
@@ -37,11 +37,7 @@ extension Reconstruction {
     }
   }
   
-  mutating func resolveTwoWayCollisions() {
-    var updates = [CollisionState?](
-      repeating: nil, count: hydrogensToAtomsMap.count)
-    
-    // Validate the integrity of 'initialTypeRawValues'.
+  func validateCenterTypes() {
     let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)
     for i in orbitals.indices {
       let orbital = orbitals[i]
@@ -58,10 +54,15 @@ extension Reconstruction {
         fatalError("This should never happen.")
       }
       
-      guard initialTypeRawValues[i] == expectedRawValue else {
+      guard centerTypes[i] == expectedRawValue else {
         fatalError("Incorrect raw value.")
       }
     }
+  }
+  
+  mutating func resolveTwoWayCollisions() {
+    var updates = [CollisionState?](
+      repeating: nil, count: hydrogensToAtomsMap.count)
     
     // This needs to be a separate function because of strange control flow,
     // including a 'return' statement.
@@ -70,24 +71,23 @@ extension Reconstruction {
       sourceAtomList: [UInt32]
     ) {
       let siteGeometry = SiteGeometry(
-        initialTypeRawValues: initialTypeRawValues,
+        centerTypes: centerTypes,
         atomList: sourceAtomList)
       
       // Extract this into an isolated function, initializeLinkedList().
       // Isolate it as much as possible from the local scope of the function
       // 'resolveTwoWayCollisions()'.
-      var linkedList: [UInt32]
+      var initialLinkedList: SIMD3<UInt32>
       if siteGeometry.bothBridgehead {
         let hydrogens = atomsToHydrogensMap[Int(sourceAtomList[0])]
         guard hydrogens.count == 1 else {
           fatalError("Bridgehead site did not have 1 hydrogen.")
         }
         
-        linkedList = [
+        initialLinkedList = SIMD3(
           sourceAtomList[0],
           hydrogens[0],
-          sourceAtomList[1],
-        ]
+          sourceAtomList[1])
       } else if siteGeometry.bothSidewall {
         // Sort the hydrogens, so the source atom appears first.
         func sort(hydrogens: [UInt32]) -> [UInt32] {
@@ -100,7 +100,7 @@ extension Reconstruction {
           }
         }
         
-        func createSidewallList() -> [UInt32]? {
+        func createSidewallList() -> SIMD3<UInt32>? {
           for neighborAtomID in sourceAtomList {
             let unsortedHydrogens = atomsToHydrogensMap[Int(neighborAtomID)]
             guard unsortedHydrogens.count == 2 else {
@@ -123,11 +123,10 @@ extension Reconstruction {
                 fatalError("This should never happen.")
               }
               
-              return [
+              return SIMD3(
                 neighborAtomID,
                 sortedHydrogens.first!,
-                listCopy[0],
-              ]
+                listCopy[0])
             }
           }
           
@@ -141,24 +140,25 @@ extension Reconstruction {
           return
         }
         
-        linkedList = createdLinkedList
+        initialLinkedList = createdLinkedList
       } else if let bridgeheadID = siteGeometry.bridgeheadID,
                 let sidewallID = siteGeometry.sidewallID {
         // The IDs of the elements are interleaved. First a carbon, then the
         // connecting collision, then a carbon, then a collision, etc. The end
         // must always be a carbon.
-        linkedList = [
+        initialLinkedList = SIMD3(
           bridgeheadID,
           sourceAtomID,
-          sidewallID,
-        ]
+          sidewallID)
       } else {
         fatalError("This should never happen.")
       }
       
-      guard linkedList.count == 3 else {
-        fatalError("Unexpected starting size.")
-      }
+      var linkedList = [
+        initialLinkedList[0],
+        initialLinkedList[1],
+        initialLinkedList[2],
+      ]
       
       // Iteratively search through the topology, seeing whether the chain
       // of linked center atoms finally ends.
@@ -182,7 +182,7 @@ extension Reconstruction {
             hydrogens[0] == UInt32(existingHydrogen),
             "Unexpected hydrogen list.")
           
-          let centerType = initialTypeRawValues[Int(endOfList)]
+          let centerType = centerTypes[Int(endOfList)]
           precondition(centerType == 3, "Must be a bridgehead carbon.")
           break outer
         case 2:

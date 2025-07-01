@@ -41,31 +41,31 @@ extension Reconstruction {
     // Bring out the high-level loop structure to make it easier to read,
     // avoiding a curse of infinite indentation levels.
     func withTwoWayCollisions(_ closure: (UInt32, [UInt32]) -> Void) {
+//      for atomList in hydrogensToAtomsMap {
+//        if atomList.count > 2 {
+//          fatalError("3/4-way collisions should have been caught.")
+//        }
+//      }
+      
       for i in hydrogensToAtomsMap.indices {
         let atomList = hydrogensToAtomsMap[i]
-        
-        switch atomList.count {
-        case 0:
-          break
-        case 1:
-          break
-        case 2:
-          closure(UInt32(i), atomList)
-        case 3:
-          fatalError("3-way collision should have been caught.")
-        case 4:
-          fatalError("4-way collision should have been caught.")
-        default:
-          fatalError("Too many atoms in collision.")
+        guard atomList.count == 2 else {
+          continue
         }
+        
+        closure(UInt32(i), atomList)
       }
     }
     
+    // We have now guaranteed that the atom list have 2 elements.
     withTwoWayCollisions { i, atomList in
       var bridgeheadID: Int = -1
       var sidewallID: Int = -1
       var bothBridgehead = true
       var bothSidewall = true
+      guard atomList.count == 2 else {
+        fatalError("Edge case not handled yet.")
+      }
       for atomID in atomList {
         switch initialTypeRawValues[Int(atomID)] {
         case 2:
@@ -84,8 +84,9 @@ extension Reconstruction {
       if bothBridgehead {
         if atomList.count == 2 {
           let hydrogens = atomsToHydrogensMap[Int(atomList[0])]
-          precondition(
-            hydrogens.count == 1, "Bridgehead did not have 1 hydrogen.")
+          guard hydrogens.count == 1 else {
+            fatalError("Bridgehead site did not have 1 hydrogen.")
+          }
           
           linkedList.append(Int(atomList[0]))
           linkedList.append(Int(hydrogens.first!))
@@ -98,7 +99,7 @@ extension Reconstruction {
         for atomID in atomList {
           var hydrogens = atomsToHydrogensMap[Int(atomID)]
           precondition(
-            hydrogens.count == 2, "Sidewall did not have 2 hydrogens.")
+            hydrogens.count == 2, "Sidewall site did not have 2 hydrogens.")
           
           if hydrogens[0] == UInt32(i) {
             
@@ -118,6 +119,7 @@ extension Reconstruction {
             linkedList.append(Int(hydrogens.first!))
             precondition(
               hydrogensToAtomsMap[Int(hydrogens.first!)].count == 2)
+            
             var atomListCopy = atomList
             precondition(atomListCopy.count == 2)
             atomListCopy.removeAll(where: { $0 == atomID })
@@ -154,8 +156,7 @@ extension Reconstruction {
         defer {
           iterationCount += 1
           if iterationCount > 1000 {
-            fatalError(
-              "(100) reconstructon took too many iterations to converge.")
+            fatalError("Took too many iterations to find length of dimer chain.")
           }
         }
         let endOfList = linkedList.last!

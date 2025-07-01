@@ -74,6 +74,11 @@ extension Reconstruction {
     }
     
     // Add hydrogens after the center atoms are fixed.
+    for atomList in hydrogensToAtomsMap {
+      if atomList.count > 2 {
+        fatalError("3/4-way collisions should have been caught.")
+      }
+    }
     resolveTwoWayCollisions()
     createHydrogenBonds()
   }

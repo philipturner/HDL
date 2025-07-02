@@ -109,9 +109,11 @@ extension Reconstruction {
   }
 }
 
+// MARK: - Utilities
+
 extension Reconstruction {
   // Remove atoms with less than two covalent bonds.
-  mutating func removePathologicalAtoms() {
+  private mutating func removePathologicalAtoms() {
     var converged = false
     for _ in 0..<100 {
       let matches = topology.match(
@@ -145,7 +147,7 @@ extension Reconstruction {
   // Form all center atom bonds in the lattice interior.
   //
   // Returns the center type of each atom.
-  mutating func createBulkAtomBonds() -> [UInt8] {
+  private mutating func createBulkAtomBonds() -> [UInt8] {
     let matches = topology.match(
       topology.atoms, algorithm: .absoluteRadius(createBondLength() * 1.1))
     var insertedBonds: [SIMD2<UInt32>] = []
@@ -172,7 +174,7 @@ extension Reconstruction {
   
   // Next, form the hydrogen bonds. Place hydrogens at the C-C bond length
   // instead of the C-H bond length.
-  mutating func createHydrogenSites() {
+  private mutating func createHydrogenSites() {
     guard hydrogensToAtomsMap.count == 0,
           atomsToHydrogensMap.count == 0 else {
       fatalError("Maps were not empty.")
@@ -204,6 +206,7 @@ extension Reconstruction {
     let matches = matcher.match(
       hydrogenAtoms, algorithm: .absoluteRadius(0.050))
     
+    // TODO: Refactor this to remove incomprehensible control flow.
   outer:
     for i in hydrogenData.indices {
       let match = matches[i]
@@ -238,7 +241,30 @@ extension Reconstruction {
     }
   }
   
-  mutating func createHydrogenBonds() {
+  private func validate(centerTypes: [UInt8]) {
+    let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)
+    for i in orbitals.indices {
+      let orbital = orbitals[i]
+      var expectedRawValue: UInt8
+      
+      switch orbital.count {
+      case 2:
+        expectedRawValue = 2
+      case 1:
+        expectedRawValue = 3
+      case 0:
+        expectedRawValue = 4
+      default:
+        fatalError("This should never happen.")
+      }
+      
+      guard centerTypes[i] == expectedRawValue else {
+        fatalError("Incorrect raw value.")
+      }
+    }
+  }
+  
+  private mutating func createHydrogenBonds() {
     // Utility function: 'withClosestOrbitals'
     let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)
     func withClosestOrbitals(

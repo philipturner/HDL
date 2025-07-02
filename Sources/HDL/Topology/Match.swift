@@ -534,8 +534,6 @@ private func matchImpl(
     }
   }
   
-  // MARK: - Search
-  
   @Sendable
   @inline(__always)
   func innerLoop1(_ vIDi2: UInt32, _ vIDj2: UInt32) {

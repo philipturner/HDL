@@ -123,6 +123,12 @@ extension GridSorter {
       
       let threshold = min(2.0, max(0.5, highestLevelSize * 0.51))
       
+      // TODO: Refactor this to move it outside of the enclosing function,
+      // isolating the mutable context it sees. Do all of this without causing
+      // a performance regression.
+      //
+      // TODO: Observe the similarities between 'traverseGrid' and
+      // 'traverseTree'.
       func traverseGrid(
         atomIDs: UnsafeBufferPointer<UInt32>,
         levelOrigin: SIMD3<Float>,
@@ -179,6 +185,8 @@ extension GridSorter {
             start &+= allocationSize
           }
           
+          // TODO: Use a different variable, instead of letting a reference
+          // to a mutable state variable survive across 2 different contexts.
           start = 0
           for laneID in 0..<8 {
             let allocationSize = dictionaryCount[laneID]
@@ -299,6 +307,8 @@ extension GridSorter {
             start &+= allocationSize
           }
           
+          // TODO: Use a different variable, instead of letting a reference
+          // to a mutable state variable survive across 2 different contexts.
           start = 0
           for laneID in 0..<8 {
             let allocationSize = dictionaryCount[laneID]

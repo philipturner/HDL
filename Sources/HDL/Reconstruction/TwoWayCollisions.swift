@@ -5,75 +5,38 @@
 //  Created by Philip Turner on 6/11/24.
 //
 
-extension Reconstruction {
-  private enum CollisionState {
-    case noCollision
-    case keepCollision
-    case mergeDimer
-  }
+private struct DimerGeometry {
+  var bridgeheadID: UInt32?
+  var sidewallID: UInt32?
+  var bothBridgehead: Bool = true
+  var bothSidewall: Bool = true
   
-  private struct DimerGeometry {
-    var bridgeheadID: UInt32?
-    var sidewallID: UInt32?
-    var bothBridgehead: Bool = true
-    var bothSidewall: Bool = true
-    
-    init(
-      centerTypes: [UInt8],
-      atomList: [UInt32]
-    ) {
-      for atomID in atomList {
-        switch centerTypes[Int(atomID)] {
-        case 2:
-          sidewallID = atomID
-          bothBridgehead = false
-        case 3:
-          bridgeheadID = atomID
-          bothSidewall = false
-        default:
-          fatalError("This should never happen.")
-        }
-      }
-    }
-  }
-  
-  // The unsorted list must already be guaranteed to have 2 elements.
-  private static func opposite(
-    original: UInt32,
-    unsortedList: [UInt32]
-  ) -> UInt32 {
-    if original == unsortedList[0] {
-      return unsortedList[1]
-    } else if original == unsortedList[1] {
-      return unsortedList[0]
-    } else {
-      fatalError("Unexpected hydrogen list.")
-    }
-  }
-  
-  func validate(centerTypes: [UInt8]) {
-    let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)
-    for i in orbitals.indices {
-      let orbital = orbitals[i]
-      var expectedRawValue: UInt8
-      
-      switch orbital.count {
+  init(
+    centerTypes: [UInt8],
+    atomList: [UInt32]
+  ) {
+    for atomID in atomList {
+      switch centerTypes[Int(atomID)] {
       case 2:
-        expectedRawValue = 2
-      case 1:
-        expectedRawValue = 3
-      case 0:
-        expectedRawValue = 4
+        sidewallID = atomID
+        bothBridgehead = false
+      case 3:
+        bridgeheadID = atomID
+        bothSidewall = false
       default:
         fatalError("This should never happen.")
       }
-      
-      guard centerTypes[i] == expectedRawValue else {
-        fatalError("Incorrect raw value.")
-      }
     }
   }
-  
+}
+
+private enum CollisionState {
+  case noCollision
+  case keepCollision
+  case mergeDimer
+}
+
+extension Reconstruction {
   mutating func resolveTwoWayCollisions(centerTypes: [UInt8]) {
     var collisionStates = [CollisionState?](
       repeating: nil,
@@ -123,6 +86,24 @@ extension Reconstruction {
       }
     }
     mergeDimers(states: resolvedCollisionStates)
+  }
+}
+
+// MARK: - Utilities
+
+extension Reconstruction {
+  // The unsorted list must already be guaranteed to have 2 elements.
+  private static func opposite(
+    original: UInt32,
+    unsortedList: [UInt32]
+  ) -> UInt32 {
+    if original == unsortedList[0] {
+      return unsortedList[1]
+    } else if original == unsortedList[1] {
+      return unsortedList[0]
+    } else {
+      fatalError("Unexpected hydrogen list.")
+    }
   }
   
   private func startDimerChain(

@@ -55,12 +55,45 @@ final class ReconstructionTests: XCTestCase {
     XCTAssertFalse(hasUnfilledValences)
   }
   
+#if RELEASE
   func testDoubleCompile() throws {
-    // TODO: Call compile() twice on the same 'Reconstruction', ensure the
-    // results don't change between calls.
+    let lattice = Lattice<Hexagonal> { h, k, l in
+      let h2k = h + 2 * k
+      Bounds { 4 * h + 4 * h2k + 4 * l }
+      Material { .checkerboard(.silicon, .carbon) }
+      
+      Volume {
+        Origin { 2 * h + 1.6 * l }
+        
+        // Create a corner cut.
+        Concave {
+          Plane { h }
+          Plane { l }
+        }
+        Replace { .empty }
+      }
+    }
+    XCTAssertEqual(lattice.atoms.count, 432)
+    
+    var reconstruction = Reconstruction()
+    reconstruction.atoms = lattice.atoms
+    reconstruction.material = .checkerboard(.silicon, .carbon)
+    
+    for _ in 0..<2 {
+      let topology = reconstruction.compile()
+      XCTAssertEqual(topology.atoms.count, 658)
+      XCTAssertEqual(topology.bonds.count, 959)
+      
+      var groupIVAtomCount: Int = .zero
+      for atom in topology.atoms {
+        if atom.atomicNumber != 1 {
+          groupIVAtomCount += 1
+        }
+      }
+      XCTAssertEqual(groupIVAtomCount, 420)
+    }
   }
   
-  #if RELEASE
   func testReproducerBefore() throws {
     let lattice = Lattice<Cubic> { h, k, l in
       Bounds { 10 * h + 9 * k + 7 * l }

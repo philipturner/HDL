@@ -5,6 +5,9 @@
 //  Created by Philip Turner on 7/2/25.
 //
 
+// TODO: Finish the reorganization of large chunks of code, then refactor the
+// data mutations throughout steps of the algorithm.
+
 struct Compilation {
   let material: MaterialType
   var topology: Topology

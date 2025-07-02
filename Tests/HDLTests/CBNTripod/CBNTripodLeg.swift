@@ -9,6 +9,9 @@ import HDL
 import Numerics
 import XCTest
 
+// TODO: Remove all remaining `precondition` statements, as they don't function
+// correctly in release mode. Perhaps convert them to XCT assertions.
+
 struct CBNTripodLeg: CBNTripodComponent {
   var topology: Topology
   

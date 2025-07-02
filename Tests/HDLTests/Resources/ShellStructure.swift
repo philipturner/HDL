@@ -8,6 +8,9 @@
 import HDL
 import Numerics
 
+// TODO: Remove all remaining `precondition` statements, as they don't function
+// correctly in release mode. Perhaps convert them to XCT assertions.
+
 struct ShellStructure {
   var element: Element
   var topology: Topology

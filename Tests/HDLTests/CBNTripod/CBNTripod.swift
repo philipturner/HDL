@@ -10,6 +10,9 @@ import HDL
 import Numerics
 import QuaternionModule
 
+// TODO: Remove all remaining `precondition` statements, as they don't function
+// correctly in release mode. Perhaps convert them to XCT assertions.
+
 // This data structure holds objects wrapping the individual components. At the
 // end, it stitches them all together into one topology. The data structure
 // establishes a practice of creating functions for exporting [Atom], similar

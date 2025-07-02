@@ -24,11 +24,9 @@ final class ReconstructionTests: XCTestCase {
     }
     
     var reconstruction = Reconstruction()
+    reconstruction.atoms = lattice.atoms
     reconstruction.material = .checkerboard(.carbon, .germanium)
-    reconstruction.topology.insert(atoms: lattice.atoms)
-    reconstruction.compile()
-    
-    let topology = reconstruction.topology
+    let topology = reconstruction.compile()
     XCTAssertEqual(topology.atoms.count, 860)
     XCTAssertEqual(topology.bonds.count, 1318)
   }
@@ -40,11 +38,9 @@ final class ReconstructionTests: XCTestCase {
     }
     
     var reconstruction = Reconstruction()
+    reconstruction.atoms = lattice.atoms
     reconstruction.material = .checkerboard(.phosphorus, .aluminum)
-    reconstruction.topology.insert(atoms: lattice.atoms)
-    reconstruction.compile()
-    
-    let topology = reconstruction.topology
+    let topology = reconstruction.compile()
     XCTAssertEqual(topology.atoms.count, 384)
     XCTAssertEqual(topology.bonds.count, 564)
     
@@ -57,6 +53,11 @@ final class ReconstructionTests: XCTestCase {
       }
     }
     XCTAssertFalse(hasUnfilledValences)
+  }
+  
+  func testDoubleCompile() throws {
+    // TODO: Call compile() twice on the same 'Reconstruction', ensure the
+    // results don't change between calls.
   }
   
   #if RELEASE
@@ -116,22 +117,20 @@ final class ReconstructionTests: XCTestCase {
     }
     
     var reconstruction = Reconstruction()
+    reconstruction.atoms = lattice.atoms
     reconstruction.material = .elemental(.carbon)
-    reconstruction.topology.insert(atoms: lattice.atoms)
     
     let start = cross_platform_media_time()
-    reconstruction.compile()
+    let topology = reconstruction.compile()
     let end = cross_platform_media_time()
     if Self.printPerformanceSummary {
+      // expected: 3.1 ms
       let elapsedSeconds = end - start
       let elapsedMilliseconds = 1000 * elapsedSeconds
       let formatted = String(format: "%.1f", elapsedMilliseconds)
       print("reproducerBefore: \(formatted) ms")
-      
-      // expected: 3.1 ms
     }
     
-    let topology = reconstruction.topology
     XCTAssertEqual(topology.atoms.count, 5735)
     XCTAssertEqual(topology.bonds.count, 9751)
   }
@@ -167,22 +166,20 @@ final class ReconstructionTests: XCTestCase {
     }
     
     var reconstruction = Reconstruction()
+    reconstruction.atoms = lattice.atoms
     reconstruction.material = .elemental(.carbon)
-    reconstruction.topology.insert(atoms: lattice.atoms)
     
     let start = cross_platform_media_time()
-    reconstruction.compile()
+    let topology = reconstruction.compile()
     let end = cross_platform_media_time()
     if Self.printPerformanceSummary {
+      // expected: 6.6 ms
       let elapsedSeconds = end - start
       let elapsedMilliseconds = 1000 * elapsedSeconds
       let formatted = String(format: "%.1f", elapsedMilliseconds)
       print("reproducerAfter: \(formatted) ms")
-      
-      // expected: 6.6 ms
     }
     
-    let topology = reconstruction.topology
     XCTAssertEqual(topology.atoms.count, 5720)
     XCTAssertEqual(topology.bonds.count, 9697)
   }

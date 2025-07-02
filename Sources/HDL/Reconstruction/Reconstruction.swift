@@ -207,6 +207,21 @@ extension Reconstruction {
       hydrogenAtoms, algorithm: .absoluteRadius(0.050))
     
     // TODO: Refactor this to remove incomprehensible control flow.
+    
+    var compatibleMatches: [Topology.MatchStorage] = []
+  outer:
+    for i in hydrogenData.indices {
+      let match = matches[i]
+      if match.count > 1 {
+        for j in match where i != j {
+          if i > j {
+            continue outer
+          }
+        }
+      }
+      compatibleMatches.append(match)
+    }
+    
   outer:
     for i in hydrogenData.indices {
       let match = matches[i]
@@ -218,20 +233,24 @@ extension Reconstruction {
         }
       }
       
-      let hydrogenID = UInt32(hydrogensToAtomsMap.count)
+      // Create the sorted list of atoms.
       var atomList: [UInt32] = []
       for j in match {
         let data = hydrogenData[Int(j)]
         let atomID = data.w.bitPattern
         atomList.append(atomID)
       }
-      atomList.sort()
       guard atomList.count <= 3 else {
         fatalError("Edge case with 4 hydrogens in a site not handled yet.")
       }
+      atomList.sort()
       
+      // Integrate this list into the bidirectional map.
+      let hydrogenID = UInt32(hydrogensToAtomsMap.count)
       hydrogensToAtomsMap.append(atomList)
       for j in atomList {
+        // Appending to the array in-place has a measurable performance
+        // improvement, compared to extract + modify + insert.
         atomsToHydrogensMap[Int(j)].append(hydrogenID)
       }
     }

@@ -7,8 +7,9 @@
 
 extension Reconstruction {
   private enum CollisionState {
-    case keep
-    case bond
+    case noCollision
+    case keepCollision
+    case mergeDimer
   }
   
   private struct DimerGeometry {
@@ -74,9 +75,9 @@ extension Reconstruction {
   }
   
   mutating func resolveTwoWayCollisions(centerTypes: [UInt8]) {
-    // The collision state of each hydrogen.
-    var updates = [CollisionState?](
-      repeating: nil, count: hydrogensToAtomsMap.count)
+    var collisionStates = [CollisionState?](
+      repeating: nil,
+      count: hydrogensToAtomsMap.count)
     
     // High-level specification of the algorithm structure.
     for hydrogenID in hydrogensToAtomsMap.indices {
@@ -104,22 +105,24 @@ extension Reconstruction {
       // Odd indices: hydrogen sites / collision sites
       for i in dimerChain.indices where i % 2 == 1 {
         let listElement = Int(dimerChain[i])
-        if updates[listElement] == nil {
+        if collisionStates[listElement] == nil {
           if i % 4 == 1 {
-            updates[listElement] = .bond
+            collisionStates[listElement] = .mergeDimer
           } else {
-            updates[listElement] = .keep
+            collisionStates[listElement] = .keepCollision
           }
         }
       }
     }
     
-    // Define the remaining updates as '.keep'.
-    //
-    // The remaining non-registered array slots are isolated hydrogens that
-    // don't collide with any others.
-    let definedUpdates = updates.map { $0 ?? .keep }
-    updateCollisions(definedUpdates)
+    let resolvedCollisionStates = collisionStates.map { state in
+      if let state {
+        return state
+      } else {
+        return .noCollision
+      }
+    }
+    mergeDimers(states: resolvedCollisionStates)
   }
   
   private func startDimerChain(
@@ -281,27 +284,23 @@ extension Reconstruction {
     return dimerChain
   }
   
-  private mutating func updateCollisions(_ states: [CollisionState]) {
+  private mutating func mergeDimers(states: [CollisionState]) {
     var insertedBonds: [SIMD2<UInt32>] = []
     
-  outer:
-    for i in states.indices {
-      switch states[i] {
-      case .keep:
-        // TODO: Fix this illegible control flow.
-        continue outer
-      case .bond:
-        break
+    for hydrogenID in states.indices {
+      let state = states[hydrogenID]
+      guard state == .mergeDimer else {
+        continue
       }
       
-      let atomList = hydrogensToAtomsMap[Int(i)]
+      let atomList = hydrogensToAtomsMap[hydrogenID]
       guard atomList.count == 2 else {
         fatalError("This should never happen.")
       }
       
       // This array slot must be erased because the conflict was resolved.
       // A new carbon-carbon bond was formed, and the hydrogen was deleted.
-      hydrogensToAtomsMap[Int(i)] = []
+      hydrogensToAtomsMap[hydrogenID] = []
       
       let bond = SIMD2(atomList[0], atomList[1])
       insertedBonds.append(bond)
@@ -314,7 +313,7 @@ extension Reconstruction {
         
         var matchIndex = -1
         for k in previous.indices {
-          if previous[k] == UInt32(i) {
+          if previous[k] == hydrogenID {
             matchIndex = k
             break
           }

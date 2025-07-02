@@ -5,12 +5,8 @@
 //  Created by Philip Turner on 6/11/24.
 //
 
-extension Reconstruction {
+extension Compilation {
   mutating func resolveThreeWayCollisions() {
-    guard let _material else {
-      fatalError("Material not specified.")
-    }
-    
     let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)
     
     var insertedAtoms: [Atom] = []
@@ -29,7 +25,7 @@ extension Reconstruction {
         orbitalPermutationCount[laneID] = orbitalList.count
       }
       
-      var bulkBondLength = Constant(.square) { _material }
+      var bulkBondLength = Constant(.square) { material }
       bulkBondLength *= Float(3).squareRoot() / 4
       var bestPermutationScore: Float = .greatestFiniteMagnitude
       var bestPermutationAverage: SIMD3<Float>?
@@ -106,7 +102,7 @@ extension Reconstruction {
       
       // Fill in with atoms of the assigned material.
       var chosenAtomicNumber: UInt8
-      switch _material {
+      switch material {
       case .elemental(let element):
         chosenAtomicNumber = element.rawValue
       case .checkerboard(let element1, let element2):

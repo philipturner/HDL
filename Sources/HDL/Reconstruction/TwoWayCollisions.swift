@@ -5,38 +5,7 @@
 //  Created by Philip Turner on 6/11/24.
 //
 
-private struct DimerGeometry {
-  var bridgeheadID: UInt32?
-  var sidewallID: UInt32?
-  var bothBridgehead: Bool = true
-  var bothSidewall: Bool = true
-  
-  init(
-    centerTypes: [UInt8],
-    atomList: [UInt32]
-  ) {
-    for atomID in atomList {
-      switch centerTypes[Int(atomID)] {
-      case 2:
-        sidewallID = atomID
-        bothBridgehead = false
-      case 3:
-        bridgeheadID = atomID
-        bothSidewall = false
-      default:
-        fatalError("This should never happen.")
-      }
-    }
-  }
-}
-
-private enum CollisionState {
-  case noCollision
-  case keepCollision
-  case mergeDimer
-}
-
-extension Reconstruction {
+extension Compilation {
   mutating func resolveTwoWayCollisions(centerTypes: [UInt8]) {
     // Extract all sets of connected hydrogen sites from the topology.
     var hydrogenChains: [[UInt32]] = []
@@ -96,7 +65,38 @@ extension Reconstruction {
 
 // MARK: - Utilities
 
-extension Reconstruction {
+private struct DimerGeometry {
+  var bridgeheadID: UInt32?
+  var sidewallID: UInt32?
+  var bothBridgehead: Bool = true
+  var bothSidewall: Bool = true
+  
+  init(
+    centerTypes: [UInt8],
+    atomList: [UInt32]
+  ) {
+    for atomID in atomList {
+      switch centerTypes[Int(atomID)] {
+      case 2:
+        sidewallID = atomID
+        bothBridgehead = false
+      case 3:
+        bridgeheadID = atomID
+        bothSidewall = false
+      default:
+        fatalError("This should never happen.")
+      }
+    }
+  }
+}
+
+private enum CollisionState {
+  case noCollision
+  case keepCollision
+  case mergeDimer
+}
+
+extension Compilation {
   // The unsorted list must already be guaranteed to have 2 elements.
   private static func opposite(
     original: UInt32,

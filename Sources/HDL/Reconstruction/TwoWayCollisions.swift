@@ -287,25 +287,28 @@ extension Reconstruction {
       // Iterate over the two carbons.
       for atomID in atomList {
         let hydrogenList = atomsToHydrogensMap[Int(atomID)]
-        guard 1 <= hydrogenList.count, hydrogenList.count <= 2 else {
-          fatalError("Unexpected hydrogen map size.")
-        }
-        
-        var matchIndex = -1
-        for k in hydrogenList.indices {
-          if hydrogenList[k] == hydrogenID {
-            matchIndex = k
-            break
+        switch hydrogenList.count {
+        case 1:
+          atomsToHydrogensMap[Int(atomID)] = []
+        case 2:
+          var matchIndex = -1
+          for k in hydrogenList.indices {
+            if hydrogenList[k] == hydrogenID {
+              matchIndex = k
+              break
+            }
           }
+          precondition(matchIndex != -1, "Could not find a match.")
+          
+          var next = hydrogenList
+          next.remove(at: matchIndex)
+          
+          // Update the list of corresponding hydrogens, to include only those
+          // that remain in the topology.
+          atomsToHydrogensMap[Int(atomID)] = next
+        default:
+          fatalError("This should never happen.")
         }
-        precondition(matchIndex != -1, "Could not find a match.")
-        
-        var next = hydrogenList
-        next.remove(at: matchIndex)
-        
-        // Update the list of corresponding hydrogens, to include only those
-        // that remain in the topology.
-        atomsToHydrogensMap[Int(atomID)] = next
       }
       
       // This array slot must be erased because the conflict was resolved.

@@ -75,7 +75,8 @@ extension Reconstruction {
       let centerTypes = createBulkAtomBonds()
       
       // Crash if 4-way collisions exist.
-      createHydrogenSites()
+      let hydrogenData = createHydrogenData()
+      createHydrogenSites(hydrogenData: hydrogenData)
       
       // Check whether there are still 3-way collisions.
       if hydrogensToAtomsMap.contains(where: { $0.count > 2 }) {
@@ -102,7 +103,7 @@ extension Reconstruction {
       }
     }
     
-    // Add hydrogens after the center atoms are fixed.
+    // Add hydrogens once the center atoms stop evolving.
     validate(centerTypes: stableCenterTypes)
     resolveTwoWayCollisions(centerTypes: stableCenterTypes)
     createHydrogenBonds()
@@ -174,68 +175,86 @@ extension Reconstruction {
     return centerTypes
   }
   
-  // Next, form the hydrogen bonds. Place hydrogens at the C-C bond length
-  // instead of the C-H bond length.
-  private mutating func createHydrogenSites() {
-    guard hydrogensToAtomsMap.count == 0,
-          atomsToHydrogensMap.count == 0 else {
-      fatalError("Maps were not empty.")
-    }
-    atomsToHydrogensMap = Array(repeating: [], count: topology.atoms.count)
-    
+  // A reduced form each hydrogen atom, with the 4th vector slot storing
+  // the index of the carbon that spawned it.
+  private func createHydrogenData() -> [SIMD4<Float>] {
     let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)
     let bondLength = createBondLength()
-    var hydrogenData: [SIMD4<Float>] = []
     
+    var output: [SIMD4<Float>] = []
     for i in topology.atoms.indices {
       let atom = topology.atoms[i]
       for orbital in orbitals[i] {
         let position = atom.position + bondLength * orbital
         let encodedID = Float(bitPattern: UInt32(i))
-        hydrogenData.append(SIMD4(position, encodedID))
+        output.append(SIMD4(position, encodedID))
       }
     }
-    
-    // Create a transient topology to de-duplicate the hydrogens and merge
-    // references between them.
-    let hydrogenAtoms = hydrogenData.map {
-      var atom = $0
-      atom.w = 1
-      return atom
+    return output
+  }
+  
+  // Next, form the hydrogen bonds. Place hydrogens at the C-C bond length
+  // instead of the C-H bond length.
+  private mutating func createHydrogenSites(
+    hydrogenData: [SIMD4<Float>]
+  ) {
+    guard hydrogensToAtomsMap.count == 0,
+          atomsToHydrogensMap.count == 0 else {
+      fatalError("Maps were not empty.")
     }
-    var matcher = Topology()
-    matcher.insert(atoms: hydrogenAtoms)
-    let matches = matcher.match(
-      hydrogenAtoms, algorithm: .absoluteRadius(0.050))
     
-    // TODO: Refactor this to remove incomprehensible control flow.
     
-    var compatibleMatches: [Topology.MatchStorage] = []
-  outer:
-    for i in hydrogenData.indices {
-      let match = matches[i]
-      if match.count > 1 {
-        for j in match where i != j {
-          if i > j {
-            continue outer
+    func createMatches() -> [Topology.MatchStorage] {
+      let hydrogenAtoms = hydrogenData.map {
+        var atom = $0
+        atom.w = 1
+        return atom
+      }
+      
+      // Create a transient topology to de-duplicate the hydrogens and merge
+      // references between them.
+      var matcher = Topology()
+      matcher.insert(atoms: hydrogenAtoms)
+      return matcher.match(
+        hydrogenAtoms, algorithm: .absoluteRadius(0.050))
+    }
+    
+    func filter(
+      matches: [Topology.MatchStorage]
+    ) -> [Topology.MatchStorage] {
+      var output: [Topology.MatchStorage] = []
+      for i in hydrogenData.indices {
+        let match = matches[i]
+        
+        func isCompatible() -> Bool {
+          if match.count > 1 {
+            for j in match where i != j {
+              if i > j {
+                return false
+              }
+            }
           }
+          return true
+        }
+        
+        if isCompatible() {
+          output.append(match)
         }
       }
-      compatibleMatches.append(match)
+      return output
     }
     
-//  outer:
-//    for i in hydrogenData.indices {
-//      let match = matches[i]
-//      if match.count > 1 {
-//        for j in match where i != j {
-//          if i > j {
-//            continue outer
-//          }
-//        }
-//      }
-    for match in compatibleMatches {
-      
+    func createFilteredMatches() -> [Topology.MatchStorage] {
+      let matches = createMatches()
+      let filteredMatches = filter(matches: matches)
+      return filteredMatches
+    }
+    
+    // Initialize each list of hydrogens.
+    atomsToHydrogensMap = Array(repeating: [], count: topology.atoms.count)
+    
+    // Fill each list of hydrogens.
+    for match in createFilteredMatches() {
       // Create the sorted list of atoms.
       var atomList: [UInt32] = []
       for j in match {
@@ -258,6 +277,7 @@ extension Reconstruction {
       }
     }
     
+    // Sort each list of hydrogens, in-place.
     for j in topology.atoms.indices {
       atomsToHydrogensMap[Int(j)].sort()
     }

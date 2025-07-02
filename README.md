@@ -17,7 +17,7 @@ Table of Contents
 
 ## Overview
 
-For an introduction, visit the [tutorial](./Documentation/GrapheneSiliceneBilayer.md).
+For an introduction, visit the [tutorial](./Documentation/Tutorial/GrapheneSiliceneBilayer.md).
 
 ```swift
 typealias Atom = SIMD4<Float>
@@ -254,7 +254,7 @@ If the total number of atoms within the search radius exceeds the `maximumNeighb
 
 If you specify a specific search radius, you should be able to calculate the expected neighbor count. Each material has a finite number of atoms per cubic nanometer. The density in atoms/nm<sup>3</sup> can be multiplied by the volume of a sphere with the given radius. If you are unsure exactly how many atoms to expect, you can provide a generous upper bound for memory capacity.
 
-For `covalentBondScale`, bond length is determined by summing the covalent radii. The pairwise sum does not always equal the bond length from `MM4Parameters`; add some tolerance for such error. The default value of 1.5 provides enough tolerance for 50% error in approximated bond length.
+For `covalentBondScale`, bond length is determined by summing the covalent radii. The pairwise sum does not always equal the bond length predicted by the lattice constant. The default scale of 1.5 provides enough tolerance for 50% error in approximated bond length.
 
 `maximumNeighborCount` is 8 by default. This means most `match()` invocations searching beyond a single covalent bond length will fail. You may increase the limit for returned neighbors, but doing so may increase compile time or memory consumption.
 

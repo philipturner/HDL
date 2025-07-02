@@ -23,6 +23,9 @@ let package = Package(
       dependencies: [
         .product(name: "Atomics", package: "swift-atomics"),
       ]),
+    
+    // TODO: Migrate this to the Swift Testing framework once all other
+    // maintenance has been completed.
     .testTarget(
       name: "HDLTests",
       dependencies: [

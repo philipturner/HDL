@@ -96,6 +96,12 @@ final class ReconstructionTests: XCTestCase {
   
   // Tests for varying passivation recycle the lattice from testDoubleCompile.
   
+  // Measure the "extended volume" of the structure, whichever exact
+  // terminology was used in Nanosystems. Measure according to the center
+  // position of the atoms, not the edge of their atomic radius. Fluorine
+  // should have a larger volume than hydrogen, which has a larger volume
+  // than unpassivated. In all cases, the number of C-Si bonds is the same.
+  
   func testReproducerBefore() throws {
     let lattice = Lattice<Cubic> { h, k, l in
       Bounds { 10 * h + 9 * k + 7 * l }

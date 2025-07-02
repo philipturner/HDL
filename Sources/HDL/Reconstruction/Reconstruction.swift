@@ -160,11 +160,11 @@ extension Reconstruction {
       if match.count > 5 {
         fatalError("Unexpected situation: match count > 5")
       } else if match.count > 2 {
-        centerTypes.append(UInt8(match.count - 1))
-        
         for j in match where i < j {
-          insertedBonds.append(SIMD2(UInt32(i), j))
+          let bond = SIMD2(UInt32(i), j)
+          insertedBonds.append(bond)
         }
+        centerTypes.append(UInt8(match.count - 1))
       } else {
         fatalError("Pathological atoms should be removed.")
       }
@@ -224,16 +224,17 @@ extension Reconstruction {
       compatibleMatches.append(match)
     }
     
-  outer:
-    for i in hydrogenData.indices {
-      let match = matches[i]
-      if match.count > 1 {
-        for j in match where i != j {
-          if i > j {
-            continue outer
-          }
-        }
-      }
+//  outer:
+//    for i in hydrogenData.indices {
+//      let match = matches[i]
+//      if match.count > 1 {
+//        for j in match where i != j {
+//          if i > j {
+//            continue outer
+//          }
+//        }
+//      }
+    for match in compatibleMatches {
       
       // Create the sorted list of atoms.
       var atomList: [UInt32] = []

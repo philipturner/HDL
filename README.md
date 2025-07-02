@@ -12,6 +12,8 @@ Table of Contents
 
 > TODO: Document `Reconstruction`, and potentially make any breaking API changes before the next era of API stability. The DSL needs stability much more than the simulators, which will be noted as beta software if/when they're shipped.
 
+> TODO: Remove all remaining `precondition` statements, as they don't function correctly in release mode.
+
 ## Overview
 
 For an introduction, visit the [tutorial](./Documentation/GrapheneSiliceneBilayer.md).

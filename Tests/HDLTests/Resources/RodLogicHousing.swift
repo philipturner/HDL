@@ -25,7 +25,7 @@ private func createHousingLattice() -> Lattice<Hexagonal> {
     Volume {
       Origin { 12 * h + 9 * h2k + 6 * l }
       
-      // TODO: Always remember to comment your HDL code. Otherwise, it's
+      // Always remember to comment your HDL code. Otherwise, it's
       // almost impossible to understand when looking back on it.
       
       // Cut the initial block into an L-shape.

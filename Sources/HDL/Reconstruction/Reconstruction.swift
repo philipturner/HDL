@@ -150,9 +150,9 @@ extension Reconstruction {
   private mutating func createBulkAtomBonds() -> [UInt8] {
     let matches = topology.match(
       topology.atoms, algorithm: .absoluteRadius(createBondLength() * 1.1))
+    
     var insertedBonds: [SIMD2<UInt32>] = []
     var centerTypes: [UInt8] = []
-    
     for i in topology.atoms.indices {
       let match = matches[i]
       if match.count > 5 {
@@ -167,8 +167,8 @@ extension Reconstruction {
         fatalError("Pathological atoms should be removed.")
       }
     }
-    
     topology.insert(bonds: insertedBonds)
+    
     return centerTypes
   }
   

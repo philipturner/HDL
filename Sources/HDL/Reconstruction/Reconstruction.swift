@@ -114,12 +114,14 @@ extension Reconstruction {
 extension Reconstruction {
   // Remove atoms with less than two covalent bonds.
   private mutating func removePathologicalAtoms() {
+    // Loop over this a few times (typically less than 10).
     var converged = false
     for _ in 0..<100 {
+      let bondLength = createBondLength()
       let matches = topology.match(
-        topology.atoms, algorithm: .absoluteRadius(createBondLength() * 1.1))
-      var removedAtoms: [UInt32] = []
+        topology.atoms, algorithm: .absoluteRadius(bondLength * 1.1))
       
+      var removedAtoms: [UInt32] = []
       for i in topology.atoms.indices {
         let match = matches[i]
         if match.count > 5 {
@@ -131,14 +133,13 @@ extension Reconstruction {
         }
       }
       
-      if removedAtoms.count == 0 {
+      if removedAtoms.count > 0 {
+        topology.remove(atoms: removedAtoms)
+      } else {
         converged = true
         break
-      } else {
-        topology.remove(atoms: removedAtoms)
       }
     }
-    
     guard converged else {
       fatalError("Could not remove pathological atoms.")
     }
@@ -148,8 +149,9 @@ extension Reconstruction {
   //
   // Returns the center type of each atom.
   private mutating func createBulkAtomBonds() -> [UInt8] {
+    let bondLength = createBondLength()
     let matches = topology.match(
-      topology.atoms, algorithm: .absoluteRadius(createBondLength() * 1.1))
+      topology.atoms, algorithm: .absoluteRadius(bondLength * 1.1))
     
     var insertedBonds: [SIMD2<UInt32>] = []
     var centerTypes: [UInt8] = []

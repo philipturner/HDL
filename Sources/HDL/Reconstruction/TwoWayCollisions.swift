@@ -272,44 +272,51 @@ extension Reconstruction {
   
   private mutating func mergeDimers(states: [CollisionState]) {
     var insertedBonds: [SIMD2<UInt32>] = []
-    
     for hydrogenID in states.indices {
       let state = states[hydrogenID]
       guard state == .mergeDimer else {
         continue
       }
       
+      // Fetch the references to the two carbons.
       let atomList = hydrogensToAtomsMap[hydrogenID]
       guard atomList.count == 2 else {
         fatalError("This should never happen.")
       }
       
-      // This array slot must be erased because the conflict was resolved.
-      // A new carbon-carbon bond was formed, and the hydrogen was deleted.
-      hydrogensToAtomsMap[hydrogenID] = []
-      
-      let bond = SIMD2(atomList[0], atomList[1])
-      insertedBonds.append(bond)
-      
-      for j in atomList {
-        let previous = atomsToHydrogensMap[Int(j)]
-        guard 1 <= previous.count, previous.count <= 2 else {
+      // Iterate over the two carbons.
+      for atomID in atomList {
+        let hydrogenList = atomsToHydrogensMap[Int(atomID)]
+        guard 1 <= hydrogenList.count, hydrogenList.count <= 2 else {
           fatalError("Unexpected hydrogen map size.")
         }
         
         var matchIndex = -1
-        for k in previous.indices {
-          if previous[k] == hydrogenID {
+        for k in hydrogenList.indices {
+          if hydrogenList[k] == hydrogenID {
             matchIndex = k
             break
           }
         }
         precondition(matchIndex != -1, "Could not find a match.")
         
-        var next = previous
+        var next = hydrogenList
         next.remove(at: matchIndex)
-        atomsToHydrogensMap[Int(j)] = next
+        
+        // Update the list of corresponding hydrogens, to include only those
+        // that remain in the topology.
+        atomsToHydrogensMap[Int(atomID)] = next
       }
+      
+      // This array slot must be erased because the conflict was resolved.
+      // A new carbon-carbon bond was formed, and the hydrogen was deleted.
+      hydrogensToAtomsMap[hydrogenID] = []
+      
+      // Register a new bond between the two carbons.
+      let bond = SIMD2(
+        atomList[0],
+        atomList[1])
+      insertedBonds.append(bond)
     }
     topology.insert(bonds: insertedBonds)
   }

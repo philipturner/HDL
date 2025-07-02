@@ -299,17 +299,18 @@ extension Reconstruction {
         fatalError("This should never happen.")
       }
       
+      // This array slot must be erased because the conflict was resolved.
+      // A new carbon-carbon bond was formed, and the hydrogen was deleted.
       hydrogensToAtomsMap[Int(i)] = []
       
       let bond = SIMD2(atomList[0], atomList[1])
       insertedBonds.append(bond)
       
       for j in atomList {
-        precondition(
-          j >= 0 && j < atomsToHydrogensMap.count,
-          "Atom index is out of bounds.")
-        var previous = atomsToHydrogensMap[Int(j)]
-        precondition(previous.count > 0, "Hydrogen map already empty.")
+        let previous = atomsToHydrogensMap[Int(j)]
+        guard 1 <= previous.count, previous.count <= 2 else {
+          fatalError("Unexpected hydrogen map size.")
+        }
         
         var matchIndex = -1
         for k in previous.indices {
@@ -319,8 +320,10 @@ extension Reconstruction {
           }
         }
         precondition(matchIndex != -1, "Could not find a match.")
-        previous.remove(at: matchIndex)
-        atomsToHydrogensMap[Int(j)] = previous
+        
+        var next = previous
+        next.remove(at: matchIndex)
+        atomsToHydrogensMap[Int(j)] = next
       }
     }
     topology.insert(bonds: insertedBonds)

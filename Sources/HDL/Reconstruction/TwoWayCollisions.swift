@@ -9,7 +9,6 @@ extension Reconstruction {
   private enum CollisionState {
     case keep
     case bond
-    case oneHydrogen(Int)
   }
   
   private struct DimerGeometry {
@@ -75,6 +74,7 @@ extension Reconstruction {
   }
   
   mutating func resolveTwoWayCollisions(centerTypes: [UInt8]) {
+    // The collision state of each hydrogen.
     var updates = [CollisionState?](
       repeating: nil, count: hydrogensToAtomsMap.count)
     
@@ -116,7 +116,8 @@ extension Reconstruction {
     
     // Define the remaining updates as '.keep'.
     //
-    // TODO: Identify the reason some dimers aren't registered at this point.
+    // The remaining non-registered array slots are isolated hydrogens that
+    // don't collide with any others.
     let definedUpdates = updates.map { $0 ?? .keep }
     updateCollisions(definedUpdates)
   }
@@ -290,8 +291,6 @@ extension Reconstruction {
         continue outer
       case .bond:
         break
-      case .oneHydrogen(_):
-        fatalError("This update is not reported yet.")
       }
       
       let atomList = hydrogensToAtomsMap[Int(i)]

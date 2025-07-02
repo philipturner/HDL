@@ -287,32 +287,25 @@ extension Reconstruction {
       // Iterate over the two carbons.
       for atomID in atomList {
         let hydrogenList = atomsToHydrogensMap[Int(atomID)]
-        switch hydrogenList.count {
-        case 1:
-          atomsToHydrogensMap[Int(atomID)] = []
-        case 2:
-          var matchIndex = -1
-          for k in hydrogenList.indices {
-            if hydrogenList[k] == hydrogenID {
-              matchIndex = k
-              break
-            }
+        
+        func shrunkHydrogenList() -> [UInt32] {
+          switch hydrogenList.count {
+          case 1:
+            return []
+          case 2:
+            let oppositeHydrogenID = Self.opposite(
+              original: UInt32(hydrogenID),
+              unsortedList: hydrogenList)
+            return [oppositeHydrogenID]
+          default:
+            fatalError("This should never happen.")
           }
-          precondition(matchIndex != -1, "Could not find a match.")
-          
-          var next = hydrogenList
-          next.remove(at: matchIndex)
-          
-          // Update the list of corresponding hydrogens, to include only those
-          // that remain in the topology.
-          atomsToHydrogensMap[Int(atomID)] = next
-        default:
-          fatalError("This should never happen.")
         }
+        atomsToHydrogensMap[Int(atomID)] = shrunkHydrogenList()
       }
       
-      // This array slot must be erased because the conflict was resolved.
-      // A new carbon-carbon bond was formed, and the hydrogen was deleted.
+      // Erase this array slot because the conflict was resolved. The hydrogen
+      // site no longer exists.
       hydrogensToAtomsMap[hydrogenID] = []
       
       // Register a new bond between the two carbons.

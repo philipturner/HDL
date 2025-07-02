@@ -144,6 +144,8 @@ extension Reconstruction {
         hydrogenID,
         atomList[1])
     } else if dimerGeometry.bothSidewall {
+      // There is a guaranteed order for the dimers in a chain. Search for a
+      // dimer at the start of this sequence, not the end.
       for atomID in atomList {
         let hydrogenList = atomsToHydrogensMap[Int(atomID)]
         guard hydrogenList.count == 2 else {
@@ -258,7 +260,7 @@ extension Reconstruction {
     ]
     
     // Iteratively search through the topology, seeing whether the chain
-    // of linked center atoms finally ends.
+    // of linked carbon atoms finally ends.
     var converged = false
     for _ in 0..<4096 {
       let dimer = nextDimer(

@@ -284,12 +284,9 @@ extension Reconstruction {
     
   outer:
     for i in states.indices {
-      precondition(
-        i >= 0 && i < hydrogensToAtomsMap.count,
-        "Hydrogen index out of bounds.")
-      
       switch states[i] {
       case .keep:
+        // TODO: Fix this illegible control flow.
         continue outer
       case .bond:
         break

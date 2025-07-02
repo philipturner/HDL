@@ -60,270 +60,13 @@ extension Topology {
       lhs: lhsOperand,
       rhs: rhsOperand,
       algorithm: algorithm,
-      maximumNeighborCount: maximumNeighborCount)
+      matchLimit: UInt32(maximumNeighborCount))
     
     return outputSlices
   }
 }
 
-// MARK: - Match
-
-private func matchImpl(
-  lhs: Operand,
-  rhs: Operand,
-  algorithm: Topology.MatchAlgorithm,
-  maximumNeighborCount: Int
-) -> [Topology.MatchStorage] {
-  let lhsSize32 = UInt32(truncatingIfNeeded: lhs.atomCount &+ 31) / 32
-  let rhsSize32 = UInt32(truncatingIfNeeded: rhs.atomCount &+ 31) / 32
-  let lhsSize8 = UInt32(truncatingIfNeeded: lhs.atomCount &+ 7) / 8
-  let rhsSize8 = UInt32(truncatingIfNeeded: rhs.atomCount &+ 7) / 8
-  let paddedCutoff = lhs.paddedCutoff + rhs.paddedCutoff
-  
-  // The current implementation doesn't allow a maximum neighbor count that
-  // exceeds 254.
-  precondition(
-    maximumNeighborCount < UInt8.max, "Maximum neighbor count is too large.")
-  let matchLimit = UInt32(maximumNeighborCount)
-  
-  // Allocate the match buffer.
-  nonisolated(unsafe)
-  let matchBuffer: UnsafeMutablePointer<SIMD2<Float>> =
-    .allocate(capacity: Int(lhsSize8) * 8 * (maximumNeighborCount + 1))
-  
-  // Allocate the match count buffer.
-  nonisolated(unsafe)
-  let matchCount: UnsafeMutablePointer<SIMD8<UInt8>> =
-    .allocate(capacity: Int(lhsSize8))
-  matchCount.initialize(repeating: .zero, count: Int(lhsSize8))
-  let opaqueCount = OpaquePointer(matchCount)
-  nonisolated(unsafe)
-  let castedCount = UnsafeMutablePointer<UInt8>(opaqueCount)
-  
-  // Allocate the output range buffer.
-  let outRangeCapacity = Int(lhs.atomCount)
-  var outRangeBuffer = [ArraySlice<UInt32>?](
-    unsafeUninitializedCapacity: outRangeCapacity
-  ) { $1 = outRangeCapacity }
-  nonisolated(unsafe)
-  let outRangePointer = outRangeBuffer.withUnsafeMutableBufferPointer { $0 }
-  
-  struct LoopScope {
-    var startI: UInt32 = .zero
-    var endI: UInt32 = .zero
-    var startJ: UInt32 = .zero
-    var endJ: UInt32 = .zero
-  }
-  
-  @Sendable
-  func createLoopScope3() -> LoopScope {
-    var scope = LoopScope()
-    scope.startI = 0
-    scope.endI = scope.startI + UInt32(lhs.atomCount * 2) + 256
-    scope.endI = min(scope.endI, UInt32(lhs.atomCount + 127) / 128)
-    
-    scope.startJ = 0
-    scope.endJ = scope.startJ + UInt32(rhs.atomCount * 2) + 256
-    scope.endJ = min(scope.endJ, UInt32(rhs.atomCount + 127) / 128)
-    return scope
-  }
-  
-  do {
-    let scope = createLoopScope3()
-    let taskCount = scope.endI - scope.startI
-    
-    if taskCount == 0 {
-      // TODO: Unit test how the compiler behaves when it receives an empty
-      // array, without adding any special checks/early returns for edge cases.
-    } else if taskCount == 1 {
-      innerLoop3(0)
-      finishInnerLoop3(0)
-    } else {
-      DispatchQueue.concurrentPerform(iterations: Int(taskCount)) { z in
-        innerLoop3(UInt32(z))
-        finishInnerLoop3(UInt32(z))
-      }
-    }
-  }
-  
-  @Sendable
-  func innerLoop3(_ vIDi3: UInt32) {
-    let scope = createLoopScope3()
-    for vIDj3 in scope.startJ..<scope.endJ {
-      let lhsBlockBound = lhs.blockBounds128[Int(vIDi3)]
-      let rhsBlockBound = rhs.blockBounds128[Int(vIDj3)]
-      let mask = compareBlocks(
-        lhsBlockBound, rhsBlockBound, paddedCutoff: paddedCutoff)
-      if mask {
-        innerLoop2(vIDi3, vIDj3)
-      }
-    }
-  }
-  
-  @Sendable
-  func finishInnerLoop3(_ vIDi3: UInt32) {
-    let scalarStart = vIDi3 &* 128
-    let scalarEnd = min(
-      scalarStart &+ 128, UInt32(truncatingIfNeeded: lhs.atomCount))
-    
-    let outMatchBuffer = [UInt32](
-      unsafeUninitializedCapacity: 128 &* Int(matchLimit &+ 1)
-    ) { buffer, bufferCount in
-      bufferCount = 128 &* Int(matchLimit &+ 1)
-      let baseAddress = buffer.baseAddress.unsafelyUnwrapped
-      
-      for laneID in scalarStart..<scalarEnd {
-        let address = laneID &* (matchLimit &+ 1)
-        let outAddress = (laneID &- scalarStart) &* (matchLimit &+ 1)
-        let count = Int(castedCount[Int(laneID)])
-        
-        // Remove bogus matches that result from padding the RHS.
-        var localBuffer = UnsafeMutableBufferPointer<SIMD2<Float>>(
-          start: matchBuffer.advanced(by: Int(address)), count: count)
-        while let last = localBuffer.last, last[0].bitPattern >= rhs.atomCount {
-          localBuffer = UnsafeMutableBufferPointer(
-            start: localBuffer.baseAddress, count: localBuffer.count - 1)
-        }
-        castedCount[Int(laneID)] = UInt8(truncatingIfNeeded: localBuffer.count)
-        
-        // Sort the matches in ascending order of distance.
-        localBuffer.sort { $0.y < $1.y }
-        
-        let compactedOpaque = OpaquePointer(
-          localBuffer.baseAddress.unsafelyUnwrapped)
-        let compactedCasted = UnsafeMutablePointer<UInt32>(compactedOpaque)
-        for i in 0..<localBuffer.count {
-          let index = localBuffer[i][0].bitPattern
-          let mortonIndex = rhs.reordering[Int(index)]
-          compactedCasted[i] = mortonIndex
-          baseAddress[Int(outAddress) &+ i] = mortonIndex
-        }
-      }
-    }
-    
-    for laneID in scalarStart..<scalarEnd {
-      let outAddress = (laneID &- scalarStart) &* (matchLimit &+ 1)
-      let count = Int(castedCount[Int(laneID)])
-      let outID = lhs.reordering[Int(laneID)]
-      
-      let opaqueRange = OpaquePointer(outRangePointer.baseAddress!)
-      let castedRange = UnsafeMutablePointer<UInt>(opaqueRange)
-      let pointer = castedRange.advanced(by: Int(outID &* 4))
-      for i in 0..<4 {
-        // Initialize the array to 'nil', on multiple CPU cores at once,
-        // without causing a crash.
-        pointer[i] = 0
-      }
-      
-      let rangeStart = Int(outAddress)
-      let rangeEnd = rangeStart &+ count
-      outRangePointer[Int(outID)] = outMatchBuffer[rangeStart..<rangeEnd]
-    }
-  }
-  
-  @Sendable
-  @inline(__always)
-  func innerLoop2(_ vIDi3: UInt32, _ vIDj3: UInt32) {
-    var scope = LoopScope()
-    scope.startI = vIDi3 * 4
-    scope.endI = scope.startI + 4
-    scope.endI = min(scope.endI, lhsSize32)
-    
-    scope.startJ = vIDj3 * 4
-    scope.endJ = scope.startJ + 4
-    scope.endJ = min(scope.endJ, rhsSize32)
-    
-    for vIDi2 in scope.startI..<scope.endI {
-      for vIDj2 in scope.startJ..<scope.endJ {
-        let lhsBlockBound = lhs.blockBounds32[Int(vIDi2)]
-        let rhsBlockBound = rhs.blockBounds32[Int(vIDj2)]
-        let mask = compareBlocks(
-          lhsBlockBound, rhsBlockBound, paddedCutoff: paddedCutoff)
-        if mask {
-          innerLoop1(vIDi2, vIDj2)
-        }
-      }
-    }
-  }
-  
-  // MARK: - Search
-  
-  @Sendable
-  @inline(__always)
-  func innerLoop1(_ vIDi2: UInt32, _ vIDj2: UInt32) {
-    var scope = LoopScope()
-    scope.startI = vIDi2 * 4
-    scope.endI = scope.startI + 4
-    scope.endI = min(scope.endI, lhsSize8)
-    
-    scope.startJ = vIDj2 * 4
-    scope.endJ = scope.startJ + 4
-    scope.endJ = min(scope.endJ, rhsSize8)
-    
-    for vIDi in scope.startI..<scope.endI {
-      let pointer = Int(vIDi &* 4)
-      let lhsX = lhs.transformed8[pointer &+ 0]
-      let lhsY = lhs.transformed8[pointer &+ 1]
-      let lhsZ = lhs.transformed8[pointer &+ 2]
-      let lhsR = lhs.transformed8[pointer &+ 3]
-      let lhsBlockBound = lhs.blockBounds8[Int(vIDi)]
-      var lhsMatchCount = matchCount[Int(vIDi)]
-      defer {
-        matchCount[Int(vIDi)] = lhsMatchCount
-      }
-      
-      for vIDj in scope.startJ..<scope.endJ {
-        let rhsBlockBound = rhs.blockBounds8[Int(vIDj)]
-        guard compareBlocks(
-          lhsBlockBound, rhsBlockBound, paddedCutoff: paddedCutoff) else {
-          continue
-        }
-        
-        for lane in 0..<UInt32(8) {
-          let atomID = vIDj &* 8 &+ lane
-          let atom = rhs.transformed4[Int(atomID)]
-          let deltaX = lhsX - atom.x
-          let deltaY = lhsY - atom.y
-          let deltaZ = lhsZ - atom.z
-          let deltaSquared = deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ
-          
-          let r = lhsR + atom.w
-          let mask32 = deltaSquared .<= r * r
-          
-          // There is no official API for converting between masks with
-          // different bitwidths.
-          let bypass32 = unsafeBitCast(mask32, to: SIMD8<UInt32>.self)
-          let bypass8 = SIMD8<UInt8>(truncatingIfNeeded: bypass32)
-          let mask8 = unsafeBitCast(
-            bypass8, to: SIMDMask<SIMD8<UInt8>.MaskStorage>.self)
-          
-          if unsafeBitCast(mask8, to: UInt64.self) > 0 {
-            for laneID in 0..<UInt32(8) {
-              let count = lhsMatchCount[Int(laneID)]
-              let address = vIDi &* 8 &+ laneID
-              let address2 = address &* (matchLimit &+ 1) &+ UInt32(count)
-              let keyValuePair = SIMD2(Float(bitPattern: atomID),
-                                       deltaSquared[Int(laneID)])
-              matchBuffer[Int(address2)] = keyValuePair
-            }
-            
-            var nextCount = lhsMatchCount &+ 1
-            let limit = SIMD8(repeating: UInt8(truncatingIfNeeded: matchLimit))
-            nextCount.replace(with: limit, where: nextCount .> limit)
-            lhsMatchCount.replace(with: nextCount, where: mask8)
-          }
-        }
-      }
-    }
-  }
-  
-  matchBuffer.deallocate()
-  matchCount.deallocate()
-  
-  return unsafeBitCast(outRangeBuffer, to: [_].self)
-}
-
-// MARK: - Block Comparison
+// MARK: - Prepare Acceleration Structure
 
 private struct Operand {
   var atomCount: Int
@@ -577,6 +320,8 @@ private func transform8(
   return output
 }
 
+// MARK: - Compare Blocks
+
 @inline(__always)
 private func compareBlocks(
   _ lhsBlockBound: SIMD4<Float>,
@@ -607,4 +352,261 @@ private func compareBlocks(
   var blockDelta = blockCenterX - blockCenterY
   blockDelta.w = 0
   return (blockDelta * blockDelta).sum() < largeCutoffSquared
+}
+
+// MARK: - Compare Atoms
+
+private func matchImpl(
+  lhs: Operand,
+  rhs: Operand,
+  algorithm: Topology.MatchAlgorithm,
+  matchLimit: UInt32
+) -> [Topology.MatchStorage] {
+  let lhsSize32 = UInt32(truncatingIfNeeded: lhs.atomCount &+ 31) / 32
+  let rhsSize32 = UInt32(truncatingIfNeeded: rhs.atomCount &+ 31) / 32
+  let lhsSize8 = UInt32(truncatingIfNeeded: lhs.atomCount &+ 7) / 8
+  let rhsSize8 = UInt32(truncatingIfNeeded: rhs.atomCount &+ 7) / 8
+  let paddedCutoff = lhs.paddedCutoff + rhs.paddedCutoff
+  
+  // The current implementation doesn't allow a maximum neighbor count that
+  // exceeds 254.
+  guard matchLimit < UInt8.max else {
+    fatalError("Maximum neighbor count is too large.")
+  }
+  
+  // Allocate the match buffer.
+  nonisolated(unsafe)
+  let matchBuffer: UnsafeMutablePointer<SIMD2<Float>> =
+    .allocate(capacity: Int(lhsSize8) * 8 * Int(matchLimit + 1))
+  
+  // Allocate the match count buffer.
+  nonisolated(unsafe)
+  let matchCount: UnsafeMutablePointer<SIMD8<UInt8>> =
+    .allocate(capacity: Int(lhsSize8))
+  matchCount.initialize(repeating: .zero, count: Int(lhsSize8))
+  let opaqueCount = OpaquePointer(matchCount)
+  nonisolated(unsafe)
+  let castedCount = UnsafeMutablePointer<UInt8>(opaqueCount)
+  
+  // Allocate the output range buffer.
+  let outRangeCapacity = Int(lhs.atomCount)
+  var outRangeBuffer = [ArraySlice<UInt32>?](
+    unsafeUninitializedCapacity: outRangeCapacity
+  ) { $1 = outRangeCapacity }
+  nonisolated(unsafe)
+  let outRangePointer = outRangeBuffer.withUnsafeMutableBufferPointer { $0 }
+  
+  struct LoopScope {
+    var startI: UInt32 = .zero
+    var endI: UInt32 = .zero
+    var startJ: UInt32 = .zero
+    var endJ: UInt32 = .zero
+  }
+  
+  @Sendable
+  func createLoopScope3() -> LoopScope {
+    var scope = LoopScope()
+    scope.startI = 0
+    scope.endI = scope.startI + UInt32(lhs.atomCount * 2) + 256
+    scope.endI = min(scope.endI, UInt32(lhs.atomCount + 127) / 128)
+    
+    scope.startJ = 0
+    scope.endJ = scope.startJ + UInt32(rhs.atomCount * 2) + 256
+    scope.endJ = min(scope.endJ, UInt32(rhs.atomCount + 127) / 128)
+    return scope
+  }
+  
+  do {
+    let scope = createLoopScope3()
+    let taskCount = scope.endI - scope.startI
+    
+    if taskCount == 0 {
+      // TODO: Unit test how the compiler behaves when it receives an empty
+      // array, without adding any special checks/early returns for edge cases.
+    } else if taskCount == 1 {
+      innerLoop3(0)
+      finishInnerLoop3(0)
+    } else {
+      DispatchQueue.concurrentPerform(iterations: Int(taskCount)) { z in
+        innerLoop3(UInt32(z))
+        finishInnerLoop3(UInt32(z))
+      }
+    }
+  }
+  
+  @Sendable
+  func innerLoop3(_ vIDi3: UInt32) {
+    let scope = createLoopScope3()
+    for vIDj3 in scope.startJ..<scope.endJ {
+      let lhsBlockBound = lhs.blockBounds128[Int(vIDi3)]
+      let rhsBlockBound = rhs.blockBounds128[Int(vIDj3)]
+      let mask = compareBlocks(
+        lhsBlockBound, rhsBlockBound, paddedCutoff: paddedCutoff)
+      if mask {
+        innerLoop2(vIDi3, vIDj3)
+      }
+    }
+  }
+  
+  @Sendable
+  func finishInnerLoop3(_ vIDi3: UInt32) {
+    let scalarStart = vIDi3 &* 128
+    let scalarEnd = min(
+      scalarStart &+ 128, UInt32(truncatingIfNeeded: lhs.atomCount))
+    
+    let outMatchBuffer = [UInt32](
+      unsafeUninitializedCapacity: 128 &* Int(matchLimit &+ 1)
+    ) { buffer, bufferCount in
+      bufferCount = 128 &* Int(matchLimit &+ 1)
+      let baseAddress = buffer.baseAddress.unsafelyUnwrapped
+      
+      for laneID in scalarStart..<scalarEnd {
+        let address = laneID &* (matchLimit &+ 1)
+        let outAddress = (laneID &- scalarStart) &* (matchLimit &+ 1)
+        let count = Int(castedCount[Int(laneID)])
+        
+        // Remove bogus matches that result from padding the RHS.
+        var localBuffer = UnsafeMutableBufferPointer<SIMD2<Float>>(
+          start: matchBuffer.advanced(by: Int(address)), count: count)
+        while let last = localBuffer.last, last[0].bitPattern >= rhs.atomCount {
+          localBuffer = UnsafeMutableBufferPointer(
+            start: localBuffer.baseAddress, count: localBuffer.count - 1)
+        }
+        castedCount[Int(laneID)] = UInt8(truncatingIfNeeded: localBuffer.count)
+        
+        // Sort the matches in ascending order of distance.
+        localBuffer.sort { $0.y < $1.y }
+        
+        let compactedOpaque = OpaquePointer(
+          localBuffer.baseAddress.unsafelyUnwrapped)
+        let compactedCasted = UnsafeMutablePointer<UInt32>(compactedOpaque)
+        for i in 0..<localBuffer.count {
+          let index = localBuffer[i][0].bitPattern
+          let mortonIndex = rhs.reordering[Int(index)]
+          compactedCasted[i] = mortonIndex
+          baseAddress[Int(outAddress) &+ i] = mortonIndex
+        }
+      }
+    }
+    
+    for laneID in scalarStart..<scalarEnd {
+      let outAddress = (laneID &- scalarStart) &* (matchLimit &+ 1)
+      let count = Int(castedCount[Int(laneID)])
+      let outID = lhs.reordering[Int(laneID)]
+      
+      let opaqueRange = OpaquePointer(outRangePointer.baseAddress!)
+      let castedRange = UnsafeMutablePointer<UInt>(opaqueRange)
+      let pointer = castedRange.advanced(by: Int(outID &* 4))
+      for i in 0..<4 {
+        // Initialize the array to 'nil', on multiple CPU cores at once,
+        // without causing a crash.
+        pointer[i] = 0
+      }
+      
+      let rangeStart = Int(outAddress)
+      let rangeEnd = rangeStart &+ count
+      outRangePointer[Int(outID)] = outMatchBuffer[rangeStart..<rangeEnd]
+    }
+  }
+  
+  @Sendable
+  @inline(__always)
+  func innerLoop2(_ vIDi3: UInt32, _ vIDj3: UInt32) {
+    var scope = LoopScope()
+    scope.startI = vIDi3 * 4
+    scope.endI = scope.startI + 4
+    scope.endI = min(scope.endI, lhsSize32)
+    
+    scope.startJ = vIDj3 * 4
+    scope.endJ = scope.startJ + 4
+    scope.endJ = min(scope.endJ, rhsSize32)
+    
+    for vIDi2 in scope.startI..<scope.endI {
+      for vIDj2 in scope.startJ..<scope.endJ {
+        let lhsBlockBound = lhs.blockBounds32[Int(vIDi2)]
+        let rhsBlockBound = rhs.blockBounds32[Int(vIDj2)]
+        let mask = compareBlocks(
+          lhsBlockBound, rhsBlockBound, paddedCutoff: paddedCutoff)
+        if mask {
+          innerLoop1(vIDi2, vIDj2)
+        }
+      }
+    }
+  }
+  
+  // MARK: - Search
+  
+  @Sendable
+  @inline(__always)
+  func innerLoop1(_ vIDi2: UInt32, _ vIDj2: UInt32) {
+    var scope = LoopScope()
+    scope.startI = vIDi2 * 4
+    scope.endI = scope.startI + 4
+    scope.endI = min(scope.endI, lhsSize8)
+    
+    scope.startJ = vIDj2 * 4
+    scope.endJ = scope.startJ + 4
+    scope.endJ = min(scope.endJ, rhsSize8)
+    
+    for vIDi in scope.startI..<scope.endI {
+      let pointer = Int(vIDi &* 4)
+      let lhsX = lhs.transformed8[pointer &+ 0]
+      let lhsY = lhs.transformed8[pointer &+ 1]
+      let lhsZ = lhs.transformed8[pointer &+ 2]
+      let lhsR = lhs.transformed8[pointer &+ 3]
+      let lhsBlockBound = lhs.blockBounds8[Int(vIDi)]
+      var lhsMatchCount = matchCount[Int(vIDi)]
+      defer {
+        matchCount[Int(vIDi)] = lhsMatchCount
+      }
+      
+      for vIDj in scope.startJ..<scope.endJ {
+        let rhsBlockBound = rhs.blockBounds8[Int(vIDj)]
+        guard compareBlocks(
+          lhsBlockBound, rhsBlockBound, paddedCutoff: paddedCutoff) else {
+          continue
+        }
+        
+        for lane in 0..<UInt32(8) {
+          let atomID = vIDj &* 8 &+ lane
+          let atom = rhs.transformed4[Int(atomID)]
+          let deltaX = lhsX - atom.x
+          let deltaY = lhsY - atom.y
+          let deltaZ = lhsZ - atom.z
+          let deltaSquared = deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ
+          
+          let r = lhsR + atom.w
+          let mask32 = deltaSquared .<= r * r
+          
+          // There is no official API for converting between masks with
+          // different bitwidths.
+          let bypass32 = unsafeBitCast(mask32, to: SIMD8<UInt32>.self)
+          let bypass8 = SIMD8<UInt8>(truncatingIfNeeded: bypass32)
+          let mask8 = unsafeBitCast(
+            bypass8, to: SIMDMask<SIMD8<UInt8>.MaskStorage>.self)
+          
+          if unsafeBitCast(mask8, to: UInt64.self) > 0 {
+            for laneID in 0..<UInt32(8) {
+              let count = lhsMatchCount[Int(laneID)]
+              let address = vIDi &* 8 &+ laneID
+              let address2 = address &* (matchLimit &+ 1) &+ UInt32(count)
+              let keyValuePair = SIMD2(Float(bitPattern: atomID),
+                                       deltaSquared[Int(laneID)])
+              matchBuffer[Int(address2)] = keyValuePair
+            }
+            
+            var nextCount = lhsMatchCount &+ 1
+            let limit = SIMD8(repeating: UInt8(truncatingIfNeeded: matchLimit))
+            nextCount.replace(with: limit, where: nextCount .> limit)
+            lhsMatchCount.replace(with: nextCount, where: mask8)
+          }
+        }
+      }
+    }
+  }
+  
+  matchBuffer.deallocate()
+  matchCount.deallocate()
+  
+  return unsafeBitCast(outRangeBuffer, to: [_].self)
 }

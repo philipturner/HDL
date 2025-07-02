@@ -54,7 +54,6 @@ struct GrapheneThiol {
     }
   }
   
-  // NOTE: Perform a precondition here in the unit test.
   mutating func compilationPass2() {
     // Graphene's covalent bond length is 1.42 Å.
     let covalentBondLength: Float = 1.42 / 10
@@ -71,7 +70,6 @@ struct GrapheneThiol {
     topology.insert(bonds: insertedBonds)
   }
   
-  // NOTE: Perform a precondition here in the unit test.
   mutating func compilationPass3() {
     // From the MM4 alkene paper, the C-H bond length in graphene is 1.103 Å.
     // This is very close to the length of bonds to sp3 carbon.

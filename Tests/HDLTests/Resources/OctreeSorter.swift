@@ -7,6 +7,7 @@
 
 import Foundation
 import HDL
+import QuartzCore
 
 struct OctreeSorter {
   var atoms: [Atom] = []
@@ -40,6 +41,8 @@ struct OctreeSorter {
   }
   
   func mortonReordering() -> [UInt32] {
+    let start1 = CACurrentMediaTime()
+    
     var output: [UInt32] = []
     let dictionary: UnsafeMutablePointer<UInt32> =
       .allocate(capacity: 8 * atoms.count)
@@ -153,6 +156,9 @@ struct OctreeSorter {
         levelOrigin: levelOrigin,
         levelSize: octreeStartSize)
     }
+    guard output.count == atoms.count else {
+      fatalError("This should never happen.")
+    }
     precondition(output.count == atoms.count)
     
     var reordering = [UInt32](repeating: .max, count: atoms.count)
@@ -162,7 +168,21 @@ struct OctreeSorter {
       let reorderedID32 = UInt32(truncatingIfNeeded: reorderedID)
       reordering[originalID] = reorderedID32
     }
-    precondition(!reordering.contains(.max))
+    
+    let end1 = CACurrentMediaTime()
+    
+    let start2 = CACurrentMediaTime()
+    if reordering.contains(.max) {
+      fatalError("This should never happen.")
+    }
+    let end2 = CACurrentMediaTime()
+    
+    let elapsedTime1 = end1 - start1
+    let elapsedTime2 = end2 - start2
+    let elapsedMicroseconds1 = Int(elapsedTime1 * 1e6)
+    let elapsedMicroseconds2 = Int(elapsedTime2 * 1e6)
+    print("Times: ", elapsedMicroseconds1, "us", elapsedMicroseconds2, "us")
+    
     return reordering
   }
 }

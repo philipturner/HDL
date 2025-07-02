@@ -98,7 +98,7 @@ extension Topology {
       
       bonds.withUnsafeBufferPointer {
         let bondsPointer = $0.baseAddress.unsafelyUnwrapped
-        let bondsOpaque = OpaquePointer($0.baseAddress.unsafelyUnwrapped)
+        let bondsOpaque = OpaquePointer(bondsPointer)
         nonisolated(unsafe)
         let bondsCasted = UnsafePointer<UInt32>(bondsOpaque)
         

@@ -13,14 +13,12 @@ public struct Topology {
     
   }
 }
-
-// MARK: - Insert and Remove
   
 extension Topology {
   public mutating func insert(atoms: [Atom]) {
     for atom in atoms {
       guard atom.w > 0 else {
-        fatalError("Topology does not accept empty atoms: \(atom), \(atom.w), \(atom.w > 0).")
+        fatalError("Atom must have a nonzero atomic number.")
       }
       guard atom.w == Float(Int8(atom.w)) else {
         fatalError("Atom must have an integer atomic number.")

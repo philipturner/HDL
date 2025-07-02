@@ -38,11 +38,8 @@ private enum CollisionState {
 
 extension Reconstruction {
   mutating func resolveTwoWayCollisions(centerTypes: [UInt8]) {
-    var collisionStates = [CollisionState?](
-      repeating: nil,
-      count: hydrogensToAtomsMap.count)
-    
-    // High-level specification of the algorithm structure.
+    // Extract all sets of connected hydrogen sites from the topology.
+    var hydrogenChains: [[UInt32]] = []
     for hydrogenID in hydrogensToAtomsMap.indices {
       let atomList = hydrogensToAtomsMap[hydrogenID]
       guard atomList.count == 2 else {
@@ -65,27 +62,35 @@ extension Reconstruction {
         initialDimerChain: initialDimerChain)
       
       // Even indices: carbon sites
-      // Odd indices: hydrogen sites / collision sites
+      // Odd indices: hydrogen sites
+      var hydrogenChain: [UInt32] = []
       for i in dimerChain.indices where i % 2 == 1 {
-        let listElement = Int(dimerChain[i])
-        if collisionStates[listElement] == nil {
-          if i % 4 == 1 {
-            collisionStates[listElement] = .mergeDimer
-          } else {
-            collisionStates[listElement] = .keepCollision
-          }
+        let hydrogenID = dimerChain[i]
+        hydrogenChain.append(hydrogenID)
+      }
+      hydrogenChains.append(hydrogenChain)
+    }
+    
+    // With these chains available, decide which collision sites will be
+    // replaced by a carbon-carbon bond.
+    var collisionStates = [CollisionState](
+      repeating: .noCollision,
+      count: hydrogensToAtomsMap.count)
+    for hydrogenChain in hydrogenChains {
+      for i in hydrogenChain.indices {
+        let hydrogenID = Int(hydrogenChain[i])
+        guard collisionStates[hydrogenID] == .noCollision else {
+          continue
+        }
+        
+        if i % 2 == 0 {
+          collisionStates[hydrogenID] = .mergeDimer
+        } else {
+          collisionStates[hydrogenID] = .keepCollision
         }
       }
     }
-    
-    let resolvedCollisionStates = collisionStates.map { state in
-      if let state {
-        return state
-      } else {
-        return .noCollision
-      }
-    }
-    mergeDimers(states: resolvedCollisionStates)
+    mergeDimers(states: collisionStates)
   }
 }
 

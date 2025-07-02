@@ -2,8 +2,6 @@
 
 Domain-specific language for molecular nanotechnology. This repository includes a geometry and bond topology compiler.
 
-> TODO: Check that the ToC links correctly on the GitHub website.
-
 Table of Contents
 - [Overview](#overview)
 - API

@@ -94,6 +94,8 @@ final class ReconstructionTests: XCTestCase {
     }
   }
   
+  // Tests for varying passivation recycle the lattice from testDoubleCompile.
+  
   func testReproducerBefore() throws {
     let lattice = Lattice<Cubic> { h, k, l in
       Bounds { 10 * h + 9 * k + 7 * l }

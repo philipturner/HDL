@@ -5,11 +5,6 @@
 //  Created by Philip Turner on 6/11/24.
 //
 
-// Note to include in the documentation:
-//
-// Only applies to crystals with sp3 hybridization. Makes heavy use of
-// 'Topology.nonbondingOrbitals' with sp3 hybridization.
-
 // Revised user-facing API:
 //
 // struct Reconstruction {

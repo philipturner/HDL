@@ -9,10 +9,9 @@ extension Compilation {
   // A reduced form each hydrogen atom, with the 4th vector slot storing
   // the index of the carbon that spawned it.
   //
-  // Inputs:  material -> bond length
-  //          topology.atoms
-  //          topology.bonds -> orbitals
-  // Outputs: [SIMD4<Float>]
+  // Inputs: material -> bond length
+  //         topology.atoms
+  //         topology.bonds -> orbitals
   func createHydrogenData() -> [SIMD4<Float>] {
     let orbitalLists = topology.nonbondingOrbitals()
     let bondLength = createBondLength()
@@ -30,9 +29,7 @@ extension Compilation {
     return output
   }
   
-  // Inputs:  topology.atoms
-  //          list of 1-3 indices
-  // Outputs: SIMD3<Float>
+  // Inputs: topology.atoms
   private func hydrogenSiteCenter(_ atomList: [UInt32]) -> SIMD3<Float> {
     var center: SIMD3<Float> = .zero
     for atomID in atomList {
@@ -43,8 +40,7 @@ extension Compilation {
     return center
   }
   
-  // Inputs:  hydrogenData
-  //          topology.atoms.count
+  // Inputs:  topology.atoms.count
   // Outputs: atomsToHydrogensMap
   //          hydrogensToAtomsMap (length determined here)
   mutating func createHydrogenSites(
@@ -207,18 +203,18 @@ extension Compilation {
         }
         addBond(
           sourceAtomID: atomID,
-          orbital: orbitalList[orbitalList.startIndex])
+          orbital: orbitalList[0])
       case 2:
-        let orbital0 = orbitalList[orbitalList.startIndex]
-        let orbital1 = orbitalList[orbitalList.endIndex - 1]
+        let orbital0 = orbitalList[0]
+        let orbital1 = orbitalList[1]
         
         if collisionMask[0] && collisionMask[1] {
           fatalError("This should never happen.")
         } else if collisionMask[0] || collisionMask[1] {
           let collisionID =
-          (collisionMask[0]) ? hydrogenList[0] : hydrogenList[1]
+          collisionMask[0] ? hydrogenList[0] : hydrogenList[1]
           let nonCollisionID =
-          (collisionMask[0]) ? hydrogenList[1] : hydrogenList[0]
+          collisionMask[0] ? hydrogenList[1] : hydrogenList[0]
           guard hydrogenID == nonCollisionID,
                 hydrogenID != collisionID else {
             fatalError("Unexpected hydrogen IDs for collision.")
@@ -236,11 +232,11 @@ extension Compilation {
           if score0 > score1 {
             addBond(
               sourceAtomID: atomID,
-              orbital: orbital1)
+              orbital: orbitalList[1])
           } else if score0 < score1 {
             addBond(
               sourceAtomID: atomID,
-              orbital: orbital0)
+              orbital: orbitalList[0])
           } else {
             fatalError("Scores were equal.")
           }
@@ -249,11 +245,11 @@ extension Compilation {
           if hydrogenID == hydrogenList[0] {
             addBond(
               sourceAtomID: atomID,
-              orbital: orbital0)
+              orbital: orbitalList[0])
           } else {
             addBond(
               sourceAtomID: atomID,
-              orbital: orbital1)
+              orbital: orbitalList[1])
           }
         }
       default:

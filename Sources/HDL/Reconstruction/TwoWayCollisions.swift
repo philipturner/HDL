@@ -29,6 +29,9 @@ extension Compilation {
       // Append several groups of (..., H, C)
       let dimerChain = growDimerChain(
         initialDimerChain: initialDimerChain)
+      if dimerChain.count > 3 {
+        print("SIMD4<UInt32>(\(dimerChain[0]), \(dimerChain[2]), \(dimerChain[dimerChain.count - 3]), \(dimerChain[dimerChain.count - 1])),")
+      }
       
       // Even indices: carbon sites
       // Odd indices: hydrogen sites

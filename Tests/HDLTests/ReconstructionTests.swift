@@ -30,6 +30,7 @@ final class ReconstructionTests: XCTestCase {
     let topology = reconstruction.compile()
     XCTAssertEqual(topology.atoms.count, 860)
     XCTAssertEqual(topology.bonds.count, 1318)
+    PassivationTests.checkIntegrity(topology)
   }
   
   func testAluminumPhosphide() throws {
@@ -45,6 +46,7 @@ final class ReconstructionTests: XCTestCase {
     let topology = reconstruction.compile()
     XCTAssertEqual(topology.atoms.count, 384)
     XCTAssertEqual(topology.bonds.count, 564)
+    PassivationTests.checkIntegrity(topology)
     
     let orbitalLists = topology.nonbondingOrbitals()
     var hasUnfilledValences = false
@@ -85,6 +87,7 @@ final class ReconstructionTests: XCTestCase {
       let topology = reconstruction.compile()
       XCTAssertEqual(topology.atoms.count, 658)
       XCTAssertEqual(topology.bonds.count, 959)
+      PassivationTests.checkIntegrity(topology)
       
       var groupIVAtomCount: Int = .zero
       for atom in topology.atoms {
@@ -168,6 +171,7 @@ final class ReconstructionTests: XCTestCase {
     
     XCTAssertEqual(topology.atoms.count, 5735)
     XCTAssertEqual(topology.bonds.count, 9751)
+    PassivationTests.checkIntegrity(topology)
   }
   
   func testReproducerAfter() throws {
@@ -217,6 +221,7 @@ final class ReconstructionTests: XCTestCase {
     
     XCTAssertEqual(topology.atoms.count, 5720)
     XCTAssertEqual(topology.bonds.count, 9697)
+    PassivationTests.checkIntegrity(topology)
   }
   
   #endif

@@ -300,7 +300,6 @@ extension Compilation {
                 let bestOrbitalID else {
             fatalError("Could not find best orbital.")
           }
-          print(bestOrbitalID)
           
           // 108 hydrogens
           //

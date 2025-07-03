@@ -9,6 +9,19 @@ final class PassivationTests: XCTestCase {
     }
   }
   
+  static func checkIntegrity(_ topology: Topology) {
+    let atomsToBondsMap = topology.map(.atoms, to: .bonds)
+    for atomID in topology.atoms.indices {
+      let atom = topology.atoms[atomID]
+      let bondsMap = atomsToBondsMap[atomID]
+      if atom.atomicNumber == 1 {
+        XCTAssertEqual(bondsMap.count, 1)
+      } else {
+        XCTAssertEqual(bondsMap.count, 4)
+      }
+    }
+  }
+  
   func testCommonLattice() throws {
     let lattice = Self.commonLattice()
     XCTAssertEqual(lattice.atoms.count, 621)
@@ -57,6 +70,7 @@ final class PassivationTests: XCTestCase {
     reconstruction.atoms = lattice.atoms
     reconstruction.material = .checkerboard(.silicon, .carbon)
     let topology = reconstruction.compile()
+    PassivationTests.checkIntegrity(topology)
     
     var hydrogenAtoms: [Atom] = []
     for atom in topology.atoms {

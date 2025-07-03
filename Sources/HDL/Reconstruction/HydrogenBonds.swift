@@ -101,26 +101,34 @@ extension Compilation {
       return filteredMatches
     }
     
-    // Initialize each list of hydrogens.
+    // Initialize the hydrogen lists.
     atomsToHydrogensMap = Array(repeating: [], count: topology.atoms.count)
     
     // Fill each list of hydrogens.
-    for match in createFilteredMatches() {
-      // Create the sorted list of atoms.
-      var atomList: [UInt32] = []
-      for j in match {
-        let data = hydrogenData[Int(j)]
-        let atomID = data.w.bitPattern
-        atomList.append(atomID)
+    let filteredMatches = createFilteredMatches()
+    for match in filteredMatches {
+      func createAtomList() -> [UInt32] {
+        var atomList: [UInt32] = []
+        for j in match {
+          let data = hydrogenData[Int(j)]
+          let atomID = data.w.bitPattern
+          atomList.append(atomID)
+        }
+        guard atomList.count <= 3 else {
+          fatalError("Edge case with 4 hydrogens in a site not handled yet.")
+        }
+        
+        // Sort the atom list, in-place.
+        atomList.sort()
+        return atomList
       }
-      guard atomList.count <= 3 else {
-        fatalError("Edge case with 4 hydrogens in a site not handled yet.")
-      }
-      atomList.sort()
       
-      // Integrate this list into the bidirectional map.
+      // Integrate the atom list into the map.
+      let atomList = createAtomList()
       let hydrogenID = UInt32(hydrogensToAtomsMap.count)
       hydrogensToAtomsMap.append(atomList)
+      
+      // Mutate the hydrogen list.
       for j in atomList {
         // Appending to the array in-place has a measurable performance
         // improvement, compared to extract + modify + insert.
@@ -128,7 +136,7 @@ extension Compilation {
       }
     }
     
-    // Sort each list of hydrogens, in-place.
+    // Sort each hydrogen list, in-place.
     for j in topology.atoms.indices {
       atomsToHydrogensMap[Int(j)].sort()
     }

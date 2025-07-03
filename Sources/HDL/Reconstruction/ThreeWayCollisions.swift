@@ -11,11 +11,11 @@ extension Compilation {
     
     var insertedAtoms: [Atom] = []
     for hydrogenSiteID in hydrogensToAtomsMap.indices {
-      var atomList = hydrogensToAtomsMap[hydrogenSiteID]
+      // The atom list is guaranteed to already be sorted.
+      let atomList = hydrogensToAtomsMap[hydrogenSiteID]
       guard atomList.count == 3 || atomList.count == 4 else {
         continue
       }
-      atomList.sort()
       
       // Iterate over the first three atoms in the collision.
       var orbitalPermutationCount: SIMD3<Int> = .zero

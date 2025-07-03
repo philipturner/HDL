@@ -116,10 +116,6 @@ extension Compilation {
         if match.count > 5 {
           fatalError("Unexpected situation: match count > 5")
         } else if match.count > 2 {
-          // Interesting: match.count == 5 appears regularly in my tests. It is
-          // a normal geometry that the reconstruction algorithm must accept.
-          // Ths case appears quite frequently as well, double-digit percent.
-          
           // 5 matches -> quaternary
           // 4 matches -> tertiary
           // 3 matches -> secondary
@@ -185,10 +181,9 @@ extension Compilation {
   private func validate(centerTypes: [UInt8]) {
     let orbitalLists = topology.nonbondingOrbitals()
     for atomID in orbitalLists.indices {
-      let orbital = orbitalLists[atomID]
       var expectedRawValue: UInt8
-      
-      switch orbital.count {
+      let orbitalList = orbitalLists[atomID]
+      switch orbitalList.count {
       case 2:
         expectedRawValue = 2
       case 1:
@@ -198,7 +193,6 @@ extension Compilation {
       default:
         fatalError("This should never happen.")
       }
-      
       guard centerTypes[atomID] == expectedRawValue else {
         fatalError("Incorrect raw value.")
       }

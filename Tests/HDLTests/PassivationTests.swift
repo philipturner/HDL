@@ -9,7 +9,7 @@ final class PassivationTests: XCTestCase {
     }
   }
   
-  static func checkIntegrity(_ topology: Topology) {
+  static func checkConnectivity(_ topology: Topology) {
     let atomsToBondsMap = topology.map(.atoms, to: .bonds)
     for atomID in topology.atoms.indices {
       let atom = topology.atoms[atomID]
@@ -22,9 +22,22 @@ final class PassivationTests: XCTestCase {
     }
   }
   
+  static func checkNoOverlaps(_ topology: Topology) {
+    let matchRanges = topology.match(
+      topology.atoms, algorithm: .absoluteRadius(0.002))
+    for atomID in topology.atoms.indices {
+      let matchRange = matchRanges[atomID]
+      XCTAssertEqual(matchRange.count, 1)
+    }
+  }
+  
   func testCommonLattice() throws {
     let lattice = Self.commonLattice()
     XCTAssertEqual(lattice.atoms.count, 621)
+    
+    var latticeTopology = Topology()
+    latticeTopology.atoms = lattice.atoms
+    PassivationTests.checkNoOverlaps(latticeTopology)
     
     var reconstruction = Reconstruction()
     reconstruction.atoms = lattice.atoms
@@ -74,7 +87,7 @@ final class PassivationTests: XCTestCase {
     reconstruction.atoms = lattice.atoms
     reconstruction.material = .checkerboard(.silicon, .carbon)
     let topology = reconstruction.compile()
-    PassivationTests.checkIntegrity(topology)
+    PassivationTests.checkConnectivity(topology)
     
     var hydrogenAtoms: [Atom] = []
     for atom in topology.atoms {
@@ -109,11 +122,11 @@ final class PassivationTests: XCTestCase {
           return (hydrogenID == match0) ? match1 : match0
         }
         let otherHydrogenID = getOtherHydrogenID()
-        print(hydrogenID, otherHydrogenID)
+//        print(hydrogenID, otherHydrogenID)
         
         let hydrogen = hydrogenAtoms[hydrogenID]
         let otherHydrogen = hydrogenAtoms[Int(otherHydrogenID)]
-        print(hydrogen.position - otherHydrogen.position)
+//        print(hydrogen.position - otherHydrogen.position)
       }
     }
     print(matchCountStats)

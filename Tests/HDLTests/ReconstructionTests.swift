@@ -94,13 +94,21 @@ final class ReconstructionTests: XCTestCase {
     }
   }
   
-  // Tests for varying passivation recycle the lattice from testDoubleCompile.
+  // All of the unwritten tests should use a featureless crystal in the
+  // `Cubic` basis.
   
   // Measure the "extended volume" of the structure, whichever exact
   // terminology was used in Nanosystems. Measure according to the center
   // position of the atoms, not the edge of their atomic radius. Fluorine
   // should have a larger volume than hydrogen, which has a larger volume
   // than unpassivated. In all cases, the number of C-Si bonds is the same.
+  
+  // Test hydrogen passivation during vs. after the reconstruction. If done
+  // manually afterward, the "extended volume" should increase. In addition,
+  // the hydrogens within a dimer should grow closer. Implement this closeness
+  // test by matching hydrogen passivators extracted from the two different
+  // crystals. Find the closest 1-2 hydrogens near each abnormally large
+  // C-Si bond.
   
   func testReproducerBefore() throws {
     let lattice = Lattice<Cubic> { h, k, l in

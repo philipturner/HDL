@@ -8,9 +8,14 @@ Revised user-facing API:
 
 ```swift
 struct Reconstruction {
+  /// Required.
   var atoms: [SIMD4<Float>]?
+  
+  /// Required.
   var material: MaterialType?
-  var passivator: Element? = .hydrogen
+  
+  /// Optional. The default is `nil`. 
+  var passivation: Element?
   
   func compile() -> Topology
 }
@@ -20,5 +25,7 @@ reconstruction.atoms = ...
 reconstruction.material = ...
 let topology = reconstruction.compile()
 ```
+
+`passivation` places hydrogens according to lattice-aligned geometry before the reconstruction. Otherwise, you're stuck with manually generated hydrogens that have shifted.
 
 The API doesn't provide the generality of mixed-element passivation across a structure, but it feels like the right design choice.

@@ -9,9 +9,9 @@ extension Compilation {
   // A reduced form each hydrogen atom, with the 4th vector slot storing
   // the index of the carbon that spawned it.
   //
-  // Inputs:  material / bond length
+  // Inputs:  material -> bond length
   //          topology.atoms
-  //          topology.bonds / orbitals
+  //          topology.bonds -> orbitals
   // Outputs: [SIMD4<Float>]
   func createHydrogenData() -> [SIMD4<Float>] {
     let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)
@@ -134,7 +134,11 @@ extension Compilation {
   }
   
   // Inputs:  topology.atoms
-  //          topology.bonds
+  //          topology.bonds -> orbitals
+  //          atomsToHydrogensMap
+  //          hydrogensToAtomsMap
+  // Outputs: topology.atoms (insert)
+  //          topology.bonds (insert)
   mutating func createHydrogenBonds() {
     // Utility function: 'withClosestOrbitals'
     let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)

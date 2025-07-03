@@ -94,7 +94,7 @@ extension Compilation {
   
   // Remove atoms with less than two covalent bonds.
   //
-  // Inputs:  material / bond length
+  // Inputs:  material -> bond length
   //          topology.atoms
   // Outputs: topology.atoms (remove)
   private mutating func removePathologicalAtoms() {
@@ -133,9 +133,10 @@ extension Compilation {
   //
   // Returns the center type of each atom.
   //
-  // Inputs:  material / bond length
+  // Inputs:  material -> bond length
   //          topology.atoms
   // Outputs: topology.bonds (insert)
+  //          center types
   private mutating func createBulkAtomBonds() -> [UInt8] {
     let bondLength = createBondLength()
     let matches = topology.match(
@@ -162,6 +163,9 @@ extension Compilation {
     return centerTypes
   }
   
+  // Inputs:  topology.atoms -> orbitals
+  //          topology.bonds -> orbitals
+  //          center types
   private func validate(centerTypes: [UInt8]) {
     let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)
     for i in orbitals.indices {

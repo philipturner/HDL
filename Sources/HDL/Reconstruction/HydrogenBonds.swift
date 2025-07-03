@@ -208,6 +208,8 @@ extension Compilation {
         fatalError("Unexpected orbital count.")
       }
       
+      // Note: all control flow paths result in just 1 call to 'addBond'.
+      
       // Switch over the different cases of the atom's hydrogen list.
       switch hydrogenList.count {
       case 1:
@@ -303,6 +305,22 @@ extension Compilation {
             orbital: orbital)
         }
       case 3:
+        // RED FLAG: This case is never triggered.
+        //
+        // Search for molecular structures that hit this case.
+        fatalError("This should never happen.")
+        
+        // Before invoking 'createHydrogenBonds', we check that every atomList
+        // in hydrogensToAtomsMap has 2 or less members. By definition, this
+        // case can never be triggered.
+        //
+        // It was likely an artifact of before the surface reconstruction
+        // algorithm could handle 3-way collisions. I remember an early phase
+        // where it worked, but only to a partial capacity. If so, this loop
+        // case should be seen as a debugging test diagnostic.
+        //
+        // This definitely looks like a pathway for when I didn't have a stable
+        // iterative solver for eliminating 3-way collisions.
         withClosestOrbitals(atomList) { atomID, orbital in
           addBond(
             sourceAtomID: atomID,

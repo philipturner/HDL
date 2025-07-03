@@ -111,7 +111,9 @@ extension Compilation {
         if match.count > 5 {
           fatalError("Unexpected situation: match count > 5")
         } else if match.count > 2 {
-          
+          // Interesting: match.count == 5 appears regularly in my tests. It is
+          // a normal geometry that the reconstruction algorithm must accept.
+          // Ths case appears quite frequently as well, double-digit percent.
         } else {
           removedAtoms.append(UInt32(i))
         }

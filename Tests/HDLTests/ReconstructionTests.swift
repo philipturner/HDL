@@ -22,6 +22,7 @@ final class ReconstructionTests: XCTestCase {
         Replace { .empty }
       }
     }
+    XCTAssertEqual(lattice.atoms.count, 651)
     
     var reconstruction = Reconstruction()
     reconstruction.atoms = lattice.atoms
@@ -36,6 +37,7 @@ final class ReconstructionTests: XCTestCase {
       Bounds { 3 * h + 3 * k + 3 * l }
       Material { .checkerboard(.phosphorus, .aluminum) }
     }
+    XCTAssertEqual(lattice.atoms.count, 280)
     
     var reconstruction = Reconstruction()
     reconstruction.atoms = lattice.atoms

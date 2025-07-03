@@ -63,6 +63,10 @@ final class PassivationTests: XCTestCase {
   // generates a C(100)-(1×1) surface.
   
   #if RELEASE
+  // TODO: Once the bug is fixed, rigorously check for the absence of hydrogen
+  // collisions in every test, including from Reconstruction.
+  //
+  // Nvm: test for that immediately, to understand what is going on
   func testCorrectHydrogenPlacement() throws {
     let lattice = Self.commonLattice()
     
@@ -95,15 +99,21 @@ final class PassivationTests: XCTestCase {
           fatalError("This should never happen.")
         }
       } else if matchRange.count == 2 {
-        let match0 = matchRange[matchRange.startIndex]
-        let match1 = matchRange[matchRange.startIndex + 1]
-        guard hydrogenID == match0 ||
-                hydrogenID == match1 else {
-          fatalError("This should never happen.")
+        func getOtherHydrogenID() -> UInt32 {
+          let match0 = matchRange[matchRange.startIndex]
+          let match1 = matchRange[matchRange.startIndex + 1]
+          guard hydrogenID == match0 ||
+                  hydrogenID == match1 else {
+            fatalError("This should never happen.")
+          }
+          return (hydrogenID == match0) ? match1 : match0
         }
+        let otherHydrogenID = getOtherHydrogenID()
+        print(hydrogenID, otherHydrogenID)
         
-        let otherAtom = (hydrogenID == match0) ? match1 : match0
-        print(hydrogenID, otherAtom)
+        let hydrogen = hydrogenAtoms[hydrogenID]
+        let otherHydrogen = hydrogenAtoms[Int(otherHydrogenID)]
+        print(hydrogen.position - otherHydrogen.position)
       }
     }
     print(matchCountStats)

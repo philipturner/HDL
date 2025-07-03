@@ -225,7 +225,10 @@ extension Compilation {
           let score0 = (orbitalList[0] * delta).sum()
           let score1 = (orbitalList[1] * delta).sum()
           
-          // Use a scoring function to match the collision to an orbital.
+          // Prefer the orbital that doesn't correspond to the collision site.
+          //
+          // TODO: Test whether this is done correctly by searching for two
+          // hydrogens with the same location.
           if score0 > score1 {
             addBond(
               sourceAtomID: atomID,
@@ -273,22 +276,22 @@ extension Compilation {
           let atom = topology.atoms[Int(atomID)]
           let delta = siteCenter - atom.position
           
-          // TODO: Refactor this statement. It's too dense.
+          var bestOrbital: SIMD3<Float>?
+          var bestScore: Float = -.greatestFiniteMagnitude
           let orbitalList = orbitalLists[Int(atomID)]
-//          var keyValuePairs = orbitalList.map { orbital -> (SIMD3<Float>, Float) in
-//            (orbital, (orbital * delta).sum())
-//          }
-          
-          var keyValuePairs: [(SIMD3<Float>, Float)] = []
           for orbital in orbitalList {
-            let value = (orbital * delta).sum()
+            let score = (orbital * delta).sum()
+            if score > bestScore {
+              bestOrbital = orbital
+            }
           }
-//          keyValuePairs.sort(by: { $0.1 > $1.1 })
+          guard let bestOrbital else {
+            fatalError("Could not find best orbital.")
+          }
           
-          let closestOrbital = keyValuePairs[0].0
           addBond(
             sourceAtomID: atomID, // change 'sourceAtomID' to 'atomID'
-            orbital: closestOrbital)
+            orbital: bestOrbital)
         }
       default:
         fatalError("3/4-way collisions should have been caught.")

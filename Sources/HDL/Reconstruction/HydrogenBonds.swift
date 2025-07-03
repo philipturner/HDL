@@ -202,6 +202,7 @@ extension Compilation {
           fatalError("This should never happen.")
         }
         
+        // 70 hydrogens from case 1
         addBond(
           sourceAtomID: atomID,
           orbital: orbitalList[0])
@@ -226,15 +227,16 @@ extension Compilation {
           let score0 = (orbitalList[0] * delta).sum()
           let score1 = (orbitalList[1] * delta).sum()
           
+          // orbitalList[1] is always causing the problem
+          
           // Prefer the orbital that doesn't correspond to the collision site.
-          //
-          // TODO: Test whether this is done correctly by searching for two
-          // hydrogens with the same location.
           if score0 > score1 {
+            // 15 hydrogens from case 1, all 30 culprits
             addBond(
               sourceAtomID: atomID,
               orbital: orbitalList[1])
           } else if score0 < score1 {
+            // 15 hydrogens
             addBond(
               sourceAtomID: atomID,
               orbital: orbitalList[0])
@@ -244,10 +246,12 @@ extension Compilation {
         } else {
           // Assign the first hydrogen in the list to the first orbital.
           if hydrogenID == hydrogenList[0] {
+            // 12 hydrogens
             addBond(
               sourceAtomID: atomID,
               orbital: orbitalList[0])
           } else {
+            // 12 hydrogens
             addBond(
               sourceAtomID: atomID,
               orbital: orbitalList[1])
@@ -268,6 +272,8 @@ extension Compilation {
       switch atomList.count {
       case 1:
         // Move this out of the conditional statement for legibility.
+        
+        // 124 hydrogens
         handleSingleAtom(
           hydrogenID: UInt32(hydrogenID),
           atomID: atomList[0])
@@ -278,19 +284,29 @@ extension Compilation {
           let delta = siteCenter - atom.position
           
           var bestOrbital: SIMD3<Float>?
+          var bestOrbitalID: Int?
           var bestScore: Float = -.greatestFiniteMagnitude
           let orbitalList = orbitalLists[Int(atomID)]
-          for orbital in orbitalList {
+          
+          for orbitalID in orbitalList.indices {
+            let orbital = orbitalList[orbitalID]
             let score = (orbital * delta).sum()
             if score > bestScore {
               bestOrbital = orbital
+              bestOrbitalID = orbitalID
             }
           }
-          guard let bestOrbital else {
+          guard let bestOrbital,
+                let bestOrbitalID else {
             fatalError("Could not find best orbital.")
           }
+          print(bestOrbitalID)
           
+          // 108 hydrogens
+          //
           // 30 hydrogens from this group end up overlapping those from case 1
+          // orbitalID = 0: 30 hydrogens, all of the culprits
+          // orbitalID = 1: 78 hydrogens
           addBond(
             sourceAtomID: atomID, // change 'sourceAtomID' to 'atomID'
             orbital: bestOrbital)

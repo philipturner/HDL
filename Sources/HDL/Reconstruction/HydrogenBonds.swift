@@ -143,25 +143,7 @@ extension Compilation {
     // Utility function: 'withClosestOrbitals'
     let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)
     
-    // TODO: Move this into the loop, creating less clutter from the multiple
-    // utility functions.
-    func withClosestOrbitals(
-      _ atomList: [UInt32],
-      _ closure: (UInt32, SIMD3<Float>) -> Void
-    ) {
-      let siteCenter = hydrogenSiteCenter(atomList)
-      for atomID in atomList {
-        let orbital = orbitals[Int(atomID)]
-        let delta = siteCenter - topology.atoms[Int(atomID)].position
-        var keyValuePairs = orbital.map { orbital -> (SIMD3<Float>, Float) in
-          (orbital, (orbital * delta).sum())
-        }
-        keyValuePairs.sort(by: { $0.1 > $1.1 })
-        
-        let closestOrbital = keyValuePairs[0].0
-        closure(atomID, closestOrbital)
-      }
-    }
+    
     
     // Utility function: 'addBond'
     var insertedAtoms: [Atom] = []
@@ -232,6 +214,9 @@ extension Compilation {
           (collisionMask[0]) ? hydrogenList[0] : hydrogenList[1]
           let nonCollisionID =
           (collisionMask[0]) ? hydrogenList[1] : hydrogenList[0]
+          
+          // Remove this check; instead leave a comment about why the condition
+          // is guaranteed.
           guard sourceAtomID == nonCollisionID,
                 sourceAtomID != collisionID else {
             fatalError("Unexpected atom IDs for collision.")
@@ -290,11 +275,26 @@ extension Compilation {
           sourceAtomID: UInt32(i),
           neighborID: atomList[0])
       case 2:
-        withClosestOrbitals(atomList) { atomID, orbital in
-          addBond(
-            sourceAtomID: atomID,
-            orbital: orbital)
+        func withClosestOrbitals(
+          _ atomList: [UInt32]
+        ) {
+          let siteCenter = hydrogenSiteCenter(atomList)
+          for atomID in atomList {
+            let orbital = orbitals[Int(atomID)]
+            let delta = siteCenter - topology.atoms[Int(atomID)].position
+            var keyValuePairs = orbital.map { orbital -> (SIMD3<Float>, Float) in
+              (orbital, (orbital * delta).sum())
+            }
+            keyValuePairs.sort(by: { $0.1 > $1.1 })
+            
+            let closestOrbital = keyValuePairs[0].0
+            addBond(
+              sourceAtomID: atomID, // change 'sourceAtomID' to 'atomID'
+              orbital: closestOrbital)
+          }
         }
+        
+        withClosestOrbitals(atomList)
       default:
         fatalError("3/4-way collisions should have been caught.")
       }

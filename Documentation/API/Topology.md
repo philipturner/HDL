@@ -118,6 +118,11 @@ extension Topology {
 func nonbondingOrbitals(
   hybridization: OrbitalHybridization = .sp3
 ) -> [ArraySlice<SIMD3<Float>>]
+
+// Example of usage.
+let orbitalLists = topology.nonbondingOrbitals()
+let orbitalList = orbitalLists[atomID]
+let orbital = orbitalList[orbitalList.startIndex]
 ```
 
 Directions for nonbonding orbitals in the valence shell. The directions are represented by normalized vectors.

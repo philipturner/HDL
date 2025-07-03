@@ -67,6 +67,10 @@ extension Topology {
   // After reducing the overhead of array slice generation, elide the creation
   // of the atoms-to-atoms map. Just use the connections buffer directly.
   //
+  // Note: It seems that originally, the underlying storage for orbitals was
+  // an array slice. Since then, we have moved on to a SIMD vector. This may
+  // provide a hint to what "connections buffer" implied.
+  //
   // TODO: Implement this optimization, if possible. Otherwise, delete the
   // comment above.
   public func nonbondingOrbitals(

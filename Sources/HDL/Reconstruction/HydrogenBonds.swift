@@ -14,7 +14,7 @@ extension Compilation {
   //          topology.bonds -> orbitals
   // Outputs: [SIMD4<Float>]
   func createHydrogenData() -> [SIMD4<Float>] {
-    let orbitalLists = topology.nonbondingOrbitals(hybridization: .sp3)
+    let orbitalLists = topology.nonbondingOrbitals()
     let bondLength = createBondLength()
     
     var output: [SIMD4<Float>] = []
@@ -141,7 +141,7 @@ extension Compilation {
   // Outputs: topology.atoms (insert)
   //          topology.bonds (insert)
   mutating func createHydrogenBonds() {
-    let orbitalLists = topology.nonbondingOrbitals(hybridization: .sp3)
+    let orbitalLists = topology.nonbondingOrbitals()
     
     // TODO: Refactor to just return an atom and a bond.
     var insertedAtoms: [Atom] = []

@@ -7,7 +7,7 @@
 
 extension Compilation {
   mutating func resolveThreeWayCollisions() {
-    let orbitalLists = topology.nonbondingOrbitals(hybridization: .sp3)
+    let orbitalLists = topology.nonbondingOrbitals()
     
     var insertedAtoms: [Atom] = []
     for hydrogenSiteID in hydrogensToAtomsMap.indices {

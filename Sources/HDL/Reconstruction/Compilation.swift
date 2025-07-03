@@ -183,7 +183,7 @@ extension Compilation {
   //          topology.bonds -> orbitals
   //          center types
   private func validate(centerTypes: [UInt8]) {
-    let orbitalLists = topology.nonbondingOrbitals(hybridization: .sp3)
+    let orbitalLists = topology.nonbondingOrbitals()
     for atomID in orbitalLists.indices {
       let orbital = orbitalLists[atomID]
       var expectedRawValue: UInt8

@@ -205,9 +205,6 @@ extension Compilation {
           sourceAtomID: atomID,
           orbital: orbitalList[0])
       case 2:
-        let orbital0 = orbitalList[0]
-        let orbital1 = orbitalList[1]
-        
         if collisionMask[0] && collisionMask[1] {
           fatalError("This should never happen.")
         } else if collisionMask[0] || collisionMask[1] {
@@ -222,11 +219,11 @@ extension Compilation {
           
           let atomList = hydrogensToAtomsMap[Int(collisionID)]
           let siteCenter = hydrogenSiteCenter(atomList)
-          let atomCenter = topology.atoms[Int(atomID)].position
+          let atom = topology.atoms[Int(atomID)]
           
-          let delta = siteCenter - atomCenter
-          let score0 = (orbital0 * delta).sum()
-          let score1 = (orbital1 * delta).sum()
+          let delta = siteCenter - atom.position
+          let score0 = (orbitalList[0] * delta).sum()
+          let score1 = (orbitalList[1] * delta).sum()
           
           // Use a scoring function to match the collision to an orbital.
           if score0 > score1 {
@@ -273,16 +270,20 @@ extension Compilation {
       case 2:
         let siteCenter = hydrogenSiteCenter(atomList)
         for atomID in atomList {
+          let atom = topology.atoms[Int(atomID)]
+          let delta = siteCenter - atom.position
+          
+          // TODO: Refactor this statement. It's too dense.
           let orbitalList = orbitalLists[Int(atomID)]
+//          var keyValuePairs = orbitalList.map { orbital -> (SIMD3<Float>, Float) in
+//            (orbital, (orbital * delta).sum())
+//          }
           
-          // TODO: Refactor this statement. It's too dense.
-          let delta = siteCenter - topology.atoms[Int(atomID)].position
-          
-          // TODO: Refactor this statement. It's too dense.
-          var keyValuePairs = orbitalList.map { orbital -> (SIMD3<Float>, Float) in
-            (orbital, (orbital * delta).sum())
+          var keyValuePairs: [(SIMD3<Float>, Float)] = []
+          for orbital in orbitalList {
+            let value = (orbital * delta).sum()
           }
-          keyValuePairs.sort(by: { $0.1 > $1.1 })
+//          keyValuePairs.sort(by: { $0.1 > $1.1 })
           
           let closestOrbital = keyValuePairs[0].0
           addBond(

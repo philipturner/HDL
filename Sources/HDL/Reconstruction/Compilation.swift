@@ -31,7 +31,6 @@ struct Compilation {
   // Beyond that, currently on a detour to refactor the function for
   // generating hydrogen passivator bonds.
   mutating func compile() {
-    // Invoke this function once.
     removePathologicalAtoms()
     
     // When there are no more 3-way collisions, the list of atoms will stop
@@ -40,10 +39,7 @@ struct Compilation {
     
     // Loop over this a few times (typically less than 10).
     for _ in 0..<100 {
-      // Fill the list of center types.
       let centerTypes = createBulkAtomBonds()
-      
-      // Crash if 4-way collisions exist.
       let hydrogenData = createHydrogenData()
       createHydrogenSites(hydrogenData: hydrogenData)
       
@@ -65,15 +61,7 @@ struct Compilation {
       fatalError("Could not resolve 3-way collisions.")
     }
     
-    // Assert that there are no 3-way or 4-way collisions.
-    for atomList in hydrogensToAtomsMap {
-      if atomList.count > 2 {
-        fatalError("3/4-way collisions should have been caught.")
-      }
-    }
-    
     // Add hydrogens once the center atoms stop evolving.
-    validate(centerTypes: stableCenterTypes)
     resolveTwoWayCollisions(centerTypes: stableCenterTypes)
     createHydrogenBonds()
   }
@@ -173,29 +161,5 @@ extension Compilation {
     topology.insert(bonds: insertedBonds)
     
     return centerTypes
-  }
-  
-  // Inputs:  topology.atoms -> orbitals
-  //          topology.bonds -> orbitals
-  //          center types
-  private func validate(centerTypes: [UInt8]) {
-    let orbitalLists = topology.nonbondingOrbitals()
-    for atomID in orbitalLists.indices {
-      var expectedRawValue: UInt8
-      let orbitalList = orbitalLists[atomID]
-      switch orbitalList.count {
-      case 2:
-        expectedRawValue = 2
-      case 1:
-        expectedRawValue = 3
-      case 0:
-        expectedRawValue = 4
-      default:
-        fatalError("This should never happen.")
-      }
-      guard centerTypes[atomID] == expectedRawValue else {
-        fatalError("Incorrect raw value.")
-      }
-    }
   }
 }

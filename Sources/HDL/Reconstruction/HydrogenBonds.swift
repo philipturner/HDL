@@ -114,8 +114,8 @@ extension Compilation {
           let atomID = data.w.bitPattern
           atomList.append(atomID)
         }
-        guard atomList.count <= 3 else {
-          fatalError("Edge case with 4 hydrogens in a site not handled yet.")
+        if atomList.count >= 4 {
+          fatalError("4-way collisions are not handled yet.")
         }
         
         // Sort the atom list, in-place.

@@ -99,7 +99,7 @@ extension BackBoardComponent {
   }
   
   mutating func compilationPass2() {
-    let orbitals = topology.nonbondingOrbitals()
+    let orbitalLists = topology.nonbondingOrbitals()
     let chBondLength = Element.carbon.covalentRadius +
     Element.hydrogen.covalentRadius
     
@@ -108,7 +108,8 @@ extension BackBoardComponent {
     
     for i in topology.atoms.indices {
       let atom = topology.atoms[i]
-      for orbital in orbitals[i] {
+      let orbitalList = orbitalLists[i]
+      for orbital in orbitalList {
         let position = atom.position + orbital * chBondLength
         let hydrogen = Atom(position: position, element: .hydrogen)
         let hydrogenID = topology.atoms.count + insertedAtoms.count

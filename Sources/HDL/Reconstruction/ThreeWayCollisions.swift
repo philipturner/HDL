@@ -7,7 +7,7 @@
 
 extension Compilation {
   mutating func resolveThreeWayCollisions() {
-    let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)
+    let orbitalLists = topology.nonbondingOrbitals(hybridization: .sp3)
     
     var insertedAtoms: [Atom] = []
     for hydrogenSiteID in hydrogensToAtomsMap.indices {
@@ -21,7 +21,7 @@ extension Compilation {
       var orbitalPermutationCount: SIMD3<Int> = .zero
       for laneID in 0..<3 {
         let atomID = atomList[laneID]
-        let orbitalList = orbitals[Int(atomID)]
+        let orbitalList = orbitalLists[Int(atomID)]
         orbitalPermutationCount[laneID] = orbitalList.count
       }
       
@@ -44,12 +44,12 @@ extension Compilation {
             let position2 = atom2.position
             let position3 = atom3.position
             
-            let orbitals1 = orbitals[Int(atomID1)]
-            let orbitals2 = orbitals[Int(atomID2)]
-            let orbitals3 = orbitals[Int(atomID3)]
-            let orbital1 = orbitals1[index1]
-            let orbital2 = orbitals2[index2]
-            let orbital3 = orbitals3[index3]
+            let orbitalList1 = orbitalLists[Int(atomID1)]
+            let orbitalList2 = orbitalLists[Int(atomID2)]
+            let orbitalList3 = orbitalLists[Int(atomID3)]
+            let orbital1 = orbitalList1[index1]
+            let orbital2 = orbitalList2[index2]
+            let orbital3 = orbitalList3[index3]
             let estimate1 = position1 + bulkBondLength * orbital1
             let estimate2 = position2 + bulkBondLength * orbital2
             let estimate3 = position3 + bulkBondLength * orbital3

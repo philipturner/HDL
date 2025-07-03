@@ -37,7 +37,7 @@ private func fmt(_ start: Double, _ end: Double) -> String {
 }
 
 final class PerformanceTests: XCTestCase {
-  static let printPerformanceSummary = true
+  static let printPerformanceSummary = false
   
   // Expected performance on original benchmarked computer (M1 Max):
   //

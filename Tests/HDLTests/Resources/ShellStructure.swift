@@ -26,26 +26,30 @@ struct ShellStructure {
   }
   
   mutating func compilationPass1() {
-    let matches = topology.match(topology.atoms)
-    var insertedBonds: [SIMD2<UInt32>] = []
-    for i in topology.atoms.indices {
-      let match = matches[i]
-      for j in match where i < j {
-        insertedBonds.append(
-          SIMD2(UInt32(i), UInt32(j)))
+    do {
+      let matches = topology.match(topology.atoms)
+      var insertedBonds: [SIMD2<UInt32>] = []
+      for i in topology.atoms.indices {
+        let match = matches[i]
+        for j in match where i < j {
+          insertedBonds.append(
+            SIMD2(UInt32(i), UInt32(j)))
+        }
       }
+      topology.insert(bonds: insertedBonds)
     }
-    topology.insert(bonds: insertedBonds)
-    insertedBonds = []
     
-    let orbitals = topology.nonbondingOrbitals()
+    let orbitalLists = topology.nonbondingOrbitals()
+    
     var insertedAtoms: [Atom] = []
+    var insertedBonds: [SIMD2<UInt32>] = []
     for i in topology.atoms.indices {
       let atom = topology.atoms[i]
       let bondLength = Element.hydrogen.covalentRadius +
       Element(rawValue: atom.atomicNumber)!.covalentRadius
       
-      for orbital in orbitals[i] {
+      let orbitalList = orbitalLists[i]
+      for orbital in orbitalList {
         let hydrogenID = topology.atoms.count + insertedAtoms.count
         let position = atom.position + bondLength * orbital
         let hydrogen = Atom(position: position, element: .hydrogen)

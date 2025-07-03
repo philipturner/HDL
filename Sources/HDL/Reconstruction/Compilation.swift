@@ -183,9 +183,9 @@ extension Compilation {
   //          topology.bonds -> orbitals
   //          center types
   private func validate(centerTypes: [UInt8]) {
-    let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)
-    for i in orbitals.indices {
-      let orbital = orbitals[i]
+    let orbitalLists = topology.nonbondingOrbitals(hybridization: .sp3)
+    for atomID in orbitalLists.indices {
+      let orbital = orbitalLists[atomID]
       var expectedRawValue: UInt8
       
       switch orbital.count {
@@ -199,7 +199,7 @@ extension Compilation {
         fatalError("This should never happen.")
       }
       
-      guard centerTypes[i] == expectedRawValue else {
+      guard centerTypes[atomID] == expectedRawValue else {
         fatalError("Incorrect raw value.")
       }
     }

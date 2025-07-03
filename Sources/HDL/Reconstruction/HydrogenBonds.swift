@@ -14,13 +14,14 @@ extension Compilation {
   //          topology.bonds -> orbitals
   // Outputs: [SIMD4<Float>]
   func createHydrogenData() -> [SIMD4<Float>] {
-    let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)
+    let orbitalLists = topology.nonbondingOrbitals(hybridization: .sp3)
     let bondLength = createBondLength()
     
     var output: [SIMD4<Float>] = []
     for i in topology.atoms.indices {
       let atom = topology.atoms[i]
-      for orbital in orbitals[i] {
+      let orbitalList = orbitalLists[i]
+      for orbital in orbitalList {
         let position = atom.position + bondLength * orbital
         let encodedID = Float(bitPattern: UInt32(i))
         output.append(SIMD4(position, encodedID))
@@ -140,7 +141,7 @@ extension Compilation {
   // Outputs: topology.atoms (insert)
   //          topology.bonds (insert)
   mutating func createHydrogenBonds() {
-    let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)
+    let orbitalLists = topology.nonbondingOrbitals(hybridization: .sp3)
     
     // TODO: Refactor to just return an atom and a bond.
     var insertedAtoms: [Atom] = []
@@ -167,11 +168,11 @@ extension Compilation {
     
     // TODO: Refactor to just return an atom and a bond.
     func handleSingleAtom(
-      sourceAtomID: UInt32,
-      neighborID: UInt32
+      hydrogenID: UInt32,
+      atomID: UInt32
     ) {
       // Create a list of collision marks.
-      let hydrogenList = atomsToHydrogensMap[Int(neighborID)]
+      let hydrogenList = atomsToHydrogensMap[Int(atomID)]
       let collisionMask: [Bool] = hydrogenList.map {
         let atomList = hydrogensToAtomsMap[Int($0)]
         switch atomList.count {
@@ -185,8 +186,8 @@ extension Compilation {
       }
       
       // Retrieve the list of orbitals.
-      let orbital = orbitals[Int(neighborID)]
-      guard orbital.count == hydrogenList.count else {
+      let orbitalList = orbitalLists[Int(atomID)]
+      guard orbitalList.count == hydrogenList.count else {
         fatalError("Unexpected orbital count.")
       }
       
@@ -197,12 +198,11 @@ extension Compilation {
           fatalError("This should never happen.")
         }
         addBond(
-          sourceAtomID: neighborID,
-          orbital: orbital[orbital.startIndex])
-        
+          sourceAtomID: atomID,
+          orbital: orbitalList[orbitalList.startIndex])
       case 2:
-        let orbital0 = orbital[orbital.startIndex]
-        let orbital1 = orbital[orbital.endIndex - 1]
+        let orbital0 = orbitalList[orbitalList.startIndex]
+        let orbital1 = orbitalList[orbitalList.endIndex - 1]
         
         if collisionMask[0] && collisionMask[1] {
           fatalError("This should never happen.")
@@ -211,55 +211,50 @@ extension Compilation {
           (collisionMask[0]) ? hydrogenList[0] : hydrogenList[1]
           let nonCollisionID =
           (collisionMask[0]) ? hydrogenList[1] : hydrogenList[0]
-          
-          // Remove this check; instead leave a comment about why the condition
-          // is guaranteed.
-          guard sourceAtomID == nonCollisionID,
-                sourceAtomID != collisionID else {
-            fatalError("Unexpected atom IDs for collision.")
+          guard hydrogenID == nonCollisionID,
+                hydrogenID != collisionID else {
+            fatalError("Unexpected hydrogen IDs for collision.")
           }
           
           let atomList = hydrogensToAtomsMap[Int(collisionID)]
           let siteCenter = hydrogenSiteCenter(atomList)
-          let neighborCenter = topology.atoms[Int(neighborID)].position
+          let atomCenter = topology.atoms[Int(atomID)].position
           
-          let delta = siteCenter - neighborCenter
+          let delta = siteCenter - atomCenter
           let score0 = (orbital0 * delta).sum()
           let score1 = (orbital1 * delta).sum()
           
           // Use a scoring function to match the collision to an orbital.
           if score0 > score1 {
             addBond(
-              sourceAtomID: neighborID,
+              sourceAtomID: atomID,
               orbital: orbital1)
           } else if score0 < score1 {
             addBond(
-              sourceAtomID: neighborID,
+              sourceAtomID: atomID,
               orbital: orbital0)
           } else {
             fatalError("Scores were equal.")
           }
         } else {
           // Assign the first hydrogen in the list to the first orbital.
-          if sourceAtomID == hydrogenList[0] {
+          if hydrogenID == hydrogenList[0] {
             addBond(
-              sourceAtomID: neighborID,
+              sourceAtomID: atomID,
               orbital: orbital0)
           } else {
             addBond(
-              sourceAtomID: neighborID,
+              sourceAtomID: atomID,
               orbital: orbital1)
           }
         }
-        
       default:
-        fatalError("Large hydrogen lists not handled yet.")
+        fatalError("Unexpected size for hydrogen list.")
       }
     }
     
-    // High-level specification of the algorithm structure.
-    for i in hydrogensToAtomsMap.indices {
-      let atomList = hydrogensToAtomsMap[i]
+    for hydrogenID in hydrogensToAtomsMap.indices {
+      let atomList = hydrogensToAtomsMap[hydrogenID]
       guard atomList.count > 0 else {
         // This collision was resolved.
         continue
@@ -269,14 +264,18 @@ extension Compilation {
       case 1:
         // Move this out of the conditional statement for legibility.
         handleSingleAtom(
-          sourceAtomID: UInt32(i),
-          neighborID: atomList[0])
+          hydrogenID: UInt32(hydrogenID),
+          atomID: atomList[0])
       case 2:
         let siteCenter = hydrogenSiteCenter(atomList)
         for atomID in atomList {
-          let orbital = orbitals[Int(atomID)]
+          let orbitalList = orbitalLists[Int(atomID)]
+          
+          // TODO: Refactor this statement. It's too dense.
           let delta = siteCenter - topology.atoms[Int(atomID)].position
-          var keyValuePairs = orbital.map { orbital -> (SIMD3<Float>, Float) in
+          
+          // TODO: Refactor this statement. It's too dense.
+          var keyValuePairs = orbitalList.map { orbital -> (SIMD3<Float>, Float) in
             (orbital, (orbital * delta).sum())
           }
           keyValuePairs.sort(by: { $0.1 > $1.1 })

@@ -7,7 +7,7 @@ import Numerics
 // file for better organization.
 
 final class MatchTests: XCTestCase {
-  static let printPerformanceSummary = true
+  static let printPerformanceSummary = false
   
   // We need to run performance tests of Topology.match, to ensure the
   // acceleration algorithm is working properly. One could imagine subtle bugs
@@ -297,14 +297,17 @@ final class MatchTests: XCTestCase {
       
       // Define the hydrogen placement distance and the search radius for a
       // subsequent step.
-      var ccBondLength = Constant(.square) { .elemental(.carbon) }
-      ccBondLength *= Float(3).squareRoot() / 4
+      func createCCBondLength() -> Float {
+        var output = Constant(.square) { .elemental(.carbon) }
+        output *= Float(3).squareRoot() / 4
+        return output
+      }
+      let ccBondLength = createCCBondLength()
       
-      // Generate hydrogens and de-duplicate them.
+      // Generate the hydrogens.
       var hydrogenTopology = Topology()
       do {
         let orbitals = topology.nonbondingOrbitals()
-        
         var insertedAtoms: [Atom] = []
         for i in topology.atoms.indices {
           let atom = topology.atoms[i]
@@ -315,7 +318,10 @@ final class MatchTests: XCTestCase {
           }
         }
         hydrogenTopology.insert(atoms: insertedAtoms)
-        
+      }
+      
+      // De-duplicate the hydrogens.
+      do {
         let start = cross_platform_media_time()
         let matches = hydrogenTopology.match(
           hydrogenTopology.atoms, algorithm: .absoluteRadius(0.020))

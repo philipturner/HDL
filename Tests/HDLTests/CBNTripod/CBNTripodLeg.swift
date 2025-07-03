@@ -159,13 +159,15 @@ struct CBNTripodLeg: CBNTripodComponent {
     let cfBondLength: Float = 1.3563 / 10 // xTB
     
     let atomsToAtomsMap = topology.map(.atoms, to: .atoms)
-    let orbitals = topology.nonbondingOrbitals(hybridization: .sp2)
+    let orbitalLists = topology.nonbondingOrbitals(hybridization: .sp2)
     
     var insertedAtoms: [Atom] = []
     var insertedBonds: [SIMD2<UInt32>] = []
     for i in topology.atoms.indices {
       let atom = topology.atoms[i]
-      if let orbital = orbitals[i].first {
+      let orbitalList = orbitalLists[i]
+      
+      if let orbital = orbitalList.first {
         if orbital.x < 0 {
           // Add a hydrogen to the left.
           let position = atom.position + orbital * chBondLength

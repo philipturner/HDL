@@ -77,6 +77,7 @@ struct Compilation {
 // MARK: - Utilities
 
 extension Compilation {
+  // Place hydrogens at the C-C bond length instead of the C-H bond length.
   func createBondLength() -> Float {
     var bondLength: Float
     switch material {
@@ -89,6 +90,10 @@ extension Compilation {
   }
   
   // Remove atoms with less than two covalent bonds.
+  //
+  // Inputs:  material
+  //          topology.atoms
+  // Outputs: topology.atoms (remove)
   private mutating func removePathologicalAtoms() {
     // Loop over this a few times (typically less than 10).
     var converged = false
@@ -124,6 +129,10 @@ extension Compilation {
   // Form all center atom bonds in the lattice interior.
   //
   // Returns the center type of each atom.
+  //
+  // Inputs:  material
+  //          topology.atoms
+  // Outputs: topology.bonds (insert)
   private mutating func createBulkAtomBonds() -> [UInt8] {
     let bondLength = createBondLength()
     let matches = topology.match(

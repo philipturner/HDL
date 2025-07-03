@@ -8,6 +8,11 @@
 extension Compilation {
   // A reduced form each hydrogen atom, with the 4th vector slot storing
   // the index of the carbon that spawned it.
+  //
+  // Inputs:  material
+  //          topology.atoms
+  //          topology.bonds
+  // Outputs: [SIMD4<Float>]
   func createHydrogenData() -> [SIMD4<Float>] {
     let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)
     let bondLength = createBondLength()
@@ -24,6 +29,9 @@ extension Compilation {
     return output
   }
   
+  // Inputs:  topology.atoms
+  //          list of 1-3 indices
+  // Outputs: SIMD3<Float>
   private func hydrogenSiteCenter(_ atomList: [UInt32]) -> SIMD3<Float> {
     var center: SIMD3<Float> = .zero
     for atomID in atomList {
@@ -34,8 +42,8 @@ extension Compilation {
     return center
   }
   
-  // Form the hydrogen sites. Place hydrogens at the C-C bond length instead of
-  // the C-H bond length.
+  // Inputs:  hydrogenData
+  // Outputs:
   mutating func createHydrogenSites(
     hydrogenData: [SIMD4<Float>]
   ) {

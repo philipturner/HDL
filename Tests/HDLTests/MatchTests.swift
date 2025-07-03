@@ -295,23 +295,25 @@ final class MatchTests: XCTestCase {
         topology.remove(atoms: removedAtoms)
       }
       
-      // Define the hydrogen placement distance and the search radius for a
-      // subsequent step.
+      // Utility function for materializing the C-C bond length, according to
+      // the diamond lattice constant.
       func createCCBondLength() -> Float {
         var output = Constant(.square) { .elemental(.carbon) }
         output *= Float(3).squareRoot() / 4
         return output
       }
-      let ccBondLength = createCCBondLength()
       
       // Generate the hydrogens.
       var hydrogenTopology = Topology()
       do {
-        let orbitals = topology.nonbondingOrbitals()
+        let orbitalLists = topology.nonbondingOrbitals()
+        let ccBondLength = createCCBondLength()
+        
         var insertedAtoms: [Atom] = []
         for i in topology.atoms.indices {
           let atom = topology.atoms[i]
-          for orbital in orbitals[i] {
+          let orbitalList = orbitalLists[i]
+          for orbital in orbitalList {
             let position = atom.position + orbital * ccBondLength
             let hydrogen = Atom(position: position, element: .hydrogen)
             insertedAtoms.append(hydrogen)
@@ -351,7 +353,7 @@ final class MatchTests: XCTestCase {
         let start = cross_platform_media_time()
         _ = topology.match(
           hydrogenTopology.atoms,
-          algorithm: .absoluteRadius(1.1 * ccBondLength))
+          algorithm: .absoluteRadius(1.1 * createCCBondLength()))
         let end = cross_platform_media_time()
         summary.hcMetrics.append(
           SIMD3(

@@ -49,7 +49,7 @@ final class ReconstructionTests: XCTestCase {
     let orbitalLists = topology.nonbondingOrbitals()
     var hasUnfilledValences = false
     for atomID in topology.atoms.indices {
-      let orbitalList = orbitals[atomID]
+      let orbitalList = orbitalLists[atomID]
       if orbitalList.count > 0 {
         hasUnfilledValences = true
       }

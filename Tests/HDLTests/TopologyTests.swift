@@ -492,243 +492,168 @@ final class TopologyTests: XCTestCase {
     }
   }
   
-  // Test both cubic diamond (only sidewall or malformed carbons) and
-  // lonsdaleite (only bridgehead carbons). For the sidewall carbons, assert
-  // that the majority of generated hydrogens physically overlap a neighbor.
-  func testNonbondingOrbitals() throws {
-    func carbonTypeSummary(_ stats: SIMD8<Int>) -> [String] {
-      var passivatedCarbonCount = 0
-      var totalCarbonCount = 0
-      passivatedCarbonCount += stats[1] + stats[2] + stats[3]
-      totalCarbonCount += passivatedCarbonCount
-      totalCarbonCount += stats[0] + stats[4]
-      passivatedCarbonCount = max(1, passivatedCarbonCount)
+  // Test lonsdaleite and bridgehead carbons. Assert that a small fraction of
+  // the carbons are sidewall, but none are malformed.
+  func testNonbondingOrbitalsLonsdaleite() throws {
+    let lonsdaleite = Lonsdaleite()
+    var topology = Topology()
+    topology.insert(atoms: lonsdaleite.atoms)
+    topology.insert(bonds: lonsdaleite.bonds)
+    
+    let hydrogenIndices = lonsdaleite.atoms.indices.filter {
+      lonsdaleite.atoms[$0].atomicNumber == 1
+    }
+    topology.remove(atoms: hydrogenIndices.map(UInt32.init))
+    
+    let matches = topology.match(
+      topology.atoms, algorithm: .covalentBondLength(1.1))
+    let atomsToAtomsMap = topology.map(.atoms, to: .atoms)
+    let orbitalLists = topology.nonbondingOrbitals()
+    XCTAssertEqual(matches.count, atomsToAtomsMap.count)
+    XCTAssertGreaterThan(matches.count, 0)
+    
+    var hydrogenTopology = Topology()
+    hydrogenTopology.insert(atoms: lonsdaleite.atoms.filter {
+      $0.atomicNumber == 1
+    })
+    let hydrogenMatches = hydrogenTopology.match(topology.atoms)
+    XCTAssertGreaterThan(hydrogenTopology.atoms.count, 0)
+    XCTAssertEqual(hydrogenMatches.count, topology.atoms.count)
+    
+    var stats: SIMD8<Int> = .zero
+    for i in topology.atoms.indices {
+      let matchesRange = matches[i]
+      let neighborList = atomsToAtomsMap[i]
+      XCTAssertEqual(matchesRange.count - 1, neighborList.count)
       
-      var lines: [String] = []
-      lines.append(
-        "type      " + " | " + "count" + " | " + "total" + " | " + "passivated")
-      lines.append(
-        "----------" + " | " + "-----" + " | " + "-----" + " | " + "-----")
-      
-      for i in 0...4 {
-        var output: String
-        switch i {
-        case 0: output = "malformed "
-        case 1: output = "primary   "
-        case 2: output = "sidewall  "
-        case 3: output = "bridgehead"
-        case 4: output = "bulk      "
-        default:
-          fatalError("This should never happen.")
+      for j in (matchesRange.startIndex+1)..<matchesRange.endIndex {
+        var matchCount: Int = 0
+        for k in neighborList.indices {
+          if matchesRange[j] == neighborList[k] {
+            matchCount += 1
+          }
         }
-        output += " | "
-        
-        let total = Float(stats[i]) / Float(totalCarbonCount)
-        let passivated = Float(stats[i]) / Float(passivatedCarbonCount)
-        var countRepr = "\(stats[i])"
-        var totalRepr = String(format: "%.1f", 100 * total) + "%"
-        var passivatedRepr = String(format: "%.1f", 100 * passivated) + "%"
-        while countRepr.count < 5 {
-          countRepr = " \(countRepr)"
-        }
-        while totalRepr.count < 5 {
-          totalRepr = " \(totalRepr)"
-        }
-        while passivatedRepr.count < 5 {
-          passivatedRepr = " \(passivatedRepr)"
-        }
-        
-        output += countRepr
-        output += " | "
-        output += totalRepr
-        output += " | "
-        if i >= 1 && i <= 3 {
-          output += passivatedRepr
-        }
-        lines.append(output)
+        XCTAssertEqual(matchCount, 1)
       }
-      return lines
+      
+      let orbitalList = orbitalLists[i]
+      let hydrogenRange = hydrogenMatches[i]
+      XCTAssertEqual(orbitalList.count, hydrogenRange.count)
+      XCTAssertEqual(orbitalList.count, 4 - neighborList.count)
+      
+      var orbitalDirections: [SIMD3<Float>] = []
+      var hydrogenDirections: [SIMD3<Float>] = []
+      
+      for j in orbitalList.indices {
+        let orbitalDirection = orbitalList[j]
+        let orbitalLengthSq = (orbitalDirection * orbitalDirection).sum()
+        orbitalDirections.append(orbitalDirection)
+        XCTAssertEqual(orbitalLengthSq, 1, accuracy: 1e-3)
+      }
+      for j in hydrogenRange.indices {
+        let hydrogenID = hydrogenRange[j]
+        let hydrogenAtom = hydrogenTopology.atoms[Int(hydrogenID)]
+        let carbonAtom = topology.atoms[Int(i)]
+        
+        var delta = hydrogenAtom.position - carbonAtom.position
+        let deltaLength = (delta * delta).sum().squareRoot()
+        delta /= deltaLength
+        hydrogenDirections.append(delta)
+        XCTAssertGreaterThan(deltaLength, 1e-3)
+      }
+      
+      for orbitalDirection in orbitalDirections {
+        var matchCount: Int = 0
+        for hydrogenDirection in hydrogenDirections {
+          let dotProduct = (orbitalDirection * hydrogenDirection).sum()
+          if abs(dotProduct - 1) < 1e-3 {
+            matchCount += 1
+          }
+        }
+        XCTAssertEqual(matchCount, 1)
+      }
+      stats[neighborList.count] += 1
     }
     
-    // Test lonsdaleite and bridgehead carbons. Assert that a small fraction of
-    // the carbons are sidewall, but none are malformed.
-    do {
-      let lonsdaleite = Lonsdaleite()
-      var topology = Topology()
-      topology.insert(atoms: lonsdaleite.atoms)
-      topology.insert(bonds: lonsdaleite.bonds)
+    XCTAssertEqual(stats[0], 0) // none are malformed
+    XCTAssertEqual(stats[1], 0) // none are primary
+    XCTAssertEqual(stats[2], 20) // a small fraction are sidewall
+    XCTAssertEqual(stats[3], 134) // predominantly bridgehead
+    XCTAssertEqual(stats[4], 170)
+  }
+  
+  // Test cubic diamond, malformed, and sidewall carbons. Assert that a small
+  // fraction are primary, 4 are malformed, and none are bridgehead.
+  func testNonbondingOrbitalsDiamond() throws {
+    let lattice = Lattice<Cubic> { h, k, l in
+      Bounds { 3 * h + 3 * k + 4 * l }
+      Material { .elemental(.carbon) }
+    }
+    var topology = Topology()
+    topology.insert(atoms: lattice.atoms)
+    let matches = topology.match(topology.atoms)
+    XCTAssertEqual(lattice.atoms.count, topology.atoms.count)
+    XCTAssertEqual(matches.count, topology.atoms.count)
+    
+    var statsBefore: SIMD8<Int> = .zero
+    for i in topology.atoms.indices {
+      let matchesRange = matches[i]
+      XCTAssertGreaterThanOrEqual(matchesRange.count, 1)
+      XCTAssertLessThanOrEqual(matchesRange.count, 5)
       
-      let hydrogenIndices = lonsdaleite.atoms.indices.filter {
-        lonsdaleite.atoms[$0].atomicNumber == 1
+      var bonds: [SIMD2<UInt32>] = []
+      for j in matchesRange[(matchesRange.startIndex+1)...] {
+        if j < UInt32(i) {
+          bonds.append(SIMD2(j, UInt32(i)))
+        }
       }
-      topology.remove(atoms: hydrogenIndices.map(UInt32.init))
+      topology.insert(bonds: bonds)
       
-      let matches = topology.match(
-        topology.atoms, algorithm: .covalentBondLength(1.1))
-      let atomsToAtomsMap = topology.map(.atoms, to: .atoms)
-      let orbitals = topology.nonbondingOrbitals()
-      XCTAssertEqual(matches.count, atomsToAtomsMap.count)
-      XCTAssertGreaterThan(matches.count, 0)
-      
-      var hydrogenTopology = Topology()
-      hydrogenTopology.insert(atoms: lonsdaleite.atoms.filter {
-        $0.atomicNumber == 1
-      })
-      let hydrogenMatches = hydrogenTopology.match(topology.atoms)
-      XCTAssertGreaterThan(hydrogenTopology.atoms.count, 0)
-      XCTAssertEqual(hydrogenMatches.count, topology.atoms.count)
-      
-      var stats: SIMD8<Int> = .zero
-      for i in topology.atoms.indices {
-        let matchesRange = matches[i]
-        let neighborRange = atomsToAtomsMap[i]
-        XCTAssertEqual(matchesRange.count - 1, neighborRange.count)
-        
-        for j in (matchesRange.startIndex+1)..<matchesRange.endIndex {
-          var matchCount: Int = 0
-          for k in neighborRange.indices {
-            if matchesRange[j] == neighborRange[k] {
-              matchCount += 1
-            }
-          }
-          XCTAssertEqual(matchCount, 1)
-        }
-        
-        let orbitalsRange = orbitals[i]
-        let hydrogenRange = hydrogenMatches[i]
-        XCTAssertEqual(orbitalsRange.count, hydrogenRange.count)
-        XCTAssertEqual(orbitalsRange.count, 4 - neighborRange.count)
-        
-        var orbitalDirections: [SIMD3<Float>] = []
-        var hydrogenDirections: [SIMD3<Float>] = []
-        
-        for j in orbitalsRange.indices {
-          let orbitalDirection = orbitalsRange[j]
-          let orbitalLengthSq = (orbitalDirection * orbitalDirection).sum()
-          orbitalDirections.append(orbitalDirection)
-          XCTAssertEqual(orbitalLengthSq, 1, accuracy: 1e-3)
-        }
-        for j in hydrogenRange.indices {
-          let hydrogenID = hydrogenRange[j]
-          let hydrogenAtom = hydrogenTopology.atoms[Int(hydrogenID)]
-          let carbonAtom = topology.atoms[Int(i)]
-          
-          var delta = hydrogenAtom.position - carbonAtom.position
-          let deltaLength = (delta * delta).sum().squareRoot()
-          delta /= deltaLength
-          hydrogenDirections.append(delta)
-          XCTAssertGreaterThan(deltaLength, 1e-3)
-        }
-        
-        for orbitalDirection in orbitalDirections {
-          var matchCount: Int = 0
-          for hydrogenDirection in hydrogenDirections {
-            let dotProduct = (orbitalDirection * hydrogenDirection).sum()
-            if abs(dotProduct - 1) < 1e-3 {
-              matchCount += 1
-            }
-          }
-          XCTAssertEqual(matchCount, 1)
-        }
-        stats[neighborRange.count] += 1
-      }
-      
-#if false
-      let lines = carbonTypeSummary(stats)
-      print()
-      print("lonsdaleite:")
-      for line in lines {
-        print(line)
-      }
-#endif
-      XCTAssertEqual(stats[0], 0) // none are malformed
-      XCTAssertEqual(stats[1], 0) // none are primary
-      XCTAssertEqual(stats[2], 20) // a small fraction are sidewall
-      XCTAssertEqual(stats[3], 134) // predominantly bridgehead
-      XCTAssertEqual(stats[4], 170)
+      statsBefore[matchesRange.count - 1] += 1
     }
     
-    // Test cubic diamond, malformed, and sidewall carbons. Assert that a small
-    // fraction are primary, 4 are malformed, and none are bridgehead.
-    do {
-      let lattice = Lattice<Cubic> { h, k, l in
-        Bounds { 3 * h + 3 * k + 4 * l }
-        Material { .elemental(.carbon) }
-      }
-      var topology = Topology()
-      topology.insert(atoms: lattice.atoms)
-      let matches = topology.match(topology.atoms)
-      XCTAssertEqual(lattice.atoms.count, topology.atoms.count)
-      XCTAssertEqual(matches.count, topology.atoms.count)
+    // The topology is not sorted when we create these orbitals. This is
+    // different from the conditions for generating lonsdaleite in the
+    // unit test 'testMatchLonsdaleite()'.
+    let atomsToAtomsMap = topology.map(.atoms, to: .atoms)
+    let orbitalsList = topology.nonbondingOrbitals()
+    XCTAssertEqual(atomsToAtomsMap.count, topology.atoms.count)
+    XCTAssertEqual(orbitalsList.count, topology.atoms.count)
+    XCTAssertGreaterThan(orbitalsList.count, 0)
+    
+    var stats: SIMD8<Int> = .zero
+    for i in topology.atoms.indices {
+      let matchesRange = matches[i]
+      let neighborList = atomsToAtomsMap[i]
+      let orbitalList = orbitalsList[i]
+      XCTAssertEqual(matchesRange.count - 1, neighborList.count)
       
-      var statsBefore: SIMD8<Int> = .zero
-      for i in topology.atoms.indices {
-        let matchesRange = matches[i]
-        XCTAssertGreaterThanOrEqual(matchesRange.count, 1)
-        XCTAssertLessThanOrEqual(matchesRange.count, 5)
-        
-        var bonds: [SIMD2<UInt32>] = []
-        for j in matchesRange[(matchesRange.startIndex+1)...] {
-          if j < UInt32(i) {
-            bonds.append(SIMD2(j, UInt32(i)))
-          }
-        }
-        topology.insert(bonds: bonds)
-        
-        statsBefore[matchesRange.count - 1] += 1
+      var expectedOrbitals: Int
+      switch neighborList.count {
+      case 0: expectedOrbitals = 0
+      case 1: expectedOrbitals = 0
+      case 2: expectedOrbitals = 2
+      case 3: expectedOrbitals = 1
+      case 4: expectedOrbitals = 0
+      default:
+        fatalError("This should never happen.")
       }
+      XCTAssertEqual(orbitalList.count, expectedOrbitals)
       
-      // The topology is not sorted when we create these orbitals. This is
-      // different from the conditions for generating lonsdaleite in the
-      // unit test 'testMatchLonsdaleite()'.
-      let atomsToAtomsMap = topology.map(.atoms, to: .atoms)
-      let orbitals = topology.nonbondingOrbitals()
-      XCTAssertEqual(atomsToAtomsMap.count, topology.atoms.count)
-      XCTAssertEqual(orbitals.count, topology.atoms.count)
-      XCTAssertGreaterThan(orbitals.count, 0)
-      
-      var stats: SIMD8<Int> = .zero
-      for i in topology.atoms.indices {
-        let matchesRange = matches[i]
-        let neighborRange = atomsToAtomsMap[i]
-        let orbitalsRange = orbitals[i]
-        XCTAssertEqual(matchesRange.count - 1, neighborRange.count)
-        
-        var expectedOrbitals: Int
-        switch neighborRange.count {
-        case 0: expectedOrbitals = 0
-        case 1: expectedOrbitals = 0
-        case 2: expectedOrbitals = 2
-        case 3: expectedOrbitals = 1
-        case 4: expectedOrbitals = 0
-        default:
-          fatalError("This should never happen.")
-        }
-        XCTAssertEqual(orbitalsRange.count, expectedOrbitals)
-        
-        stats[neighborRange.count] += 1
-      }
-      
-      // Assert that the statistics before and after C-C bond generation are the
-      // same.
-      for i in 0...4 {
-        XCTAssertEqual(statsBefore[i], stats[i])
-      }
-      
-#if false
-      let lines = carbonTypeSummary(stats)
-      print()
-      print("cubic diamond:")
-      for line in lines {
-        print(line)
-      }
-#endif
-      XCTAssertEqual(stats[0], 4) // 4 are malformed
-      XCTAssertEqual(stats[1], 32) // a small fraction are primary
-      XCTAssertEqual(stats[2], 98) // predominantly sidewall
-      XCTAssertEqual(stats[3], 0) // none are bridgehead
-      XCTAssertEqual(stats[4], 231)
+      stats[neighborList.count] += 1
     }
+    
+    // Assert that the statistics before and after C-C bond generation are the
+    // same.
+    for i in 0...4 {
+      XCTAssertEqual(statsBefore[i], stats[i])
+    }
+    
+    XCTAssertEqual(stats[0], 4) // 4 are malformed
+    XCTAssertEqual(stats[1], 32) // a small fraction are primary
+    XCTAssertEqual(stats[2], 98) // predominantly sidewall
+    XCTAssertEqual(stats[3], 0) // none are bridgehead
+    XCTAssertEqual(stats[4], 231)
   }
   
   // Test what happens when storage types reach the limit of their capacity.
@@ -792,52 +717,4 @@ final class TopologyTests: XCTestCase {
     XCTAssertEqual(map8[7], 21 + 7)
     XCTAssertEqual(map9[7], 31 + 7)
   }
-  
-  // Implementation plan:
-  // - 1) Visualizer for Morton order and bond topology in GitHub gist. ✅
-  //   - 1.1) Test against Lattice -> Diamondoid reordering. ✅
-  //   - 1.2) Test against Topology.sort(). ✅
-  // - 2) Test simple diamond and lonsdaleite lattice formation. ✅
-  //   - 2.1) Demonstrate (100) surface reconstruction, validate that it's
-  //          accepted by MM4RigidBody. ✅
-  //   - 2.2) Add reference code to HDLTests, for generating lonsdaleite, cubic
-  //          diamond, and curved shell structures with the new compiler. ✅
-  //   - 2.3) Add reference code to HDLTests, for generating graphene thiol and
-  //          HAbst tripods with the new compiler. ✅
-  // - 3) Optimize the compiler.
-  //   - 3.1) Add performance test cases for some snippets of real-world code
-  //          from these experiments. ✅
-  //   - 3.2) Enumerate the time spent on different stages of compilation. ✅
-  //   - 3.3) Create an optimized match(), tuned against both extremes of search
-  //          radius and asymmetry. ✅
-  // - 4) Add performance test for the infamous nanofactory back board. ✅
-  
-  // Elaboration on sections 2, 3, and 4:
-  //
-  // Creating some demos for adding to HDL unit tests. Due to the volume of the
-  // code for (100) surface reconstruction, it cannot be added to the test suite.
-  // Therefore, I have to design an alternative strained shell structure built
-  // from hexagonal diamond. This alternative may not be manufacturable.
-  // - small lonsdaleite shell structure ✅
-  // - graphene thiol ✅
-  // - HAbst tripod ✅
-  //
-  // For performance tests, profile variable sizes of cubic diamond crystal.
-  // The following match operations are plausible during (100) reconstruction.
-  // - match carbons against carbons ✅
-  // - match a large number of duplicated hydrogens against each other ✅
-  //   - uses a small absolute radius ✅
-  // - match colliding hydrogens against each other and nearby carbons ✅
-  //   - not actually used, but a good test of asymmetry ✅
-  //
-  // Finally, a performance test of the nanofactory backboard that reports the
-  // time spent in each stage. This includes sorting.
-  // - gather quantitative statistics of how long it took to generate with the
-  //   old Diamondoid API ✅
-  // - create a unit test that would be adversely affected by a hypothesized
-  //   bug. This bug arises when we optimize Lattice<Hexagonal>. One of the
-  //   dimensions is handled incorrectly by the recursive O(nlogn) volume
-  //   narrowing algorithm. ✅
-  // - unit test the performance of all 3 pieces: the monolithic piece before
-  //   the design change, and the 2 pieces after the design change ✅
 }

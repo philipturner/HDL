@@ -223,6 +223,19 @@ final class ReconstructionTests: XCTestCase {
     XCTAssertEqual(topology.atoms.count, 5720)
     XCTAssertEqual(topology.bonds.count, 9697)
     PassivationTests.checkConnectivity(topology)
+    
+    // Save to a file.
+    //
+    // The overlapping hydrogens are all at the end of a dimer row. Instead of
+    // the final atom having 2 hydrogens (like a secondary carbon), both of
+    // them are repelled away from the nearest dimer.
+//    do {
+//      print("HELLO WORLD")
+//      let string = TutorialTests.exportToXYZ(topology.atoms)
+//      let data = string.data(using: .utf8)
+//      let filePath = "/Users/philipturner/Desktop/file.xyz"
+//      try! FileManager.default.createFile(atPath: filePath, contents: data)
+//    }
   }
   
   #endif

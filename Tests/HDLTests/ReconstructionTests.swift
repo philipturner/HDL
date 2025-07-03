@@ -117,9 +117,6 @@ final class ReconstructionTests: XCTestCase {
   // position in the absence of surface reconstruction. Ensure it agrees with
   // actual placed hydrogens in a primitive passivation algorithm that
   // generates a C(100)-(1×1) surface.
-  //
-  // Is it possible to completely isolate the H-passivation functionality from
-  // the surface reconstruction functionality?
   
   func testReproducerBefore() throws {
     let lattice = Lattice<Cubic> { h, k, l in

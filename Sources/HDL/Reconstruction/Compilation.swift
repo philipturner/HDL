@@ -78,6 +78,9 @@ struct Compilation {
 
 extension Compilation {
   // Place hydrogens at the C-C bond length instead of the C-H bond length.
+  //
+  // Inputs:  material
+  // Outputs: Float
   func createBondLength() -> Float {
     var bondLength: Float
     switch material {
@@ -91,7 +94,7 @@ extension Compilation {
   
   // Remove atoms with less than two covalent bonds.
   //
-  // Inputs:  material
+  // Inputs:  material / bond length
   //          topology.atoms
   // Outputs: topology.atoms (remove)
   private mutating func removePathologicalAtoms() {
@@ -130,7 +133,7 @@ extension Compilation {
   //
   // Returns the center type of each atom.
   //
-  // Inputs:  material
+  // Inputs:  material / bond length
   //          topology.atoms
   // Outputs: topology.bonds (insert)
   private mutating func createBulkAtomBonds() -> [UInt8] {

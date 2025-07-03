@@ -227,6 +227,38 @@ extension Compilation {
           let score0 = (orbitalList[0] * delta).sum()
           let score1 = (orbitalList[1] * delta).sum()
           
+          var isCulprit = false
+          do {
+            var matchedChains: [SIMD4<UInt32>] = []
+            for chain in rawDimerChains {
+              let matches0 = any(chain .== atomList[0])
+              let matches1 = any(chain .== atomList[1])
+              if matches0 && matches1 {
+                matchedChains.append(chain)
+              }
+            }
+            
+            if matchedChains.count > 0 {
+              let usedChain = matchedChains[0]
+              if usedChain[1] == usedChain[2] {
+                if usedChain[2] == atomList[0] ||
+                    usedChain[3] == atomList[1] {
+                  print()
+                  print("skipped2")
+                  
+                  // Mechanism for finding 6 of the culprit hydrogen sites.
+                  isCulprit = true
+                  print(usedChain)
+                  
+                  print(siteCenter)
+                  print(atomID, atom.position, delta)
+                  print("  \(orbitalList[0]) \(score0)")
+                  print("  \(orbitalList[1]) \(score1)")
+                }
+              }
+            }
+          }
+          
           // orbitalList[1] is always causing the problem
           
           // Prefer the orbital that doesn't correspond to the collision site.
@@ -235,11 +267,17 @@ extension Compilation {
             addBond(
               sourceAtomID: atomID,
               orbital: orbitalList[1])
+            if isCulprit {
+              print("w \(orbitalList[1]) \(score1)")
+            }
           } else if score0 < score1 {
             // 15 hydrogens
             addBond(
               sourceAtomID: atomID,
               orbital: orbitalList[0])
+            if isCulprit {
+              print("r \(orbitalList[0]) \(score0)")
+            }
           } else {
             fatalError("Scores were equal.")
           }
@@ -288,15 +326,33 @@ extension Compilation {
             matchedChains.append(chain)
           }
         }
+        
+        var isCulprit = false
         if matchedChains.count > 0 {
           let usedChain = matchedChains[0]
-          
-          
+          if usedChain[1] == usedChain[2] {
+            if usedChain[2] == atomList[0] ||
+                usedChain[3] == atomList[1] {
+              print()
+              print("skipped")
+              
+              // Mechanism for finding 6 of the culprit hydrogen sites.
+              isCulprit = true
+              print(usedChain)
+            }
+          }
+        }
+        
+        if isCulprit {
+          print(siteCenter)
         }
         
         for atomID in atomList {
           let atom = topology.atoms[Int(atomID)]
           let delta = siteCenter - atom.position
+          if isCulprit {
+            print(atomID, atom.position, delta)
+          }
           
           var bestOrbital: SIMD3<Float>?
           var bestOrbitalID: Int?
@@ -306,10 +362,18 @@ extension Compilation {
           for orbitalID in orbitalList.indices {
             let orbital = orbitalList[orbitalID]
             let score = (orbital * delta).sum()
+            if isCulprit {
+              print("  \(orbital) \(score)")
+            }
+            
             if score > bestScore {
               bestOrbital = orbital
               bestOrbitalID = orbitalID
+              bestScore = score // solution to the bug?
             }
+          }
+          if isCulprit {
+            print("w \(bestOrbital!) \(bestScore)")
           }
           guard let bestOrbital,
                 let bestOrbitalID else {

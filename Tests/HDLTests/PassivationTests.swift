@@ -88,6 +88,23 @@ final class PassivationTests: XCTestCase {
     for hydrogenID in hydrogenAtoms.indices {
       let matchRange = matchRanges[hydrogenID]
       matchCountStats[matchRange.count] += 1
+      
+      if matchRange.count == 1 {
+        let match = matchRange[matchRange.startIndex]
+        guard hydrogenID == match else {
+          fatalError("This should never happen.")
+        }
+      } else if matchRange.count == 2 {
+        let match0 = matchRange[matchRange.startIndex]
+        let match1 = matchRange[matchRange.startIndex + 1]
+        guard hydrogenID == match0 ||
+                hydrogenID == match1 else {
+          fatalError("This should never happen.")
+        }
+        
+        let otherAtom = (hydrogenID == match0) ? match1 : match0
+        print(hydrogenID, otherAtom)
+      }
     }
     print(matchCountStats)
     print(hydrogenAtoms.count)

@@ -109,6 +109,15 @@ final class ReconstructionTests: XCTestCase {
   // test by matching hydrogen passivators extracted from the two different
   // crystals. Find the closest 1-2 hydrogens near each abnormally large
   // C-Si bond.
+  //
+  // Wait...it looks like the new bonding structure already affects the
+  // placement of the hydrogens? Calculate the theoretical hydrogen
+  // position in the absence of surface reconstruction. Ensure it agrees with
+  // actual placed hydrogens in a primitive passivation algorithm that
+  // generates a C(100)-(1×1) surface.
+  //
+  // Is it possible to completely isolate the H-passivation functionality from
+  // the surface reconstruction functionality?
   
   func testReproducerBefore() throws {
     let lattice = Lattice<Cubic> { h, k, l in

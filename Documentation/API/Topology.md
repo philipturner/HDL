@@ -17,12 +17,17 @@ extension Topology {
     case atoms
     case bonds
   }
+  
+  // Underlying storage is a fixed-width vector, maximum capacity is 8.
+  struct MapStorage: Collection {
+    subscript(position: Int) -> UInt32
+  }
 }
 
 func map(
   _ sourceNode: MapNode,
   to targetNode: MapNode
-) -> [ArraySlice<UInt32>]
+) -> [MapStorage]
 
 // Example of usage.
 var topology = Topology()
@@ -113,16 +118,21 @@ extension Topology {
     case sp2
     case sp3
   }
+  
+  // Underlying storage is a fixed-width vector, maximum capacity is 4.
+  struct OrbitalStorage: Collection {
+    subscript(position: Int) -> SIMD3<Float>
+  }
 }
 
 func nonbondingOrbitals(
   hybridization: OrbitalHybridization = .sp3
-) -> [ArraySlice<SIMD3<Float>>]
+) -> [OrbitalStorage]
 
 // Example of usage.
 let orbitalLists = topology.nonbondingOrbitals()
 let orbitalList = orbitalLists[atomID]
-let orbital = orbitalList[orbitalList.startIndex]
+let orbital = orbitalList[0]
 ```
 
 Directions for nonbonding orbitals in the valence shell. The directions are represented by normalized vectors.

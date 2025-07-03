@@ -46,7 +46,7 @@ final class ReconstructionTests: XCTestCase {
     XCTAssertEqual(topology.atoms.count, 384)
     XCTAssertEqual(topology.bonds.count, 564)
     
-    let orbitals = topology.nonbondingOrbitals()
+    let orbitalLists = topology.nonbondingOrbitals()
     var hasUnfilledValences = false
     for atomID in topology.atoms.indices {
       let orbitalList = orbitals[atomID]

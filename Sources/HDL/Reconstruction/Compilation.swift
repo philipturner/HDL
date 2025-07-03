@@ -25,6 +25,11 @@ struct Compilation {
   
   // TODO: Refactor the data mutations / state variables throughout this
   // algorithm, making it easier to work with and eventually modify.
+  // - Need to refactor this without introducing a performance regression.
+  // - Currently annotating every function with its input/output data.
+  //
+  // Beyond that, currently on a detour to refactor the function for
+  // generating hydrogen passivator bonds.
   mutating func compile() {
     // Invoke this function once.
     removePathologicalAtoms()

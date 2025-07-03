@@ -142,6 +142,9 @@ extension Compilation {
   mutating func createHydrogenBonds() {
     // Utility function: 'withClosestOrbitals'
     let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)
+    
+    // TODO: Move this into the loop, creating less clutter from the multiple
+    // utility functions.
     func withClosestOrbitals(
       _ atomList: [UInt32],
       _ closure: (UInt32, SIMD3<Float>) -> Void
@@ -208,14 +211,9 @@ extension Compilation {
         fatalError("Unexpected orbital count.")
       }
       
-      // Note: all control flow paths result in just 1 call to 'addBond'.
-      
-      // Switch over the different cases of the atom's hydrogen list.
+      // All control flow paths result in just 1 call to 'addBond'.
       switch hydrogenList.count {
       case 1:
-        // Easiest case:
-        //
-        // The list only has a single hydrogen.
         guard collisionMask[0] == false else {
           fatalError("This should never happen.")
         }
@@ -230,10 +228,6 @@ extension Compilation {
         if collisionMask[0] && collisionMask[1] {
           fatalError("This should never happen.")
         } else if collisionMask[0] || collisionMask[1] {
-          // If 1 orbital has a collision:
-          //
-          // Use a scoring function to match collision(s) to orbitals.
-          
           let collisionID =
           (collisionMask[0]) ? hydrogenList[0] : hydrogenList[1]
           let nonCollisionID =
@@ -251,6 +245,7 @@ extension Compilation {
           let score0 = (orbital0 * delta).sum()
           let score1 = (orbital1 * delta).sum()
           
+          // Use a scoring function to match the collision to an orbital.
           if score0 > score1 {
             addBond(
               sourceAtomID: neighborID,
@@ -263,11 +258,7 @@ extension Compilation {
             fatalError("Scores were equal.")
           }
         } else {
-          // If there are 2 orbitals and both are collision-free:
-          //
-          // The compiler uses a deterministic method to generate orbitals.
-          // Plus, the orbitals are already generated once. Assign the first
-          // hydrogen in the list to the first orbital.
+          // Assign the first hydrogen in the list to the first orbital.
           if sourceAtomID == hydrogenList[0] {
             addBond(
               sourceAtomID: neighborID,
@@ -304,30 +295,8 @@ extension Compilation {
             sourceAtomID: atomID,
             orbital: orbital)
         }
-      case 3:
-        // RED FLAG: This case is never triggered.
-        //
-        // Search for molecular structures that hit this case.
-        fatalError("This should never happen.")
-        
-        // Before invoking 'createHydrogenBonds', we check that every atomList
-        // in hydrogensToAtomsMap has 2 or less members. By definition, this
-        // case can never be triggered.
-        //
-        // It was likely an artifact of before the surface reconstruction
-        // algorithm could handle 3-way collisions. I remember an early phase
-        // where it worked, but only to a partial capacity. If so, this loop
-        // case should be seen as a debugging test diagnostic.
-        //
-        // This definitely looks like a pathway for when I didn't have a stable
-        // iterative solver for eliminating 3-way collisions.
-        withClosestOrbitals(atomList) { atomID, orbital in
-          addBond(
-            sourceAtomID: atomID,
-            orbital: orbital)
-        }
       default:
-        fatalError("This should never happen.")
+        fatalError("3/4-way collisions should have been caught.")
       }
     }
     topology.insert(atoms: insertedAtoms)

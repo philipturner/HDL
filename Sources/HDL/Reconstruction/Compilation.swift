@@ -114,8 +114,17 @@ extension Compilation {
           // Interesting: match.count == 5 appears regularly in my tests. It is
           // a normal geometry that the reconstruction algorithm must accept.
           // Ths case appears quite frequently as well, double-digit percent.
-        } else {
+          
+          // 5 matches -> quaternary
+          // 4 matches -> tertiary
+          // 3 matches -> secondary
+        } else if match.count > 0 {
+          // 2 matches -> primary
+          // 1 match   -> methane
           removedAtoms.append(UInt32(i))
+        } else {
+          // 0 matches -> impossible
+          fatalError("This should never happen.")
         }
       }
       

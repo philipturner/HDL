@@ -29,9 +29,6 @@ extension Compilation {
       // Append several groups of (..., H, C)
       let dimerChain = growDimerChain(
         initialDimerChain: initialDimerChain)
-      if dimerChain.count > 3 {
-        print("SIMD4<UInt32>(\(dimerChain[0]), \(dimerChain[2]), \(dimerChain[dimerChain.count - 3]), \(dimerChain[dimerChain.count - 1])),")
-      }
       
       // Even indices: carbon sites
       // Odd indices: hydrogen sites
@@ -50,6 +47,9 @@ extension Compilation {
       count: hydrogensToAtomsMap.count)
     for hydrogenChain in hydrogenChains {
       for i in hydrogenChain.indices {
+        // Each dimer chain appears twice. Here, we effectively discard half of
+        // the chains. The first one has its positions finalized. The second
+        // chain is not allowed to overwrite them.
         let hydrogenID = Int(hydrogenChain[i])
         guard collisionStates[hydrogenID] == .noCollision else {
           continue
@@ -136,8 +136,6 @@ extension Compilation {
         hydrogenID,
         atomList[1])
     } else if dimerGeometry.bothSidewall {
-      // There is a guaranteed order for the dimers in a chain. Search for a
-      // dimer at the start of this sequence, not the end.
       for atomID in atomList {
         let hydrogenList = atomsToHydrogensMap[Int(atomID)]
         guard hydrogenList.count == 2 else {

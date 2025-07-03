@@ -201,6 +201,7 @@ extension Compilation {
         guard collisionMask[0] == false else {
           fatalError("This should never happen.")
         }
+        
         addBond(
           sourceAtomID: atomID,
           orbital: orbitalList[0])
@@ -289,6 +290,7 @@ extension Compilation {
             fatalError("Could not find best orbital.")
           }
           
+          // 30 hydrogens from this group end up overlapping those from case 1
           addBond(
             sourceAtomID: atomID, // change 'sourceAtomID' to 'atomID'
             orbital: bestOrbital)

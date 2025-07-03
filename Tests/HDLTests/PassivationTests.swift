@@ -50,6 +50,33 @@ final class PassivationTests: XCTestCase {
   // generates a C(100)-(1×1) surface.
   
   #if RELEASE
-  // testCorrectHydrogenPlacement
+  func testCorrectHydrogenPlacement() throws {
+    let lattice = Self.commonLattice()
+    
+    var reconstruction = Reconstruction()
+    reconstruction.atoms = lattice.atoms
+    reconstruction.material = .checkerboard(.silicon, .carbon)
+    let topology = reconstruction.compile()
+    
+    var hydrogenAtoms: [Atom] = []
+    for atom in topology.atoms {
+      if atom.atomicNumber == 1 {
+        hydrogenAtoms.append(atom)
+      }
+    }
+    
+    var hydrogenTopology = Topology()
+    hydrogenTopology.atoms = hydrogenAtoms
+    let matchRanges = hydrogenTopology.match(
+      hydrogenAtoms, algorithm: .absoluteRadius(0.002))
+    
+    var matchCountStats: SIMD8<Int> = .zero
+    for hydrogenID in hydrogenAtoms.indices {
+      let matchRange = matchRanges[hydrogenID]
+      matchCountStats[matchRange.count] += 1
+    }
+    print(matchCountStats)
+    print(hydrogenAtoms.count)
+  }
   #endif
 }

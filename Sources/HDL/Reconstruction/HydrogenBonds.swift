@@ -148,13 +148,14 @@ extension Compilation {
     let orbitalLists = topology.nonbondingOrbitals()
     
     // TODO: Refactor to just return an atom and a bond.
+    // Call the function "createBond".
     var insertedAtoms: [Atom] = []
     var insertedBonds: [SIMD2<UInt32>] = []
     func addBond(
-      sourceAtomID: UInt32,
+      atomID: UInt32,
       orbital: SIMD3<Float>
     ) {
-      let atom = topology.atoms[Int(sourceAtomID)]
+      let atom = topology.atoms[Int(atomID)]
       guard let element = Element(rawValue: atom.atomicNumber) else {
         fatalError("This should never happen.")
       }
@@ -165,7 +166,7 @@ extension Compilation {
       let hydrogenID = topology.atoms.count + insertedAtoms.count
       
       let hydrogen = Atom(position: position, element: .hydrogen)
-      let bond = SIMD2(sourceAtomID, UInt32(hydrogenID))
+      let bond = SIMD2(atomID, UInt32(hydrogenID))
       insertedAtoms.append(hydrogen)
       insertedBonds.append(bond)
     }
@@ -195,14 +196,13 @@ extension Compilation {
         fatalError("Unexpected orbital count.")
       }
       
-      // All control flow paths result in just 1 call to 'addBond'.
       switch hydrogenList.count {
       case 1:
         guard collisionMask[0] == false else {
           fatalError("This should never happen.")
         }
         addBond(
-          sourceAtomID: atomID,
+          atomID: atomID,
           orbital: orbitalList[0])
       case 2:
         if collisionMask[0] && collisionMask[1] {
@@ -228,11 +228,11 @@ extension Compilation {
           // Prefer the orbital that doesn't correspond to the collision site.
           if score0 > score1 {
             addBond(
-              sourceAtomID: atomID,
+              atomID: atomID,
               orbital: orbitalList[1])
           } else if score0 < score1 {
             addBond(
-              sourceAtomID: atomID,
+              atomID: atomID,
               orbital: orbitalList[0])
           } else {
             fatalError("Scores were equal.")
@@ -243,11 +243,11 @@ extension Compilation {
           // TODO: Add a unit test to check whether this order is respected.
           if hydrogenID == hydrogenList[0] {
             addBond(
-              sourceAtomID: atomID,
+              atomID: atomID,
               orbital: orbitalList[0])
           } else {
             addBond(
-              sourceAtomID: atomID,
+              atomID: atomID,
               orbital: orbitalList[1])
           }
         }
@@ -290,7 +290,7 @@ extension Compilation {
           }
           
           addBond(
-            sourceAtomID: atomID, // change 'sourceAtomID' to 'atomID'
+            atomID: atomID, // change 'sourceAtomID' to 'atomID'
             orbital: bestOrbital)
         }
       default:

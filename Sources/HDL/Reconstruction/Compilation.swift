@@ -31,6 +31,9 @@ struct Compilation {
   //
   // Phase I:   Isolate 'resolveTwoWayCollisions', giving it sight of only
   //            the (mutable) atoms <-> hydrogens maps.
+  // Phase II:  Isolate 'createHydrogenBonds', attempt to remove the dependency
+  //            on the two maps. This is not yet a complete implementation of
+  //            a 'Passivation' API.
   mutating func compile() {
     removePathologicalAtoms()
     

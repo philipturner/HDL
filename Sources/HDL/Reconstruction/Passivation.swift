@@ -1,55 +1,69 @@
 //
-//  HydrogenBonds.swift
+//  Passivation.swift
 //  HDL
 //
 //  Created by Philip Turner on 7/2/25.
 //
 
-extension Compilation {
-  // Inputs: topology.atoms
-  private func hydrogenSiteCenter(_ atomList: [UInt32]) -> SIMD3<Float> {
+struct PassivationInput {
+  var atomsToHydrogensMap: [[UInt32]] = []
+  var hydrogensToAtomsMap: [[UInt32]] = []
+}
+
+struct PassivationResult {
+  var insertedAtoms: [Atom] = []
+  var insertedBonds: [SIMD2<UInt32>] = []
+}
+
+struct PassivationImpl {
+  var atoms: [Atom] = []
+  var bonds: [SIMD2<UInt32>] = []
+  
+  func createOrbitalLists() -> [Topology.OrbitalStorage] {
+    var topology = Topology()
+    topology.atoms = atoms
+    topology.bonds = bonds
+    return topology.nonbondingOrbitals()
+  }
+  
+  func hydrogenSiteCenter(_ atomList: [UInt32]) -> SIMD3<Float> {
     var center: SIMD3<Float> = .zero
     for atomID in atomList {
-      let atom = topology.atoms[Int(atomID)]
+      let atom = atoms[Int(atomID)]
       center += atom.position
     }
     center /= Float(atomList.count)
     return center
   }
   
-  // Inputs: topology.atoms
-  private func createHydrogen(
+  func createHydrogen(
     atomID: UInt32,
     orbital: SIMD3<Float>
   ) -> Atom {
-    let atom = topology.atoms[Int(atomID)]
-    guard let element = Element(rawValue: atom.atomicNumber) else {
+    let atom = atoms[Int(atomID)]
+    let atomElement = Element(rawValue: atom.atomicNumber)
+    guard let atomElement else {
       fatalError("This should never happen.")
     }
     
-    var bondLength = element.covalentRadius
+    var bondLength = atomElement.covalentRadius
     bondLength += Element.hydrogen.covalentRadius
+    
     let position = atom.position + bondLength * orbital
     return Atom(position: position, element: .hydrogen)
   }
   
-  // Inputs:  topology.atoms
-  //          topology.bonds -> orbitals
-  //          atomsToHydrogensMap
-  //          hydrogensToAtomsMap
-  // Outputs: topology.atoms (insert)
-  //          topology.bonds (insert)
-  mutating func createHydrogenBonds() {
-    let orbitalLists = topology.nonbondingOrbitals()
+  func compile(input: PassivationInput) -> PassivationResult {
+    let orbitalLists = createOrbitalLists()
     
     func createHydrogenOrbital(
       atomID: UInt32,
       hydrogenID: UInt32
     ) -> SIMD3<Float> {
       // Create a list of collision marks.
-      let hydrogenList = atomsToHydrogensMap[Int(atomID)]
+      let hydrogenList = input.atomsToHydrogensMap[Int(atomID)]
       let collisionMask: [Bool] = hydrogenList.map {
-        let atomList = hydrogensToAtomsMap[Int($0)]
+        let atomList = input.hydrogensToAtomsMap[Int($0)]
         switch atomList.count {
         case 0:
           fatalError("This should never happen.")
@@ -85,9 +99,9 @@ extension Compilation {
             fatalError("Unexpected hydrogen IDs for collision.")
           }
           
-          let atomList = hydrogensToAtomsMap[Int(collisionID)]
+          let atomList = input.hydrogensToAtomsMap[Int(collisionID)]
           let siteCenter = hydrogenSiteCenter(atomList)
-          let atom = topology.atoms[Int(atomID)]
+          let atom = atoms[Int(atomID)]
           
           let delta = siteCenter - atom.position
           let score0 = (orbitalList[0] * delta).sum()
@@ -116,18 +130,17 @@ extension Compilation {
       }
     }
     
-    var insertedAtoms: [Atom] = []
-    var insertedBonds: [SIMD2<UInt32>] = []
+    var output = PassivationResult()
     func appendBond(atomID: UInt32, hydrogen: Atom) {
-      let hydrogenID = topology.atoms.count + insertedAtoms.count
-      insertedAtoms.append(hydrogen)
+      let hydrogenID = atoms.count + output.insertedAtoms.count
+      output.insertedAtoms.append(hydrogen)
       
       let bond = SIMD2(atomID, UInt32(hydrogenID))
-      insertedBonds.append(bond)
+      output.insertedBonds.append(bond)
     }
     
-    for hydrogenID in hydrogensToAtomsMap.indices {
-      let atomList = hydrogensToAtomsMap[hydrogenID]
+    for hydrogenID in input.hydrogensToAtomsMap.indices {
+      let atomList = input.hydrogensToAtomsMap[hydrogenID]
       guard atomList.count > 0 else {
         // This collision was resolved.
         continue
@@ -149,7 +162,7 @@ extension Compilation {
       case 2:
         let siteCenter = hydrogenSiteCenter(atomList)
         for atomID in atomList {
-          let atom = topology.atoms[Int(atomID)]
+          let atom = atoms[Int(atomID)]
           let delta = siteCenter - atom.position
           
           var bestOrbital: SIMD3<Float>?
@@ -177,7 +190,6 @@ extension Compilation {
         fatalError("3/4-way collisions should have been caught.")
       }
     }
-    topology.insert(atoms: insertedAtoms)
-    topology.insert(bonds: insertedBonds)
+    return output
   }
 }

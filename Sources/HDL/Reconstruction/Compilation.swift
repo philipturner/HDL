@@ -35,12 +35,8 @@ struct Compilation {
   mutating func compile() {
     removePathologicalAtoms()
     
-    // When there are no more 3-way collisions, the list of atoms will stop
-    // growing. That means the center types will stabilize.
-    var stableCenterTypes: [UInt8]?
-    var stableSiteMap: HydrogenSiteMap?
-    
     // Loop over this a few times (typically less than 10).
+    var converged = false
     for _ in 0..<100 {
       let centerTypes = createBulkAtomBonds()
       let siteMap = createHydrogenSites()
@@ -52,39 +48,35 @@ struct Compilation {
           hydrogensToAtomsMap: siteMap.hydrogensToAtomsMap)
         
         // Reverse the actions from the start of this iteration.
+        //
+        // TODO: Isolate and clarify this state mutation further.
         topology.bonds = []
       } else {
-        stableCenterTypes = centerTypes
-        stableSiteMap = siteMap
+        var dimerProcessor = DimerProcessor()
+        dimerProcessor.atomsToHydrogensMap = siteMap.atomsToHydrogensMap
+        dimerProcessor.hydrogensToAtomsMap = siteMap.hydrogensToAtomsMap
+        
+        let hydrogenChains = dimerProcessor.createHydrogenChains(
+          centerTypes: centerTypes)
+        let insertedBonds = dimerProcessor.destroyCollisions(
+          hydrogenChains: hydrogenChains)
+        topology.insert(bonds: insertedBonds)
+        
+        converged = true
         break
       }
     }
-    guard let stableCenterTypes,
-          let stableSiteMap else {
+    guard converged else {
       fatalError("Could not resolve 3-way collisions.")
     }
     
-    do {
-      var dimerProcessor = DimerProcessor()
-      dimerProcessor.atomsToHydrogensMap = stableSiteMap.atomsToHydrogensMap
-      dimerProcessor.hydrogensToAtomsMap = stableSiteMap.hydrogensToAtomsMap
-      
-      let hydrogenChains = dimerProcessor.createHydrogenChains(
-        centerTypes: stableCenterTypes)
-      let bonds = dimerProcessor.destroyCollisions(
-        hydrogenChains: hydrogenChains)
-      topology.insert(bonds: bonds)
-    }
+    var passivation = PassivationImpl()
+    passivation.atoms = topology.atoms
+    passivation.bonds = topology.bonds
     
-    do {
-      var passivation = PassivationImpl()
-      passivation.atoms = topology.atoms
-      passivation.bonds = topology.bonds
-      
-      let result = passivation.compile()
-      topology.insert(atoms: result.insertedAtoms)
-      topology.insert(bonds: result.insertedBonds)
-    }
+    let result = passivation.compile()
+    topology.insert(atoms: result.insertedAtoms)
+    topology.insert(bonds: result.insertedBonds)
   }
 }
 

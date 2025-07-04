@@ -262,6 +262,16 @@ extension DimerProcessor {
     
     // Iteratively search through the topology, seeing whether the chain
     // of linked carbon atoms finally ends.
+    //
+    // Any unbounded iteration process needs a fail-safe. We cannot guarantee
+    // for sure that a bug somewhere down the line hasn't violated the
+    // conditions that guarantee convergence. It is extremely problematic to
+    // have CPU code freeze, with no way to detect the culprit without
+    // compiling everything in debug mode.
+    //
+    // Rough estimate: 4096 * 0.357 (diamond lattice constant) = 1.46 μm
+    // This number far exceeds the current estimate for practical world limit
+    // in the renderer (256 nm).
     var converged = false
     for _ in 0..<4096 {
       let dimer = nextDimer(

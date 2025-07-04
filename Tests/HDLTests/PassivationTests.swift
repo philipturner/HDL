@@ -137,18 +137,6 @@ final class PassivationTests: XCTestCase {
       XCTAssertLessThan(delta[1].magnitude, 0.001)
       XCTAssertLessThan(delta[2].magnitude, 0.001)
     }
-    
-    // Only store data for atoms & bonds that relate to hydrogens
-//    for atom in topology.atoms {
-//      guard atom.atomicNumber == 1 else {
-//        continue
-//      }
-//      
-//      func fmt(_ number: Float) -> String {
-//        String(format: "%.3f", number)
-//      }
-//      print("SIMD4<Float>(\(fmt(atom.x)), \(fmt(atom.y)), \(fmt(atom.z)), \(Int(atom.w))),")
-//    }
   }
 #endif
   

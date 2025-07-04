@@ -18,7 +18,7 @@ extension Compilation {
     for hydrogenSiteID in hydrogensToAtomsMap.indices {
       // The atom list is guaranteed to already be sorted.
       let atomList = hydrogensToAtomsMap[hydrogenSiteID]
-      guard atomList.count == 3 || atomList.count == 4 else {
+      guard atomList.count == 3 else {
         continue
       }
       
@@ -81,7 +81,7 @@ extension Compilation {
         fatalError("Could not find suitable orbital permutation.")
       }
       
-      // Iterate over all 3-4 atoms in the collision.
+      // Iterate over all 3 atoms in the collision.
       var atomicNumbersDict: [UInt8: Int] = [:]
       for atomID in atomList {
         let atom = topology.atoms[Int(atomID)]
@@ -93,17 +93,21 @@ extension Compilation {
         }
       }
       
-      // For checkerboard patterns, select the element that doesn't equal the
-      // neighbor atoms.
-      var maxAtomicNumber: UInt8 = .zero
-      var maxAtomicNumberCount: Int = .zero
-      for atomicNumber in atomicNumbersDict.keys {
-        let count = atomicNumbersDict[atomicNumber]!
-        if count > maxAtomicNumberCount {
-          maxAtomicNumberCount = count
-          maxAtomicNumber = atomicNumber
+      // Find the atomic number with the greatest frequency in the neighbors
+      // to the collision site.
+      func createDominantAtomicNumber() -> UInt8 {
+        var maxAtomicNumber: UInt8 = .zero
+        var maxAtomicNumberCount: Int = .zero
+        for atomicNumber in atomicNumbersDict.keys {
+          let count = atomicNumbersDict[atomicNumber]!
+          if count > maxAtomicNumberCount {
+            maxAtomicNumberCount = count
+            maxAtomicNumber = atomicNumber
+          }
         }
+        return maxAtomicNumber
       }
+      let dominantAtomicNumber = createDominantAtomicNumber()
       
       // Fill in with atoms of the assigned material.
       var chosenAtomicNumber: UInt8
@@ -111,9 +115,9 @@ extension Compilation {
       case .elemental(let element):
         chosenAtomicNumber = element.rawValue
       case .checkerboard(let element1, let element2):
-        if maxAtomicNumber == element1.rawValue {
+        if dominantAtomicNumber == element1.rawValue {
           chosenAtomicNumber = element2.rawValue
-        } else if maxAtomicNumber == element2.rawValue {
+        } else if dominantAtomicNumber == element2.rawValue {
           chosenAtomicNumber = element1.rawValue
         } else {
           fatalError("Could not resolve identity of inserted atom in checkerboard structure.")

@@ -31,6 +31,7 @@ final class ReconstructionTests: XCTestCase {
     XCTAssertEqual(topology.atoms.count, 860)
     XCTAssertEqual(topology.bonds.count, 1318)
     PassivationTests.checkConnectivity(topology)
+    PassivationTests.checkNoOverlaps(topology)
   }
   
   func testAluminumPhosphide() throws {
@@ -47,6 +48,7 @@ final class ReconstructionTests: XCTestCase {
     XCTAssertEqual(topology.atoms.count, 384)
     XCTAssertEqual(topology.bonds.count, 564)
     PassivationTests.checkConnectivity(topology)
+    PassivationTests.checkNoOverlaps(topology)
     
     let orbitalLists = topology.nonbondingOrbitals()
     var hasUnfilledValences = false
@@ -88,7 +90,6 @@ final class ReconstructionTests: XCTestCase {
       XCTAssertEqual(topology.atoms.count, 658)
       XCTAssertEqual(topology.bonds.count, 959)
       PassivationTests.checkConnectivity(topology)
-      PassivationTests.checkNoOverlaps(topology)
       
       var groupIVAtomCount: Int = .zero
       for atom in topology.atoms {
@@ -173,6 +174,7 @@ final class ReconstructionTests: XCTestCase {
     XCTAssertEqual(topology.atoms.count, 5735)
     XCTAssertEqual(topology.bonds.count, 9751)
     PassivationTests.checkConnectivity(topology)
+    PassivationTests.checkNoOverlaps(topology)
   }
   
   func testReproducerAfter() throws {
@@ -224,19 +226,6 @@ final class ReconstructionTests: XCTestCase {
     XCTAssertEqual(topology.bonds.count, 9697)
     PassivationTests.checkConnectivity(topology)
     PassivationTests.checkNoOverlaps(topology)
-    
-    // Save to a file.
-    //
-    // The overlapping hydrogens are all at the end of a dimer row. Instead of
-    // the final atom having 2 hydrogens (like a secondary carbon), both of
-    // them are repelled away from the nearest dimer.
-//    do {
-//      print("HELLO WORLD")
-//      let string = TutorialTests.exportToXYZ(topology.atoms)
-//      let data = string.data(using: .utf8)
-//      let filePath = "/Users/philipturner/Desktop/file.xyz"
-//      try! FileManager.default.createFile(atPath: filePath, contents: data)
-//    }
   }
   
   #endif

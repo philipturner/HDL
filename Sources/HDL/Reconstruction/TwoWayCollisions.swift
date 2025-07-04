@@ -48,8 +48,8 @@ extension Compilation {
     for hydrogenChain in hydrogenChains {
       for i in hydrogenChain.indices {
         // Each dimer chain appears twice. Here, we effectively discard half of
-        // the chains. The first one has its positions finalized. The second
-        // chain is not allowed to overwrite them.
+        // the chains. The first one has finalized its dimers. The second
+        // chain cannot overwrite them.
         let hydrogenID = Int(hydrogenChain[i])
         guard collisionStates[hydrogenID] == .noCollision else {
           continue

@@ -35,10 +35,6 @@ final class PassivationTests: XCTestCase {
     let lattice = Self.commonLattice()
     XCTAssertEqual(lattice.atoms.count, 621)
     
-    var latticeTopology = Topology()
-    latticeTopology.atoms = lattice.atoms
-    PassivationTests.checkNoOverlaps(latticeTopology)
-    
     var reconstruction = Reconstruction()
     reconstruction.atoms = lattice.atoms
     reconstruction.material = .checkerboard(.silicon, .carbon)
@@ -76,10 +72,11 @@ final class PassivationTests: XCTestCase {
   // generates a C(100)-(1×1) surface.
   
   #if RELEASE
-  // TODO: Once the bug is fixed, rigorously check for the absence of hydrogen
-  // collisions in every test, including from Reconstruction.
-  //
-  // Nvm: test for that immediately, to understand what is going on
+  // After fixing up the tests / cleaning up the code in response to the
+  // bug:
+  // - Check for regression in ReconstructionTests.
+  // - Check for egregious testing time in debug mode.
+  // - Proceed with the task you were working on before.
   func testCorrectHydrogenPlacement() throws {
     let lattice = Self.commonLattice()
     

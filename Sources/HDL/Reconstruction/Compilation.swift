@@ -31,6 +31,7 @@ struct Compilation {
   //            a 'Passivation' API.
   // Phase III: Minimize the persistence of the two maps across compilation
   //            steps.
+  // Phase IV:  Eliminate passivation from the library code.
   mutating func compile() {
     removePathologicalAtoms()
     

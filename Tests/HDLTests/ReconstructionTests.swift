@@ -227,6 +227,5 @@ final class ReconstructionTests: XCTestCase {
     PassivationTests.checkConnectivity(topology)
     PassivationTests.checkNoOverlaps(topology)
   }
-  
-  #endif
+#endif
 }

@@ -15,7 +15,7 @@ extension Compilation {
         continue
       }
       
-      // First elements: (C, H, C)
+      // First group: (C, H, C)
       let dimerGeometry = DimerGeometry(
         centerTypes: centerTypes,
         atomList: atomList)

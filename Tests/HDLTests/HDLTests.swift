@@ -372,7 +372,7 @@ final class HDLTests: XCTestCase {
   
   // This is disabled in debug mode, due to the high computational prefactor
   // of the numerous lattice intersections.
-  #if RELEASE
+#if RELEASE
   // This test is to ensure there are no bugs, if one attempts to optimize
   // intersections in 'Lattice<Hexagonal>' through sparsity.
   func testRodLogicHousing() throws {
@@ -382,5 +382,5 @@ final class HDLTests: XCTestCase {
     housing.compilationPass0()
     XCTAssertEqual(housing.topology.atoms.count, 14454)
   }
-  #endif
+#endif
 }

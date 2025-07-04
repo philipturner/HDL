@@ -52,26 +52,7 @@ final class PassivationTests: XCTestCase {
     XCTAssertEqual(hydrogenAtomCount, 232)
   }
   
-  // Measure the "extended volume" of the structure, whichever exact
-  // terminology was used in Nanosystems. Measure according to the center
-  // position of the atoms, not the edge of their atomic radius. Fluorine
-  // should have a larger volume than hydrogen, which has a larger volume
-  // than unpassivated. In all cases, the number of C-Si bonds is the same.
-  
-  // Test hydrogen passivation during vs. after the reconstruction. If done
-  // manually afterward, the "extended volume" should increase. In addition,
-  // the hydrogens within a dimer should grow closer. Implement this closeness
-  // test by matching hydrogen passivators extracted from the two different
-  // crystals. Find the closest 1-2 hydrogens near each abnormally large
-  // C-Si bond.
-  //
-  // Wait...it looks like the new bonding structure already affects the
-  // placement of the hydrogens? Calculate the theoretical hydrogen
-  // position in the absence of surface reconstruction. Ensure it agrees with
-  // actual placed hydrogens in a primitive passivation algorithm that
-  // generates a C(100)-(1×1) surface.
-  
-  #if RELEASE
+#if RELEASE
   // After fixing up the tests / cleaning up the code in response to the
   // bug:
   // - Check for regression in ReconstructionTests.
@@ -96,40 +77,36 @@ final class PassivationTests: XCTestCase {
     var hydrogenTopology = Topology()
     hydrogenTopology.atoms = hydrogenAtoms
     let matchRanges = hydrogenTopology.match(
-      hydrogenAtoms, algorithm: .absoluteRadius(0.002))
+      hydrogenAtoms, algorithm: .absoluteRadius(0.010))
     
     var matchCountStats: SIMD8<Int> = .zero
     for hydrogenID in hydrogenAtoms.indices {
       let matchRange = matchRanges[hydrogenID]
       matchCountStats[matchRange.count] += 1
-      
-//      if matchRange.count == 1 {
-//        let match = matchRange[matchRange.startIndex]
-//        guard hydrogenID == match else {
-//          fatalError("This should never happen.")
-//        }
-//      } else if matchRange.count == 2 {
-//        func getOtherHydrogenID() -> UInt32 {
-//          let match0 = matchRange[matchRange.startIndex]
-//          let match1 = matchRange[matchRange.startIndex + 1]
-//          guard hydrogenID == match0 ||
-//                  hydrogenID == match1 else {
-//            fatalError("This should never happen.")
-//          }
-//          return (hydrogenID == match0) ? match1 : match0
-//        }
-//        let otherHydrogenID = getOtherHydrogenID()
-////        print(hydrogenID, otherHydrogenID)
-//        
-//        let hydrogen = hydrogenAtoms[hydrogenID]
-//        let otherHydrogen = hydrogenAtoms[Int(otherHydrogenID)]
-////        print(hydrogen.position - otherHydrogen.position)
-//      }
     }
     XCTAssertEqual(hydrogenAtoms.count, 232)
     XCTAssertEqual(matchCountStats[0], 0)
     XCTAssertEqual(matchCountStats[1], 232)
     XCTAssertEqual(matchCountStats[2], 0)
   }
-  #endif
+  
+  // Measure the "extended volume" of the structure, whichever exact
+  // terminology was used in Nanosystems. Measure according to the center
+  // position of the atoms, not the edge of their atomic radius. Fluorine
+  // should have a larger volume than hydrogen, which has a larger volume
+  // than unpassivated. In all cases, the number of C-Si bonds is the same.
+  
+  // Test hydrogen passivation during vs. after the reconstruction. If done
+  // manually afterward, the "extended volume" should increase. In addition,
+  // the hydrogens within a dimer should grow closer. Implement this closeness
+  // test by matching hydrogen passivators extracted from the two different
+  // crystals. Find the closest 1-2 hydrogens near each abnormally large
+  // C-Si bond.
+  //
+  // Wait...it looks like the new bonding structure already affects the
+  // placement of the hydrogens? Calculate the theoretical hydrogen
+  // position in the absence of surface reconstruction. Ensure it agrees with
+  // actual placed hydrogens in a primitive passivation algorithm that
+  // generates a C(100)-(1×1) surface.
+#endif
 }

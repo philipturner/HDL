@@ -364,8 +364,8 @@ final class MatchTests: XCTestCase {
     }
   }
   
-  #if RELEASE
-  func testFlatSheetScaling() {
+#if RELEASE
+  func testFlatSheetScaling() throws {
     func reprUsPerAtom(_ microseconds: Int, _ atoms: Int) -> String {
       let units = "µs/atom"
       let value = Double(microseconds) / Double(atoms)
@@ -459,7 +459,7 @@ final class MatchTests: XCTestCase {
       }
     }
   }
-  #endif
+#endif
 }
 
 // MARK: - Performance Summary

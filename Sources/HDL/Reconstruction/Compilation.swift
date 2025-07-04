@@ -80,7 +80,19 @@ struct Compilation {
       hydrogensToAtomsMap = dimerProcessor.hydrogensToAtomsMap
     }
     
-    createHydrogenBonds()
+    do {
+      var passivation = PassivationImpl()
+      passivation.atoms = topology.atoms
+      passivation.bonds = topology.bonds
+      
+      var input = PassivationInput()
+      input.atomsToHydrogensMap = atomsToHydrogensMap
+      input.hydrogensToAtomsMap = hydrogensToAtomsMap
+      
+      let result = passivation.compile(input: input)
+      topology.insert(atoms: result.insertedAtoms)
+      topology.insert(bonds: result.insertedBonds)
+    }
   }
 }
 

@@ -9,11 +9,6 @@ struct Compilation {
   let material: MaterialType
   var topology: Topology
   
-  // Each atom has a list corresponding to it. That list is guaranteed to
-  // always be sorted in a deterministic order.
-  var hydrogensToAtomsMap: [[UInt32]] = []
-  var atomsToHydrogensMap: [[UInt32]] = []
-  
   init(
     atoms: [SIMD4<Float>],
     material: MaterialType
@@ -42,6 +37,7 @@ struct Compilation {
     // When there are no more 3-way collisions, the list of atoms will stop
     // growing. That means the center types will stabilize.
     var stableCenterTypes: [UInt8]?
+    var stableHydrogenSiteMap: HydrogenSiteMap?
     
     // Loop over this a few times (typically less than 10).
     for _ in 0..<100 {
@@ -63,7 +59,8 @@ struct Compilation {
         break
       }
     }
-    guard let stableCenterTypes else {
+    guard let stableCenterTypes,
+          let stableHydrogenSiteMap else {
       fatalError("Could not resolve 3-way collisions.")
     }
     

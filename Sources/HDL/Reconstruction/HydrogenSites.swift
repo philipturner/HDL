@@ -5,6 +5,11 @@
 //  Created by Philip Turner on 7/4/25.
 //
 
+struct HydrogenSiteMap {
+  var atomsToHydrogensMap: [[UInt32]] = []
+  var hydrogensToAtomsMap: [[UInt32]] = []
+}
+
 extension Compilation {
   // A reduced form each hydrogen atom, with the 4th vector slot storing
   // the index of the carbon that spawned it.
@@ -12,7 +17,7 @@ extension Compilation {
   // Inputs: material -> bond length
   //         topology.atoms
   //         topology.bonds -> orbitals
-  func createHydrogenData() -> [SIMD4<Float>] {
+  private func createHydrogenData() -> [SIMD4<Float>] {
     let orbitalLists = topology.nonbondingOrbitals()
     let bondLength = createBondLength()
     
@@ -30,32 +35,30 @@ extension Compilation {
     return output
   }
   
-  // Inputs:  hydrogenData
-  //          topology.atoms.count
-  // Outputs: atomsToHydrogensMap
-  //          hydrogensToAtomsMap (length determined here)
-  mutating func createHydrogenSites(
+  private static func createMatches(
     hydrogenData: [SIMD4<Float>]
-  ) {
-    guard hydrogensToAtomsMap.count == 0,
-          atomsToHydrogensMap.count == 0 else {
-      fatalError("Maps were not empty.")
+  ) -> [Topology.MatchStorage] {
+    let hydrogenAtoms = hydrogenData.map {
+      var atom = $0
+      atom.w = 1
+      return atom
     }
     
-    func createMatches() -> [Topology.MatchStorage] {
-      let hydrogenAtoms = hydrogenData.map {
-        var atom = $0
-        atom.w = 1
-        return atom
-      }
-      
-      // Create a transient topology to de-duplicate the hydrogens and merge
-      // references between them.
-      var matcher = Topology()
-      matcher.insert(atoms: hydrogenAtoms)
-      return matcher.match(
-        hydrogenAtoms, algorithm: .absoluteRadius(0.050))
-    }
+    // Create a transient topology to de-duplicate the hydrogens and merge
+    // references between them.
+    var matcher = Topology()
+    matcher.insert(atoms: hydrogenAtoms)
+    return matcher.match(
+      hydrogenAtoms, algorithm: .absoluteRadius(0.050))
+  }
+  
+  // Inputs:  material -> hydrogen data -> bond length
+  //          topology.atoms -> hydrogen data
+  //          topology.bonds -> hydrogen data -> orbitals
+  // Outputs: atomsToHydrogensMap
+  //          hydrogensToAtomsMap (length determined here)
+  func createHydrogenSites() -> HydrogenSiteMap {
+    let hydrogenData = createHydrogenData()
     
     func filter(
       matches: [Topology.MatchStorage]
@@ -82,17 +85,12 @@ extension Compilation {
       return output
     }
     
-    func createFilteredMatches() -> [Topology.MatchStorage] {
-      let matches = createMatches()
-      let filteredMatches = filter(matches: matches)
-      return filteredMatches
-    }
+    var output = HydrogenSiteMap()
+    output.atomsToHydrogensMap = Array(
+      repeating: [], count: topology.atoms.count)
     
-    // Initialize the hydrogen lists.
-    atomsToHydrogensMap = Array(repeating: [], count: topology.atoms.count)
-    
-    // Fill each list of hydrogens.
-    let filteredMatches = createFilteredMatches()
+    let matches = Self.createMatches(hydrogenData: hydrogenData)
+    let filteredMatches = filter(matches: matches)
     for match in filteredMatches {
       func createAtomList() -> [UInt32] {
         var atomList: [UInt32] = []
@@ -112,20 +110,21 @@ extension Compilation {
       
       // Integrate the atom list into the map.
       let atomList = createAtomList()
-      let hydrogenID = UInt32(hydrogensToAtomsMap.count)
-      hydrogensToAtomsMap.append(atomList)
+      let hydrogenID = UInt32(output.hydrogensToAtomsMap.count)
+      output.hydrogensToAtomsMap.append(atomList)
       
       // Mutate the hydrogen list.
       for j in atomList {
         // Appending to the array in-place has a measurable performance
         // improvement, compared to extract + modify + insert.
-        atomsToHydrogensMap[Int(j)].append(hydrogenID)
+        output.atomsToHydrogensMap[Int(j)].append(hydrogenID)
       }
     }
     
     // Sort each hydrogen list, in-place.
     for j in topology.atoms.indices {
-      atomsToHydrogensMap[Int(j)].sort()
+      output.atomsToHydrogensMap[Int(j)].sort()
     }
+    return output
   }
 }

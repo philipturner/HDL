@@ -106,31 +106,33 @@ final class PassivationTests: XCTestCase {
       let matchRange = matchRanges[hydrogenID]
       matchCountStats[matchRange.count] += 1
       
-      if matchRange.count == 1 {
-        let match = matchRange[matchRange.startIndex]
-        guard hydrogenID == match else {
-          fatalError("This should never happen.")
-        }
-      } else if matchRange.count == 2 {
-        func getOtherHydrogenID() -> UInt32 {
-          let match0 = matchRange[matchRange.startIndex]
-          let match1 = matchRange[matchRange.startIndex + 1]
-          guard hydrogenID == match0 ||
-                  hydrogenID == match1 else {
-            fatalError("This should never happen.")
-          }
-          return (hydrogenID == match0) ? match1 : match0
-        }
-        let otherHydrogenID = getOtherHydrogenID()
-//        print(hydrogenID, otherHydrogenID)
-        
-        let hydrogen = hydrogenAtoms[hydrogenID]
-        let otherHydrogen = hydrogenAtoms[Int(otherHydrogenID)]
-//        print(hydrogen.position - otherHydrogen.position)
-      }
+//      if matchRange.count == 1 {
+//        let match = matchRange[matchRange.startIndex]
+//        guard hydrogenID == match else {
+//          fatalError("This should never happen.")
+//        }
+//      } else if matchRange.count == 2 {
+//        func getOtherHydrogenID() -> UInt32 {
+//          let match0 = matchRange[matchRange.startIndex]
+//          let match1 = matchRange[matchRange.startIndex + 1]
+//          guard hydrogenID == match0 ||
+//                  hydrogenID == match1 else {
+//            fatalError("This should never happen.")
+//          }
+//          return (hydrogenID == match0) ? match1 : match0
+//        }
+//        let otherHydrogenID = getOtherHydrogenID()
+////        print(hydrogenID, otherHydrogenID)
+//        
+//        let hydrogen = hydrogenAtoms[hydrogenID]
+//        let otherHydrogen = hydrogenAtoms[Int(otherHydrogenID)]
+////        print(hydrogen.position - otherHydrogen.position)
+//      }
     }
-    print(matchCountStats)
-    print(hydrogenAtoms.count)
+    XCTAssertEqual(hydrogenAtoms.count, 232)
+    XCTAssertEqual(matchCountStats[0], 0)
+    XCTAssertEqual(matchCountStats[1], 232)
+    XCTAssertEqual(matchCountStats[2], 0)
   }
   #endif
 }

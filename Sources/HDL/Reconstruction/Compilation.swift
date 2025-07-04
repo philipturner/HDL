@@ -69,9 +69,9 @@ struct Compilation {
       
       let hydrogenChains = dimerProcessor.createHydrogenChains(
         centerTypes: stableCenterTypes)
-      let insertedBonds = dimerProcessor.destroyCollisions(
+      let bonds = dimerProcessor.destroyCollisions(
         hydrogenChains: hydrogenChains)
-      topology.insert(bonds: insertedBonds)
+      topology.insert(bonds: bonds)
       
       atomsToHydrogensMap = dimerProcessor.atomsToHydrogensMap
       hydrogensToAtomsMap = dimerProcessor.hydrogensToAtomsMap

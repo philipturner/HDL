@@ -50,10 +50,11 @@ final class PassivationTests: XCTestCase {
     
     let hydrogenAtomCount = topology.atoms.count - groupIVAtomCount
     XCTAssertEqual(hydrogenAtomCount, 232)
+    XCTAssertEqual(topology.bonds.count, 1270)
   }
   
 #if RELEASE
-  func testCorrectHydrogenPlacement() throws {
+  func testNoOverlaps() throws {
     let lattice = Self.commonLattice()
     
     var reconstruction = Reconstruction()
@@ -103,5 +104,24 @@ final class PassivationTests: XCTestCase {
   // position in the absence of surface reconstruction. Ensure it agrees with
   // actual placed hydrogens in a primitive passivation algorithm that
   // generates a C(100)-(1×1) surface.
+  
+  // Setting up these tests now, to ensure further code changes don't alter
+  // the positions of hydrogens.
+  //
+  // Will adapt this test afterward, to account for the variability between
+  // machines.
+  func testHydrogenPositions() throws {
+    let lattice = Self.commonLattice()
+    
+    var reconstruction = Reconstruction()
+    reconstruction.atoms = lattice.atoms
+    reconstruction.material = .checkerboard(.silicon, .carbon)
+    var topology = reconstruction.compile()
+    topology.sort()
+    
+    // Only store data for atoms & bonds that relate to hydrogens
+    print(topology.atoms.count)
+    print(topology.bonds.count)
+  }
 #endif
 }

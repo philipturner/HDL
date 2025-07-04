@@ -29,8 +29,8 @@ struct Compilation {
   //
   // Implementation Plan
   //
-  // Phase I: Isolate 'resolveTwoWayCollisions', giving it sight of only
-  //          the (mutable) atoms <-> hydrogens maps.
+  // Phase I:   Isolate 'resolveTwoWayCollisions', giving it sight of only
+  //            the (mutable) atoms <-> hydrogens maps.
   mutating func compile() {
     removePathologicalAtoms()
     
@@ -62,8 +62,21 @@ struct Compilation {
       fatalError("Could not resolve 3-way collisions.")
     }
     
-    // Add hydrogens once the center atoms stop evolving.
-    resolveTwoWayCollisions(centerTypes: stableCenterTypes)
+    do {
+      var dimerProcessor = DimerProcessor()
+      dimerProcessor.atomsToHydrogensMap = atomsToHydrogensMap
+      dimerProcessor.hydrogensToAtomsMap = hydrogensToAtomsMap
+      
+      let hydrogenChains = dimerProcessor.createHydrogenChains(
+        centerTypes: stableCenterTypes)
+      let insertedBonds = dimerProcessor.destroyCollisions(
+        hydrogenChains: hydrogenChains)
+      topology.insert(bonds: insertedBonds)
+      
+      atomsToHydrogensMap = dimerProcessor.atomsToHydrogensMap
+      hydrogensToAtomsMap = dimerProcessor.hydrogensToAtomsMap
+    }
+    
     createHydrogenBonds()
   }
 }

@@ -34,6 +34,8 @@ struct Compilation {
   // Phase II:  Isolate 'createHydrogenBonds', attempt to remove the dependency
   //            on the two maps. This is not yet a complete implementation of
   //            a 'Passivation' API.
+  // Phase III: Minimize the persistence of the two maps across compilation
+  //            steps.
   mutating func compile() {
     removePathologicalAtoms()
     

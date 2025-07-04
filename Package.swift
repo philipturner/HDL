@@ -27,8 +27,8 @@ let package = Package(
     // TODO: Migrate this to the Swift Testing framework once all other
     // maintenance has been completed.
     //
-    // This has tentatively been omitted from the latest round of maintenance,
-    // due to low priority.
+    // This was omitted from the latest round of maintenance, due to low
+    // priority.
     .testTarget(
       name: "HDLTests",
       dependencies: [

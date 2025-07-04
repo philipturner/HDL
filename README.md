@@ -1,5 +1,7 @@
 # Hardware Description Language
 
+> TODO: Do not rush this PR. Make sure it works correctly and efficiently on Windows before merging it.
+
 Domain-specific language for molecular nanotechnology. This repository includes a geometry and bond topology compiler.
 
 Table of Contents

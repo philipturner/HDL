@@ -5,10 +5,7 @@
 //  Created by Philip Turner on 7/2/25.
 //
 
-struct PassivationInput {
-  var atomsToHydrogensMap: [[UInt32]] = []
-  var hydrogensToAtomsMap: [[UInt32]] = []
-}
+// TODO: Eliminate this from the library, and migrate it into the test suite.
 
 struct PassivationResult {
   var insertedAtoms: [Atom] = []
@@ -25,17 +22,7 @@ struct PassivationImpl {
     topology.bonds = bonds
     return topology.nonbondingOrbitals()
   }
-  
-  func hydrogenSiteCenter(_ atomList: [UInt32]) -> SIMD3<Float> {
-    var center: SIMD3<Float> = .zero
-    for atomID in atomList {
-      let atom = atoms[Int(atomID)]
-      center += atom.position
-    }
-    center /= Float(atomList.count)
-    return center
-  }
-  
+    
   func createHydrogen(
     atomID: UInt32,
     orbital: SIMD3<Float>
@@ -53,27 +40,23 @@ struct PassivationImpl {
     return Atom(position: position, element: .hydrogen)
   }
   
-  func compile(input: PassivationInput) -> PassivationResult {
+  func compile() -> PassivationResult {
     let orbitalLists = createOrbitalLists()
     
     var output = PassivationResult()
-    func appendBond(atomID: UInt32, hydrogen: Atom) {
-      let hydrogenID = atoms.count + output.insertedAtoms.count
-      output.insertedAtoms.append(hydrogen)
-      
-      let bond = SIMD2(atomID, UInt32(hydrogenID))
-      output.insertedBonds.append(bond)
-    }
-    
     for atomID in atoms.indices {
       let orbitalList = orbitalLists[atomID]
       for orbital in orbitalList {
         let hydrogen = createHydrogen(
           atomID: UInt32(atomID),
           orbital: orbital)
-        appendBond(
-          atomID: UInt32(atomID),
-          hydrogen: hydrogen)
+        let hydrogenID = atoms.count + output.insertedAtoms.count
+        output.insertedAtoms.append(hydrogen)
+        
+        let bond = SIMD2(
+          UInt32(atomID),
+          UInt32(hydrogenID))
+        output.insertedBonds.append(bond)
       }
     }
     return output

@@ -77,9 +77,6 @@ struct Compilation {
       let bonds = dimerProcessor.destroyCollisions(
         hydrogenChains: hydrogenChains)
       topology.insert(bonds: bonds)
-      
-      atomsToHydrogensMap = dimerProcessor.atomsToHydrogensMap
-      hydrogensToAtomsMap = dimerProcessor.hydrogensToAtomsMap
     }
     
     do {
@@ -87,11 +84,7 @@ struct Compilation {
       passivation.atoms = topology.atoms
       passivation.bonds = topology.bonds
       
-      var input = PassivationInput()
-      input.atomsToHydrogensMap = atomsToHydrogensMap
-      input.hydrogensToAtomsMap = hydrogensToAtomsMap
-      
-      let result = passivation.compile(input: input)
+      let result = passivation.compile()
       topology.insert(atoms: result.insertedAtoms)
       topology.insert(bonds: result.insertedBonds)
     }

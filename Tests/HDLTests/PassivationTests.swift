@@ -111,17 +111,283 @@ final class PassivationTests: XCTestCase {
   // Will adapt this test afterward, to account for the variability between
   // machines.
   func testHydrogenPositions() throws {
-    let lattice = Self.commonLattice()
+    func createHydrogens() -> [SIMD4<Float>] {
+      let lattice = Self.commonLattice()
+      
+      var reconstruction = Reconstruction()
+      reconstruction.atoms = lattice.atoms
+      reconstruction.material = .checkerboard(.silicon, .carbon)
+      let oldTopology = reconstruction.compile()
+      
+      var topology = Topology()
+      topology.atoms = oldTopology.atoms.filter { $0[3] == 1 }
+      topology.sort()
+      return topology.atoms
+    }
     
-    var reconstruction = Reconstruction()
-    reconstruction.atoms = lattice.atoms
-    reconstruction.material = .checkerboard(.silicon, .carbon)
-    var topology = reconstruction.compile()
-    topology.sort()
+    let expectedHydrogens = Self.expectedSortedHydrogens()
+    let hydrogens = createHydrogens()
+    XCTAssertEqual(expectedHydrogens.count, hydrogens.count)
+    
+    for hydrogenID in 0..<232 {
+      let expectedHydrogen = expectedHydrogens[hydrogenID]
+      let hydrogen = hydrogens[hydrogenID]
+      let delta = hydrogen.position - expectedHydrogen.position
+      XCTAssertLessThan(delta[0].magnitude, 0.001)
+      XCTAssertLessThan(delta[1].magnitude, 0.001)
+      XCTAssertLessThan(delta[2].magnitude, 0.001)
+    }
     
     // Only store data for atoms & bonds that relate to hydrogens
-    print(topology.atoms.count)
-    print(topology.bonds.count)
+//    for atom in topology.atoms {
+//      guard atom.atomicNumber == 1 else {
+//        continue
+//      }
+//      
+//      func fmt(_ number: Float) -> String {
+//        String(format: "%.3f", number)
+//      }
+//      print("SIMD4<Float>(\(fmt(atom.x)), \(fmt(atom.y)), \(fmt(atom.z)), \(Int(atom.w))),")
+//    }
   }
 #endif
+  
+  // A sorted list of hydrogens from one invocation of 'Reconstruction' on the
+  // common lattice. The exact results may vary from machine to machine.
+  private static func expectedSortedHydrogens() -> [SIMD4<Float>] {
+    return [
+      SIMD4<Float>(0.047, 0.047, 0.047, 1),
+      SIMD4<Float>(0.483, 0.047, 0.047, 1),
+      SIMD4<Float>(0.300, 0.136, -0.082, 1),
+      SIMD4<Float>(0.300, -0.082, 0.136, 1),
+      SIMD4<Float>(0.136, 0.300, -0.082, 1),
+      SIMD4<Float>(0.047, 0.483, 0.047, 1),
+      SIMD4<Float>(-0.082, 0.300, 0.136, 1),
+      SIMD4<Float>(0.370, 0.502, -0.107, 1),
+      SIMD4<Float>(0.136, -0.082, 0.300, 1),
+      SIMD4<Float>(-0.082, 0.136, 0.300, 1),
+      SIMD4<Float>(0.047, 0.047, 0.483, 1),
+      SIMD4<Float>(0.370, -0.107, 0.502, 1),
+      SIMD4<Float>(-0.107, 0.370, 0.502, 1),
+      SIMD4<Float>(0.720, 0.152, -0.107, 1),
+      SIMD4<Float>(0.720, -0.107, 0.152, 1),
+      SIMD4<Float>(0.919, 0.047, 0.047, 1),
+      SIMD4<Float>(1.156, 0.152, -0.107, 1),
+      SIMD4<Float>(1.156, -0.107, 0.152, 1),
+      SIMD4<Float>(0.806, 0.502, -0.107, 1),
+      SIMD4<Float>(0.806, -0.107, 0.502, 1),
+      SIMD4<Float>(0.136, 0.736, -0.082, 1),
+      SIMD4<Float>(-0.107, 0.720, 0.152, 1),
+      SIMD4<Float>(0.300, 0.572, -0.082, 1),
+      SIMD4<Float>(0.047, 0.919, 0.047, 1),
+      SIMD4<Float>(0.136, 1.172, -0.082, 1),
+      SIMD4<Float>(-0.107, 1.156, 0.152, 1),
+      SIMD4<Float>(0.370, 0.938, -0.107, 1),
+      SIMD4<Float>(0.300, 1.008, -0.082, 1),
+      SIMD4<Float>(-0.107, 0.806, 0.502, 1),
+      SIMD4<Float>(0.720, 0.588, -0.107, 1),
+      SIMD4<Float>(1.156, 0.588, -0.107, 1),
+      SIMD4<Float>(0.806, 0.938, -0.107, 1),
+      SIMD4<Float>(0.720, 1.024, -0.107, 1),
+      SIMD4<Float>(1.156, 1.024, -0.107, 1),
+      SIMD4<Float>(0.136, -0.082, 0.736, 1),
+      SIMD4<Float>(-0.082, 0.136, 0.736, 1),
+      SIMD4<Float>(0.300, -0.082, 0.572, 1),
+      SIMD4<Float>(-0.082, 0.300, 0.572, 1),
+      SIMD4<Float>(0.047, 0.047, 0.919, 1),
+      SIMD4<Float>(0.136, -0.082, 1.172, 1),
+      SIMD4<Float>(-0.082, 0.136, 1.172, 1),
+      SIMD4<Float>(0.370, -0.107, 0.938, 1),
+      SIMD4<Float>(0.300, -0.082, 1.008, 1),
+      SIMD4<Float>(-0.107, 0.370, 0.938, 1),
+      SIMD4<Float>(-0.082, 0.300, 1.008, 1),
+      SIMD4<Float>(0.720, -0.107, 0.588, 1),
+      SIMD4<Float>(1.156, -0.107, 0.588, 1),
+      SIMD4<Float>(0.806, -0.107, 0.938, 1),
+      SIMD4<Float>(0.720, -0.107, 1.024, 1),
+      SIMD4<Float>(1.156, -0.107, 1.024, 1),
+      SIMD4<Float>(-0.107, 0.720, 0.588, 1),
+      SIMD4<Float>(-0.107, 1.156, 0.588, 1),
+      SIMD4<Float>(-0.107, 0.806, 0.938, 1),
+      SIMD4<Float>(-0.107, 0.720, 1.024, 1),
+      SIMD4<Float>(-0.107, 1.156, 1.024, 1),
+      SIMD4<Float>(1.355, 0.047, 0.047, 1),
+      SIMD4<Float>(1.592, 0.152, -0.107, 1),
+      SIMD4<Float>(1.592, -0.107, 0.152, 1),
+      SIMD4<Float>(1.242, 0.502, -0.107, 1),
+      SIMD4<Float>(1.697, 0.389, 0.047, 1),
+      SIMD4<Float>(1.242, -0.107, 0.502, 1),
+      SIMD4<Float>(1.697, 0.047, 0.389, 1),
+      SIMD4<Float>(1.851, 0.152, 0.152, 1),
+      SIMD4<Float>(1.851, 0.502, 0.502, 1),
+      SIMD4<Float>(1.592, 0.588, -0.107, 1),
+      SIMD4<Float>(1.697, 0.825, 0.047, 1),
+      SIMD4<Float>(1.242, 0.938, -0.107, 1),
+      SIMD4<Float>(1.592, 1.024, -0.107, 1),
+      SIMD4<Float>(1.851, 0.588, 0.152, 1),
+      SIMD4<Float>(1.851, 1.024, 0.152, 1),
+      SIMD4<Float>(1.851, 0.938, 0.502, 1),
+      SIMD4<Float>(1.592, -0.107, 0.588, 1),
+      SIMD4<Float>(1.697, 0.047, 0.825, 1),
+      SIMD4<Float>(1.242, -0.107, 0.938, 1),
+      SIMD4<Float>(1.592, -0.107, 1.024, 1),
+      SIMD4<Float>(1.851, 0.152, 0.588, 1),
+      SIMD4<Float>(1.851, 0.152, 1.024, 1),
+      SIMD4<Float>(1.851, 0.502, 0.938, 1),
+      SIMD4<Float>(1.851, 0.588, 0.588, 1),
+      SIMD4<Float>(1.851, 1.024, 0.588, 1),
+      SIMD4<Float>(1.851, 0.588, 1.024, 1),
+      SIMD4<Float>(1.851, 0.938, 0.938, 1),
+      SIMD4<Float>(1.851, 1.024, 1.024, 1),
+      SIMD4<Float>(0.047, 1.355, 0.047, 1),
+      SIMD4<Float>(0.370, 1.374, -0.107, 1),
+      SIMD4<Float>(0.300, 1.444, -0.082, 1),
+      SIMD4<Float>(0.136, 1.608, -0.082, 1),
+      SIMD4<Float>(-0.107, 1.592, 0.152, 1),
+      SIMD4<Float>(0.389, 1.697, 0.047, 1),
+      SIMD4<Float>(-0.107, 1.242, 0.502, 1),
+      SIMD4<Float>(0.047, 1.697, 0.389, 1),
+      SIMD4<Float>(0.806, 1.374, -0.107, 1),
+      SIMD4<Float>(0.736, 1.444, -0.082, 1),
+      SIMD4<Float>(1.172, 1.444, -0.082, 1),
+      SIMD4<Float>(0.572, 1.608, -0.082, 1),
+      SIMD4<Float>(0.825, 1.697, 0.047, 1),
+      SIMD4<Float>(1.008, 1.608, -0.082, 1),
+      SIMD4<Float>(0.152, 1.851, 0.152, 1),
+      SIMD4<Float>(0.502, 1.851, 0.502, 1),
+      SIMD4<Float>(0.588, 1.851, 0.152, 1),
+      SIMD4<Float>(1.024, 1.851, 0.152, 1),
+      SIMD4<Float>(0.938, 1.851, 0.502, 1),
+      SIMD4<Float>(-0.107, 1.592, 0.588, 1),
+      SIMD4<Float>(0.047, 1.697, 0.825, 1),
+      SIMD4<Float>(-0.107, 1.242, 0.938, 1),
+      SIMD4<Float>(-0.107, 1.592, 1.024, 1),
+      SIMD4<Float>(0.152, 1.851, 0.588, 1),
+      SIMD4<Float>(0.152, 1.851, 1.024, 1),
+      SIMD4<Float>(0.502, 1.851, 0.938, 1),
+      SIMD4<Float>(0.588, 1.851, 0.588, 1),
+      SIMD4<Float>(1.024, 1.851, 0.588, 1),
+      SIMD4<Float>(0.588, 1.851, 1.024, 1),
+      SIMD4<Float>(0.938, 1.851, 0.938, 1),
+      SIMD4<Float>(1.024, 1.851, 1.024, 1),
+      SIMD4<Float>(1.242, 1.374, -0.107, 1),
+      SIMD4<Float>(1.697, 1.261, 0.047, 1),
+      SIMD4<Float>(1.608, 1.444, -0.082, 1),
+      SIMD4<Float>(1.826, 1.444, 0.136, 1),
+      SIMD4<Float>(1.444, 1.608, -0.082, 1),
+      SIMD4<Float>(1.261, 1.697, 0.047, 1),
+      SIMD4<Float>(1.444, 1.826, 0.136, 1),
+      SIMD4<Float>(1.697, 1.697, 0.047, 1),
+      SIMD4<Float>(1.826, 1.608, 0.300, 1),
+      SIMD4<Float>(1.608, 1.826, 0.300, 1),
+      SIMD4<Float>(1.697, 1.697, 0.483, 1),
+      SIMD4<Float>(1.851, 1.374, 0.502, 1),
+      SIMD4<Float>(1.374, 1.851, 0.502, 1),
+      SIMD4<Float>(1.826, 1.444, 0.572, 1),
+      SIMD4<Float>(1.444, 1.826, 0.572, 1),
+      SIMD4<Float>(1.826, 1.608, 0.736, 1),
+      SIMD4<Float>(1.608, 1.826, 0.736, 1),
+      SIMD4<Float>(1.826, 1.444, 1.008, 1),
+      SIMD4<Float>(1.444, 1.826, 1.008, 1),
+      SIMD4<Float>(1.697, 1.697, 0.919, 1),
+      SIMD4<Float>(1.826, 1.608, 1.172, 1),
+      SIMD4<Float>(1.608, 1.826, 1.172, 1),
+      SIMD4<Float>(1.851, 1.374, 0.938, 1),
+      SIMD4<Float>(1.374, 1.851, 0.938, 1),
+      SIMD4<Float>(0.047, 0.047, 1.355, 1),
+      SIMD4<Float>(0.370, -0.107, 1.374, 1),
+      SIMD4<Float>(0.300, -0.082, 1.444, 1),
+      SIMD4<Float>(-0.107, 0.370, 1.374, 1),
+      SIMD4<Float>(-0.082, 0.300, 1.444, 1),
+      SIMD4<Float>(0.136, -0.082, 1.608, 1),
+      SIMD4<Float>(-0.082, 0.136, 1.608, 1),
+      SIMD4<Float>(0.389, 0.047, 1.697, 1),
+      SIMD4<Float>(0.047, 0.389, 1.697, 1),
+      SIMD4<Float>(0.806, -0.107, 1.374, 1),
+      SIMD4<Float>(0.736, -0.082, 1.444, 1),
+      SIMD4<Float>(1.172, -0.082, 1.444, 1),
+      SIMD4<Float>(0.572, -0.082, 1.608, 1),
+      SIMD4<Float>(0.825, 0.047, 1.697, 1),
+      SIMD4<Float>(1.008, -0.082, 1.608, 1),
+      SIMD4<Float>(-0.107, 0.806, 1.374, 1),
+      SIMD4<Float>(-0.082, 0.736, 1.444, 1),
+      SIMD4<Float>(-0.082, 1.172, 1.444, 1),
+      SIMD4<Float>(-0.082, 0.572, 1.608, 1),
+      SIMD4<Float>(0.047, 0.825, 1.697, 1),
+      SIMD4<Float>(-0.082, 1.008, 1.608, 1),
+      SIMD4<Float>(0.152, 0.152, 1.851, 1),
+      SIMD4<Float>(0.502, 0.502, 1.851, 1),
+      SIMD4<Float>(0.588, 0.152, 1.851, 1),
+      SIMD4<Float>(1.024, 0.152, 1.851, 1),
+      SIMD4<Float>(0.938, 0.502, 1.851, 1),
+      SIMD4<Float>(0.152, 0.588, 1.851, 1),
+      SIMD4<Float>(0.152, 1.024, 1.851, 1),
+      SIMD4<Float>(0.502, 0.938, 1.851, 1),
+      SIMD4<Float>(0.588, 0.588, 1.851, 1),
+      SIMD4<Float>(1.024, 0.588, 1.851, 1),
+      SIMD4<Float>(0.588, 1.024, 1.851, 1),
+      SIMD4<Float>(0.938, 0.938, 1.851, 1),
+      SIMD4<Float>(1.024, 1.024, 1.851, 1),
+      SIMD4<Float>(1.242, -0.107, 1.374, 1),
+      SIMD4<Float>(1.697, 0.047, 1.261, 1),
+      SIMD4<Float>(1.608, -0.082, 1.444, 1),
+      SIMD4<Float>(1.826, 0.136, 1.444, 1),
+      SIMD4<Float>(1.444, -0.082, 1.608, 1),
+      SIMD4<Float>(1.261, 0.047, 1.697, 1),
+      SIMD4<Float>(1.444, 0.136, 1.826, 1),
+      SIMD4<Float>(1.697, 0.047, 1.697, 1),
+      SIMD4<Float>(1.826, 0.300, 1.608, 1),
+      SIMD4<Float>(1.608, 0.300, 1.826, 1),
+      SIMD4<Float>(1.697, 0.483, 1.697, 1),
+      SIMD4<Float>(1.851, 0.502, 1.374, 1),
+      SIMD4<Float>(1.826, 0.572, 1.444, 1),
+      SIMD4<Float>(1.826, 1.008, 1.444, 1),
+      SIMD4<Float>(1.444, 0.572, 1.826, 1),
+      SIMD4<Float>(1.826, 0.736, 1.608, 1),
+      SIMD4<Float>(1.608, 0.736, 1.826, 1),
+      SIMD4<Float>(1.444, 1.008, 1.826, 1),
+      SIMD4<Float>(1.826, 1.172, 1.608, 1),
+      SIMD4<Float>(1.697, 0.919, 1.697, 1),
+      SIMD4<Float>(1.608, 1.172, 1.826, 1),
+      SIMD4<Float>(1.851, 0.938, 1.374, 1),
+      SIMD4<Float>(1.374, 0.502, 1.851, 1),
+      SIMD4<Float>(1.374, 0.938, 1.851, 1),
+      SIMD4<Float>(-0.107, 1.242, 1.374, 1),
+      SIMD4<Float>(0.047, 1.697, 1.261, 1),
+      SIMD4<Float>(-0.082, 1.608, 1.444, 1),
+      SIMD4<Float>(0.136, 1.826, 1.444, 1),
+      SIMD4<Float>(-0.082, 1.444, 1.608, 1),
+      SIMD4<Float>(0.047, 1.261, 1.697, 1),
+      SIMD4<Float>(0.136, 1.444, 1.826, 1),
+      SIMD4<Float>(0.047, 1.697, 1.697, 1),
+      SIMD4<Float>(0.300, 1.826, 1.608, 1),
+      SIMD4<Float>(0.300, 1.608, 1.826, 1),
+      SIMD4<Float>(0.483, 1.697, 1.697, 1),
+      SIMD4<Float>(0.572, 1.826, 1.444, 1),
+      SIMD4<Float>(1.008, 1.826, 1.444, 1),
+      SIMD4<Float>(0.572, 1.444, 1.826, 1),
+      SIMD4<Float>(1.008, 1.444, 1.826, 1),
+      SIMD4<Float>(0.736, 1.826, 1.608, 1),
+      SIMD4<Float>(0.736, 1.608, 1.826, 1),
+      SIMD4<Float>(1.172, 1.826, 1.608, 1),
+      SIMD4<Float>(1.172, 1.608, 1.826, 1),
+      SIMD4<Float>(0.919, 1.697, 1.697, 1),
+      SIMD4<Float>(0.502, 1.851, 1.374, 1),
+      SIMD4<Float>(0.938, 1.851, 1.374, 1),
+      SIMD4<Float>(0.502, 1.374, 1.851, 1),
+      SIMD4<Float>(0.938, 1.374, 1.851, 1),
+      SIMD4<Float>(1.826, 1.444, 1.444, 1),
+      SIMD4<Float>(1.444, 1.826, 1.444, 1),
+      SIMD4<Float>(1.697, 1.697, 1.355, 1),
+      SIMD4<Float>(1.444, 1.444, 1.826, 1),
+      SIMD4<Float>(1.697, 1.355, 1.697, 1),
+      SIMD4<Float>(1.355, 1.697, 1.697, 1),
+      SIMD4<Float>(1.826, 1.608, 1.608, 1),
+      SIMD4<Float>(1.608, 1.826, 1.608, 1),
+      SIMD4<Float>(1.608, 1.608, 1.826, 1),
+      SIMD4<Float>(1.851, 1.374, 1.374, 1),
+      SIMD4<Float>(1.374, 1.851, 1.374, 1),
+      SIMD4<Float>(1.374, 1.374, 1.851, 1),
+    ]
+  }
 }

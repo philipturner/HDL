@@ -2,7 +2,7 @@
 
 > _Inspired by the PyTorch API choice, `torch.compile()`._
 
-Surface reconstruction followed by passivation. Useful for converting C(100)-(1×1) surfaces to C(100)-(2×1), fixing hydrogen collisions at concave corners, and removing methyl groups. Applies to any sp<sup>3</sup>-hybridized crystal. Relevant in both the `Cubic` and `Hexagonal` bases.
+Surface reconstruction, _not_ followed by passivation. Useful for converting C(100)-(1×1) surfaces to C(100)-(2×1), fixing hydrogen collisions at concave corners, and removing methyl groups. Applies to any sp<sup>3</sup>-hybridized crystal. Relevant in both the `Cubic` and `Hexagonal` bases.
 
 > TODO: Generalize this by making the hydrogen passivation component optional. Make a unit test for fluorine passivation, and another for no passivation at all. Implement this change once the internals of `Compilation` are more cleaned up and workable.
 
@@ -15,9 +15,6 @@ struct Reconstruction {
   
   /// Required.
   var material: MaterialType?
-  
-  /// Optional. The default is `nil`. 
-  var passivation: Element?
   
   func compile() -> Topology
 }

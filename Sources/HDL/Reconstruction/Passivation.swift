@@ -58,11 +58,23 @@ struct PassivationImpl {
     let orbitalLists = createOrbitalLists()
     
     var output = PassivationResult()
+    func appendBond(atomID: UInt32, hydrogen: Atom) {
+      let hydrogenID = atoms.count + output.insertedAtoms.count
+      output.insertedAtoms.append(hydrogen)
+      
+      let bond = SIMD2(atomID, UInt32(hydrogenID))
+      output.insertedBonds.append(bond)
+    }
+    
     for atomID in atoms.indices {
-      let hydrogenList = input.atomsToHydrogensMap[atomID]
       let orbitalList = orbitalLists[atomID]
-      guard hydrogenList.count == orbitalList.count else {
-        fatalError("This should never happen.")
+      for orbital in orbitalList {
+        let hydrogen = createHydrogen(
+          atomID: UInt32(atomID),
+          orbital: orbital)
+        appendBond(
+          atomID: UInt32(atomID),
+          hydrogen: hydrogen)
       }
     }
     return output

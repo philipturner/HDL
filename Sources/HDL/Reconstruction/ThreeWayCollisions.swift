@@ -6,6 +6,10 @@
 //
 
 extension Compilation {
+  // Inputs:  material
+  //          topology.atoms
+  //          topology.bonds -> orbitals
+  // Outputs: topology.atoms (remove)
   mutating func resolveThreeWayCollisions() {
     let orbitalLists = topology.nonbondingOrbitals()
     

@@ -6,6 +6,10 @@
 //
 
 extension Compilation {
+  // Several inputs/outputs are not obvious, but originate from the invoked
+  // utility functions.
+  //
+  // Inputs: hydrogensToAtomsMap
   mutating func resolveTwoWayCollisions(centerTypes: [UInt8]) {
     // Extract all sets of connected hydrogen sites from the topology.
     var hydrogenChains: [[UInt32]] = []
@@ -62,6 +66,8 @@ extension Compilation {
         }
       }
     }
+    
+    // Implement the topology changes from the choice to handle the dimers.
     mergeDimers(states: collisionStates)
   }
 }
@@ -114,6 +120,8 @@ extension Compilation {
     }
   }
   
+  // Inputs: atomsToHydrogensMap
+  //         hydrogensToAtomsMap
   private func startDimerChain(
     hydrogenID: UInt32,
     dimerGeometry: DimerGeometry
@@ -194,6 +202,8 @@ extension Compilation {
     }
   }
   
+  // Inputs: atomsToHydrogensMap
+  //         hydrogensToAtomsMap
   private func nextDimer(
     hydrogenID: UInt32,
     atomID: UInt32
@@ -271,6 +281,11 @@ extension Compilation {
     return dimerChain
   }
   
+  // Inputs:  atomsToHydrogensMap
+  //          hydrogensToAtomsMap
+  // Outputs: atomsToHydrogensMap (modify in-place)
+  //          hydrogensToAtomsMap (modify in-place)
+  //          topology.bonds (insert)
   private mutating func mergeDimers(states: [CollisionState]) {
     var insertedBonds: [SIMD2<UInt32>] = []
     for hydrogenID in states.indices {

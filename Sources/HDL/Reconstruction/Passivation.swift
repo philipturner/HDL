@@ -56,6 +56,26 @@ struct PassivationImpl {
   func compile(input: PassivationInput) -> PassivationResult {
     let orbitalLists = createOrbitalLists()
     
+    var openOrbitalCount: Int = .zero
+    for orbitalList in orbitalLists {
+      if orbitalList.count > 0 {
+        openOrbitalCount += orbitalList.count
+      }
+    }
+    
+    var openHydrogenSiteCount: Int = .zero
+    var placedHydrogenCount: Int = .zero
+    for hydrogenID in input.hydrogensToAtomsMap.indices {
+      let atomsMap = input.hydrogensToAtomsMap[hydrogenID]
+      guard atomsMap.count > 0 else {
+        continue
+      }
+      openHydrogenSiteCount += 1
+      placedHydrogenCount += atomsMap.count
+    }
+    
+    print(openOrbitalCount, openHydrogenSiteCount, placedHydrogenCount)
+    
     func createHydrogenOrbital(
       atomID: UInt32,
       hydrogenID: UInt32

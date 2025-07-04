@@ -1,6 +1,6 @@
 # Hardware Description Language
 
-> TODO: Do not rush this PR. Make sure it works correctly and efficiently on Windows before merging it.
+> TODO: Do not rush this PR. Clean up the code for `topology.sort` and other warnings regarding concurrency. Make sure it works correctly and efficiently on Windows before merging it.
 
 Domain-specific language for molecular nanotechnology. This repository includes a geometry and bond topology compiler.
 

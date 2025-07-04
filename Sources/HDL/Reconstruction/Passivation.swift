@@ -53,28 +53,23 @@ struct PassivationImpl {
     return Atom(position: position, element: .hydrogen)
   }
   
+  #if true
   func compile(input: PassivationInput) -> PassivationResult {
     let orbitalLists = createOrbitalLists()
     
-    var openOrbitalCount: Int = .zero
-    for orbitalList in orbitalLists {
-      if orbitalList.count > 0 {
-        openOrbitalCount += orbitalList.count
+    var output = PassivationResult()
+    for atomID in atoms.indices {
+      let hydrogenList = input.atomsToHydrogensMap[atomID]
+      let orbitalList = orbitalLists[atomID]
+      guard hydrogenList.count == orbitalList.count else {
+        fatalError("This should never happen.")
       }
     }
-    
-    var openHydrogenSiteCount: Int = .zero
-    var placedHydrogenCount: Int = .zero
-    for hydrogenID in input.hydrogensToAtomsMap.indices {
-      let atomsMap = input.hydrogensToAtomsMap[hydrogenID]
-      guard atomsMap.count > 0 else {
-        continue
-      }
-      openHydrogenSiteCount += 1
-      placedHydrogenCount += atomsMap.count
-    }
-    
-    print(openOrbitalCount, openHydrogenSiteCount, placedHydrogenCount)
+    return output
+  }
+  #else
+  func compile(input: PassivationInput) -> PassivationResult {
+    let orbitalLists = createOrbitalLists()
     
     func createHydrogenOrbital(
       atomID: UInt32,
@@ -212,4 +207,5 @@ struct PassivationImpl {
     }
     return output
   }
+  #endif
 }

@@ -24,7 +24,7 @@ final class PassivationTests: XCTestCase {
   
   static func checkNoOverlaps(_ topology: Topology) {
     let matchRanges = topology.match(
-      topology.atoms, algorithm: .absoluteRadius(0.002))
+      topology.atoms, algorithm: .absoluteRadius(0.010))
     for atomID in topology.atoms.indices {
       let matchRange = matchRanges[atomID]
       XCTAssertEqual(matchRange.count, 1)

@@ -223,6 +223,7 @@ final class ReconstructionTests: XCTestCase {
     XCTAssertEqual(topology.atoms.count, 5720)
     XCTAssertEqual(topology.bonds.count, 9697)
     PassivationTests.checkConnectivity(topology)
+    PassivationTests.checkNoOverlaps(topology)
     
     // Save to a file.
     //

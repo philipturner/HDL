@@ -37,37 +37,36 @@ struct Compilation {
     // When there are no more 3-way collisions, the list of atoms will stop
     // growing. That means the center types will stabilize.
     var stableCenterTypes: [UInt8]?
-    var stableHydrogenSiteMap: HydrogenSiteMap?
+    var stableSiteMap: HydrogenSiteMap?
     
     // Loop over this a few times (typically less than 10).
     for _ in 0..<100 {
       let centerTypes = createBulkAtomBonds()
-      let hydrogenData = createHydrogenData()
-      createHydrogenSites(hydrogenData: hydrogenData)
+      let siteMap = createHydrogenSites()
       
       // Check whether there are still 3-way collisions.
-      if hydrogensToAtomsMap.contains(where: { $0.count > 2 }) {
+      if siteMap.hydrogensToAtomsMap.contains(where: { $0.count > 2 }) {
         // Add center atoms to problematic sites.
-        resolveThreeWayCollisions()
+        resolveThreeWayCollisions(
+          hydrogensToAtomsMap: siteMap.hydrogensToAtomsMap)
         
         // Reverse the actions from the start of this iteration.
         topology.bonds = []
-        hydrogensToAtomsMap = []
-        atomsToHydrogensMap = []
       } else {
         stableCenterTypes = centerTypes
+        stableSiteMap = siteMap
         break
       }
     }
     guard let stableCenterTypes,
-          let stableHydrogenSiteMap else {
+          let stableSiteMap else {
       fatalError("Could not resolve 3-way collisions.")
     }
     
     do {
       var dimerProcessor = DimerProcessor()
-      dimerProcessor.atomsToHydrogensMap = atomsToHydrogensMap
-      dimerProcessor.hydrogensToAtomsMap = hydrogensToAtomsMap
+      dimerProcessor.atomsToHydrogensMap = stableSiteMap.atomsToHydrogensMap
+      dimerProcessor.hydrogensToAtomsMap = stableSiteMap.hydrogensToAtomsMap
       
       let hydrogenChains = dimerProcessor.createHydrogenChains(
         centerTypes: stableCenterTypes)

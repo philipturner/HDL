@@ -11,7 +11,9 @@ extension Compilation {
   //          topology.bonds -> orbitals
   //          hydrogensToAtomsMap
   // Outputs: topology.atoms (remove)
-  mutating func resolveThreeWayCollisions() {
+  mutating func resolveThreeWayCollisions(
+    hydrogensToAtomsMap: [[UInt32]]
+  ) {
     let orbitalLists = topology.nonbondingOrbitals()
     
     var insertedAtoms: [Atom] = []

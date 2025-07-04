@@ -53,11 +53,6 @@ final class PassivationTests: XCTestCase {
   }
   
 #if RELEASE
-  // After fixing up the tests / cleaning up the code in response to the
-  // bug:
-  // - Check for regression in ReconstructionTests.
-  // - Check for egregious testing time in debug mode.
-  // - Proceed with the task you were working on before.
   func testCorrectHydrogenPlacement() throws {
     let lattice = Self.commonLattice()
     

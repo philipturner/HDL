@@ -38,6 +38,9 @@ struct Compilation {
     // Loop over this a few times (typically less than 10).
     var converged = false
     for _ in 0..<100 {
+      // TODO: Isolate and clarify this state mutation. Perhaps make Topology
+      // transient (which it can be, at no cost) and store/return the bonds
+      // separately.
       let centerTypes = createBulkAtomBonds()
       let siteMap = createHydrogenSites()
       
@@ -49,7 +52,7 @@ struct Compilation {
         
         // Reverse the actions from the start of this iteration.
         //
-        // TODO: Isolate and clarify this state mutation further.
+        // TODO: Isolate and clarify this state mutation.
         topology.bonds = []
       } else {
         var dimerProcessor = DimerProcessor()
@@ -70,13 +73,7 @@ struct Compilation {
       fatalError("Could not resolve 3-way collisions.")
     }
     
-    var passivation = PassivationImpl()
-    passivation.atoms = topology.atoms
-    passivation.bonds = topology.bonds
-    
-    let result = passivation.compile()
-    topology.insert(atoms: result.insertedAtoms)
-    topology.insert(bonds: result.insertedBonds)
+    PassivationImpl.compile(topology: &topology)
   }
 }
 

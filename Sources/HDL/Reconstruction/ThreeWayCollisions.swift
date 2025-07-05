@@ -82,15 +82,11 @@ extension Compilation {
         }
       }
       
-      // TODO: Gather data on tolerance required before vs. after the fix to
-      // bond length.
-      
-      // 4.91e-6 * bulkBondLength - a test crashes
-      
-      // 4.91e-6 * bulkBondLength - a test crashes
-      // 1.17e-2 * bulkBondLength - limit for a  2 micron shift
-      // 6.19e-2 * bulkBondLength - limit for a 10 micron shift
-      guard bestPermutationScore < 6.20e-2 * bulkBondLength,
+      // Limit for a 10 micron shift: 6.20e-2
+      // Limit for a  2 micron shift: 1.18e-2
+      // Limit for a    500 nm shift: 1.43e-3
+      // Limit for a    100 nm shift: 2.91e-4
+      guard bestPermutationScore < 0.035 * bulkBondLength,
             let bestPermutationAverage else {
         fatalError("Could not find suitable orbital permutation.")
       }

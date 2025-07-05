@@ -233,8 +233,7 @@ final class ReconstructionTests: XCTestCase {
     PassivationTests.checkNoOverlaps(topology)
   }
   
-  // TODO: New test: add a large offset to the atoms and see where it breaks
-  // down.
+  // The previous test, but shifted by 1 micron to exacerbate FP32 error.
   func testShiftedLattice() throws {
     let lattice = Lattice<Cubic> { h, k, l in
       Bounds { 10 * h + 9 * k + 7 * l }
@@ -268,7 +267,7 @@ final class ReconstructionTests: XCTestCase {
     var reconstruction = Reconstruction()
     reconstruction.atoms = lattice.atoms.map {
       var output = $0
-      output.position += 10000 * SIMD3<Float>(-1, 1, -1)
+      output.position += 1000 * SIMD3<Float>(-1, 1, -1)
       return output
     }
     reconstruction.material = .elemental(.carbon)

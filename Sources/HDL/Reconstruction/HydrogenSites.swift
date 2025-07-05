@@ -52,8 +52,10 @@ extension Compilation {
     
     // Limit for a 10 micron shift: 5.0 pm
     // Limit for a  2 micron shift: 0.9 pm
+    // Limit for a    500 nm shift: 0.13 pm
+    // Limit for a    100 nm shift: 0.026 pm
     return matcher.match(
-      hydrogenAtoms, algorithm: .absoluteRadius(0.050))
+      hydrogenAtoms, algorithm: .absoluteRadius(0.0027))
   }
   
   private static func filter(

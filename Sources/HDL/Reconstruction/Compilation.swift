@@ -71,24 +71,11 @@ struct Compilation {
 // MARK: - Utilities
 
 extension Compilation {
-  // TODO: Modify the code to use the bulk lattice constant instead of the
-  // covalent radii of the atoms. Try to eliminate 'createBondLength()' from
-  // every place where it appears.
-  
   // Place hydrogens at the C-C bond length instead of the C-H bond length.
   //
   // Inputs:  material
   // Outputs: Float
   func createBondLength() -> Float {
-//    var bondLength: Float
-//    switch material {
-//    case .elemental(let element):
-//      bondLength = 2 * element.covalentRadius
-//    case .checkerboard(let element, let element2):
-//      bondLength = element.covalentRadius + element2.covalentRadius
-//    }
-//    return bondLength
-    
     var bulkBondLength = Constant(.square) { material }
     bulkBondLength *= Float(3).squareRoot() / 4
     return bulkBondLength
@@ -109,10 +96,12 @@ extension Compilation {
     
     let bondLength = createBondLength()
     
-    // Limit for a 10 micron shift: 1.008
-    // Limit for a  2 micron shift: 1.0007
+    // Limit for a 10 micron shift: 1.008    -> 1.2 pm
+    // Limit for a  2 micron shift: 1.0007   -> 0.11 pm
+    // Limit for a    500 nm shift: 1.00032  -> 0.049 pm
+    // Limit for a    100 nm shift: 1.000056 -> 0.008 pm
     return topology.match(
-      atoms, algorithm: .absoluteRadius(bondLength * 1.1))
+      atoms, algorithm: .absoluteRadius(bondLength * 1.0021))
   }
   
   // Remove methyl groups and floating atoms from the list.

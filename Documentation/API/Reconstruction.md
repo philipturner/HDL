@@ -19,6 +19,7 @@ struct Reconstruction {
   func compile() -> Topology
 }
 
+// Example of usage.
 var reconstruction = Reconstruction()
 reconstruction.atoms = ...
 reconstruction.material = ...

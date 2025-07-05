@@ -38,6 +38,9 @@ extension Compilation {
       var bestPermutationScore: Float = .greatestFiniteMagnitude
       var bestPermutationAverage: SIMD3<Float>?
       
+      // TODO: This entire search may be unnecessary, if the bond length is
+      // changed to the correct value.
+      
       // Loop over all possible combinations of bond directions.
       for index1 in 0..<orbitalPermutationCount[0] {
         for index2 in 0..<orbitalPermutationCount[1] {

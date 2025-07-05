@@ -53,6 +53,12 @@ extension Compilation {
     // TODO: Narrow the tolerance for the radius and see what goes wrong.
     // Gather data about the smallest acceptable radius that doesn't make the
     // tests go wrong. Repeat after the migration to a more stable algorithm.
+    //
+    // Also, don't forget to check for a performance regression.
+    
+    // 14 pm - aluminum phosphide fails
+    //  4 pm - surface reconstruction reproducers fail
+    //  2 pm - hundreds of tests fail
     return matcher.match(
       hydrogenAtoms, algorithm: .absoluteRadius(0.050))
   }

@@ -272,7 +272,6 @@ extension DimerProcessor {
     // Rough estimate: 4096 * 0.357 (diamond lattice constant) = 1.46 μm
     // This number far exceeds the current estimate for practical world limit
     // in the renderer (256 nm).
-    var converged = false
     for _ in 0..<4096 {
       let dimer = nextDimer(
         hydrogenID: dimerChain[dimerChain.count - 2],
@@ -281,16 +280,11 @@ extension DimerProcessor {
         dimerChain.append(dimer[0])
         dimerChain.append(dimer[1])
       } else {
-        converged = true
-        break
+        return dimerChain
       }
     }
-    guard converged else {
-      fatalError("Took too many iterations to find length of dimer chain.")
-    }
     
-    // TODO: Use the 'nil' return convention to restructure unbounded loops.
-    return dimerChain
+    fatalError("Took too many iterations to find length of dimer chain.")
   }
   
   private func mergeDimers(

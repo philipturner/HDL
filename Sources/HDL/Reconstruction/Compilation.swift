@@ -109,32 +109,10 @@ extension Compilation {
     
     let bondLength = createBondLength()
     
-    // Original problem, caused by inexact bond length:
-    //
-    // 1.037 - aluminum phosphide fails
-    // 1.016 - surface reconstruction reproducers fail
-    // 1.009 - hundreds of tests fail
-    //
-    // Switching to lattice-aligned covalent bond length:
-    //
-    // 1.001    - no tests fail
-    // 1 + 3e-6 - no tests fail
-    // 1 + 2e-6 - surface reconstruction reproducers fail
-    // 1 + 1e-6 - a test crashes
-    //
-    // Rationale for new radius:
-    //
-    // surface reconstruction reproducer: 3.57 nm
-    // world dimension: 256 nm
-    // conservative overestimate: 1 μm
-    //
-    // (256 / 3.57) * 2e-6 = 1.4e-4
-    // (1000 / 3.57) * 2e-6 = 5.6e-4
-    // Both of these numbers are smaller than 1e-2.
-    //
-    // 0.01 * 0.154 nm = 1.5 pm
+    // Limit for a 10 micron shift: 1.008
+    // Limit for a  2 micron shift: 1.0007
     return topology.match(
-      atoms, algorithm: .absoluteRadius(bondLength * 1.008))
+      atoms, algorithm: .absoluteRadius(bondLength * 1.1))
   }
   
   // Remove methyl groups and floating atoms from the list.

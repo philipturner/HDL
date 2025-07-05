@@ -50,31 +50,10 @@ extension Compilation {
     var matcher = Topology()
     matcher.atoms = hydrogenAtoms
     
-    // Original problem, caused by inexact bond length:
-    //
-    // 14 pm - aluminum phosphide fails
-    //  4 pm - surface reconstruction reproducers fail
-    //  2 pm - hundreds of tests fail
-    //
-    // Switching to lattice-aligned covalent bond length:
-    //
-    //    1 pm - no test failures
-    // 1e-6 nm - no test failures
-    // 5e-7 nm - no test failures
-    // 4e-7 nm - surface reconstruction reproducers fail
-    // 2e-7 nm - a test crashes
-    //
-    // Rationale for new radius:
-    //
-    // surface reconstruction reproducer: 3.57 nm
-    // world dimension: 256 nm
-    // conservative overestimate: 1 μm
-    //
-    // (256 / 3.57) * (4e-7 nm) = 3e-5 nm
-    // (1000 / 3.57) * (4e-7 nm) = 1e-4 nm
-    // Both of these numbers are smaller than 1 pm.
+    // Limit for a 10 micron shift: 5.0 pm
+    // Limit for a  2 micron shift: 0.9 pm
     return matcher.match(
-      hydrogenAtoms, algorithm: .absoluteRadius(0.005))
+      hydrogenAtoms, algorithm: .absoluteRadius(0.050))
   }
   
   private static func filter(

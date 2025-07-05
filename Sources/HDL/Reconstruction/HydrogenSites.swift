@@ -59,8 +59,14 @@ extension Compilation {
     // 14 pm - aluminum phosphide fails
     //  4 pm - surface reconstruction reproducers fail
     //  2 pm - hundreds of tests fail
+    
+    //    1 pm - no test failures
+    // 1e-6 nm - no test failures
+    // 5e-7 nm - no test failures
+    // 4e-7 nm - surface reconstruction reproducers fail
+    // 2e-7 nm - a test crashes
     return matcher.match(
-      hydrogenAtoms, algorithm: .absoluteRadius(0.050))
+      hydrogenAtoms, algorithm: .absoluteRadius(0.010))
   }
   
   private static func filter(

@@ -80,18 +80,18 @@ extension Compilation {
   // Inputs:  material
   // Outputs: Float
   func createBondLength() -> Float {
-    var bondLength: Float
-    switch material {
-    case .elemental(let element):
-      bondLength = 2 * element.covalentRadius
-    case .checkerboard(let element, let element2):
-      bondLength = element.covalentRadius + element2.covalentRadius
-    }
-    return bondLength
+//    var bondLength: Float
+//    switch material {
+//    case .elemental(let element):
+//      bondLength = 2 * element.covalentRadius
+//    case .checkerboard(let element, let element2):
+//      bondLength = element.covalentRadius + element2.covalentRadius
+//    }
+//    return bondLength
     
-//    var bulkBondLength = Constant(.square) { material }
-//    bulkBondLength *= Float(3).squareRoot() / 4
-//    return bulkBondLength
+    var bulkBondLength = Constant(.square) { material }
+    bulkBondLength *= Float(3).squareRoot() / 4
+    return bulkBondLength
   }
   
   func createOrbitals(

@@ -82,6 +82,10 @@ extension Compilation {
         }
       }
       
+      // TODO: Gather data on tolerance required before vs. after the fix to
+      // bond length.
+      
+      // 4.91e-6 * bulkBondLength - a test crashes
       guard bestPermutationScore < 0.01 * bulkBondLength,
             let bestPermutationAverage else {
         fatalError("Could not find suitable orbital permutation.")

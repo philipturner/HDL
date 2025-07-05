@@ -88,6 +88,10 @@ extension Compilation {
       bondLength = element.covalentRadius + element2.covalentRadius
     }
     return bondLength
+    
+//    var bulkBondLength = Constant(.square) { material }
+//    bulkBondLength *= Float(3).squareRoot() / 4
+//    return bulkBondLength
   }
   
   func createOrbitals(
@@ -104,6 +108,13 @@ extension Compilation {
     topology.atoms = atoms
     
     let bondLength = createBondLength()
+    
+    // TODO: Gather data on tolerance required before vs. after the fix to
+    // bond length.
+    
+    // 1.037 - aluminum phosphide fails
+    // 1.016 - surface reconstruction reproducers fail
+    // 1.009 - hundreds of tests fail
     return topology.match(
       atoms, algorithm: .absoluteRadius(bondLength * 1.1))
   }

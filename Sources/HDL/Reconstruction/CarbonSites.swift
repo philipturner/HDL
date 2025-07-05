@@ -32,16 +32,12 @@ extension Compilation {
           let bond = SIMD2(UInt32(i), j)
           output.bonds.append(bond)
         }
-        
-        // TODO: Migrate this to the destination while checking for a
-        // performance regression in Reconstruction tests.
-        let centerType = UInt8(match.count - 1)
-        output.centerTypes.append(centerType)
       } else {
         fatalError("Pathological atoms should be removed.")
       }
       
-      // destination
+      let centerType = UInt8(match.count - 1)
+      output.centerTypes.append(centerType)
     }
     return output
   }

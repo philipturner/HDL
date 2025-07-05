@@ -18,9 +18,8 @@ extension Compilation {
   //         topology.atoms
   //         topology.bonds -> orbitals
   private func createHydrogenData(
-    bonds: [SIMD2<UInt32>]
+    orbitalLists: [Topology.OrbitalStorage]
   ) -> [SIMD4<Float>] {
-    let orbitalLists = createOrbitals(bonds: bonds)
     let bondLength = createBondLength()
     
     var output: [SIMD4<Float>] = []
@@ -86,9 +85,10 @@ extension Compilation {
   // Outputs: atomsToHydrogensMap
   //          hydrogensToAtomsMap (length determined here)
   func createHydrogenSites(
-    bonds: [SIMD2<UInt32>]
+    orbitalLists: [Topology.OrbitalStorage]
   ) -> HydrogenSiteMap {
-    let hydrogenData = createHydrogenData(bonds: bonds)
+    let hydrogenData = createHydrogenData(
+      orbitalLists: orbitalLists)
     let rawMatches = Self.createMatches(
       hydrogenData: hydrogenData)
     let filteredMatches = Self.filter(

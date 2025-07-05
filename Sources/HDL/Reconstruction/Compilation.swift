@@ -37,18 +37,17 @@ struct Compilation {
     
     // Loop over this a few times (typically less than 10).
     for _ in 0..<100 {
-      // TODO: Isolate and clarify this state mutation. Perhaps make Topology
-      // transient (which it can be, at no cost) and store/return the bonds
-      // separately.
       let carbonSites = createCarbonSites()
-      let hydrogenSites = createHydrogenSites(
+      let orbitalLists = createOrbitals(
         bonds: carbonSites.bonds)
+      let hydrogenSites = createHydrogenSites(
+        orbitalLists: orbitalLists)
       
       // Check whether there are still 3-way collisions.
       if hydrogenSites.hydrogensToAtomsMap.contains(where: { $0.count > 2 }) {
         resolveThreeWayCollisions(
-          bonds: carbonSites.bonds,
-          hydrogensToAtomsMap: hydrogenSites.hydrogensToAtomsMap)
+          hydrogensToAtomsMap: hydrogenSites.hydrogensToAtomsMap,
+          orbitalLists: orbitalLists)
       } else {
         var dimerProcessor = DimerProcessor()
         dimerProcessor.atomsToHydrogensMap = hydrogenSites.atomsToHydrogensMap
@@ -84,12 +83,6 @@ extension Compilation {
     return bondLength
   }
   
-  // TODO: It might be possible to merge several calls to this. Don't make the
-  // change until you've got the tests working again, because it will alter
-  // performance.
-  //
-  // Another blocker to this change: the minor relocation of a couple lines
-  // of code inside a loop.
   func createOrbitals(
     bonds: [SIMD2<UInt32>]
   ) -> [Topology.OrbitalStorage] {

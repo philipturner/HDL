@@ -17,11 +17,9 @@ extension Compilation {
   //          hydrogensToAtomsMap
   // Outputs: topology.atoms (remove)
   mutating func resolveThreeWayCollisions(
-    bonds: [SIMD2<UInt32>],
-    hydrogensToAtomsMap: [[UInt32]]
+    hydrogensToAtomsMap: [[UInt32]],
+    orbitalLists: [Topology.OrbitalStorage]
   ) {
-    let orbitalLists = createOrbitals(bonds: bonds)
-    
     var insertedAtoms: [Atom] = []
     for hydrogenSiteID in hydrogensToAtomsMap.indices {
       // The atom list is guaranteed to already be sorted.

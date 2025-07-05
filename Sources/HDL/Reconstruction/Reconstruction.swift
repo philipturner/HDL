@@ -28,6 +28,10 @@ public struct Reconstruction {
       atoms: atoms,
       material: material)
     compilation.compile()
-    return compilation.createTopology()
+    
+    var topology = Topology()
+    topology.atoms = compilation.atoms
+    topology.bonds = compilation.bonds
+    return topology
   }
 }

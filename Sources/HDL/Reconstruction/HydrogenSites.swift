@@ -18,7 +18,7 @@ extension Compilation {
   //         topology.atoms
   //         topology.bonds -> orbitals
   private func createHydrogenData() -> [SIMD4<Float>] {
-    let orbitalLists = createTopology().nonbondingOrbitals()
+    let orbitalLists = createOrbitals()
     let bondLength = createBondLength()
     
     var output: [SIMD4<Float>] = []

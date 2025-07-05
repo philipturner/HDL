@@ -19,12 +19,17 @@ struct Compilation {
     self.material = material
   }
   
-  func createTopology() -> Topology {
-    // Avoid the computational overhead of calling 'insert'.
+  func createAtomTopology() -> Topology {
+    var output = Topology()
+    output.atoms = atoms
+    return output
+  }
+  
+  func createOrbitals() -> [Topology.OrbitalStorage] {
     var output = Topology()
     output.atoms = atoms
     output.bonds = bonds
-    return output
+    return output.nonbondingOrbitals()
   }
   
   // TODO: Refactor the data mutations / state variables throughout this
@@ -119,7 +124,7 @@ extension Compilation {
     var converged = false
     for _ in 0..<100 {
       let bondLength = createBondLength()
-      let matches = createTopology().match(
+      let matches = createAtomTopology().match(
         atoms, algorithm: .absoluteRadius(bondLength * 1.1))
       
       var removedAtoms: [UInt32] = []
@@ -142,10 +147,9 @@ extension Compilation {
       }
       
       if removedAtoms.count > 0 {
-        var topology = createTopology()
+        var topology = createAtomTopology()
         topology.remove(atoms: removedAtoms)
         self.atoms = topology.atoms
-        self.bonds = topology.bonds
       } else {
         converged = true
         break
@@ -166,7 +170,7 @@ extension Compilation {
   //          center types
   private mutating func createBulkAtomBonds() -> [UInt8] {
     let bondLength = createBondLength()
-    let matches = createTopology().match(
+    let matches = createAtomTopology().match(
       atoms, algorithm: .absoluteRadius(bondLength * 1.1))
     
     var insertedBonds: [SIMD2<UInt32>] = []

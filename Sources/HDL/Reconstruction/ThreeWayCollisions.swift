@@ -14,7 +14,7 @@ extension Compilation {
   mutating func resolveThreeWayCollisions(
     hydrogensToAtomsMap: [[UInt32]]
   ) {
-    let orbitalLists = createTopology().nonbondingOrbitals()
+    let orbitalLists = createOrbitals()
     
     var insertedAtoms: [Atom] = []
     for hydrogenSiteID in hydrogensToAtomsMap.indices {

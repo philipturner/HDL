@@ -108,7 +108,7 @@ extension Compilation {
     return output.nonbondingOrbitals()
   }
   
-  private func createAtomMatches() -> [Topology.MatchStorage] {
+  func createAtomMatches() -> [Topology.MatchStorage] {
     var topology = Topology()
     topology.atoms = atoms
     
@@ -117,6 +117,9 @@ extension Compilation {
       atoms, algorithm: .absoluteRadius(bondLength * 1.1))
   }
   
+  // TODO: Perhaps change this to be non-mutating, so the state changes are
+  // more explicit.
+  //
   // Remove atoms with less than two covalent bonds.
   //
   // Inputs:  material -> bond length
@@ -160,37 +163,5 @@ extension Compilation {
     guard converged else {
       fatalError("Could not remove pathological atoms.")
     }
-  }
-  
-  // Form all center atom bonds in the lattice interior.
-  //
-  // Returns the center type of each atom.
-  //
-  // Inputs:  material -> bond length
-  //          topology.atoms
-  // Outputs: topology.bonds (insert)
-  //          center types
-  private mutating func createBulkAtomBonds() -> [UInt8] {
-    let matches = createAtomMatches()
-    
-    var insertedBonds: [SIMD2<UInt32>] = []
-    var centerTypes: [UInt8] = []
-    for i in atoms.indices {
-      let match = matches[i]
-      if match.count > 5 {
-        fatalError("Unexpected situation: match count > 5")
-      } else if match.count > 2 {
-        for j in match where i < j {
-          let bond = SIMD2(UInt32(i), j)
-          insertedBonds.append(bond)
-        }
-        centerTypes.append(UInt8(match.count - 1))
-      } else {
-        fatalError("Pathological atoms should be removed.")
-      }
-    }
-    self.bonds += insertedBonds
-    
-    return centerTypes
   }
 }

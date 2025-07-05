@@ -18,12 +18,12 @@ extension Compilation {
   //         topology.atoms
   //         topology.bonds -> orbitals
   private func createHydrogenData() -> [SIMD4<Float>] {
-    let orbitalLists = topology.nonbondingOrbitals()
+    let orbitalLists = createTopology().nonbondingOrbitals()
     let bondLength = createBondLength()
     
     var output: [SIMD4<Float>] = []
-    for i in topology.atoms.indices {
-      let atom = topology.atoms[i]
+    for i in atoms.indices {
+      let atom = atoms[i]
       let orbitalList = orbitalLists[i]
       for orbital in orbitalList {
         let position = atom.position + bondLength * orbital
@@ -87,7 +87,8 @@ extension Compilation {
     
     var output = HydrogenSiteMap()
     output.atomsToHydrogensMap = Array(
-      repeating: [], count: topology.atoms.count)
+      repeating: [],
+      count: atoms.count)
     
     let matches = Self.createMatches(hydrogenData: hydrogenData)
     let filteredMatches = filter(matches: matches)
@@ -122,7 +123,7 @@ extension Compilation {
     }
     
     // Sort each hydrogen list, in-place.
-    for j in topology.atoms.indices {
+    for j in atoms.indices {
       output.atomsToHydrogensMap[Int(j)].sort()
     }
     return output

@@ -14,7 +14,7 @@ extension Compilation {
   mutating func resolveThreeWayCollisions(
     hydrogensToAtomsMap: [[UInt32]]
   ) {
-    let orbitalLists = topology.nonbondingOrbitals()
+    let orbitalLists = createTopology().nonbondingOrbitals()
     
     var insertedAtoms: [Atom] = []
     for hydrogenSiteID in hydrogensToAtomsMap.indices {
@@ -44,9 +44,9 @@ extension Compilation {
             let atomID1 = atomList[0]
             let atomID2 = atomList[1]
             let atomID3 = atomList[2]
-            let atom1 = topology.atoms[Int(atomID1)]
-            let atom2 = topology.atoms[Int(atomID2)]
-            let atom3 = topology.atoms[Int(atomID3)]
+            let atom1 = atoms[Int(atomID1)]
+            let atom2 = atoms[Int(atomID2)]
+            let atom3 = atoms[Int(atomID3)]
             let position1 = atom1.position
             let position2 = atom2.position
             let position3 = atom3.position
@@ -86,7 +86,7 @@ extension Compilation {
       // Iterate over all 3 atoms in the collision.
       var atomicNumbersDict: [UInt8: Int] = [:]
       for atomID in atomList {
-        let atom = topology.atoms[Int(atomID)]
+        let atom = atoms[Int(atomID)]
         let atomicNumber = atom.atomicNumber
         if atomicNumbersDict[atomicNumber] == nil {
           atomicNumbersDict[atomicNumber] = 1
@@ -132,6 +132,6 @@ extension Compilation {
       insertedAtoms.append(atom)
     }
     
-    topology.insert(atoms: insertedAtoms)
+    self.atoms += insertedAtoms
   }
 }

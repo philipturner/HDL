@@ -63,7 +63,7 @@ struct Compilation {
         // Reverse the actions from the start of this iteration.
         //
         // TODO: Isolate and clarify this state mutation.
-        topology.bonds = []
+        self.bonds = []
       } else {
         var dimerProcessor = DimerProcessor()
         dimerProcessor.atomsToHydrogensMap = siteMap.atomsToHydrogensMap
@@ -73,7 +73,7 @@ struct Compilation {
           centerTypes: centerTypes)
         let insertedBonds = dimerProcessor.destroyCollisions(
           hydrogenChains: hydrogenChains)
-        topology.insert(bonds: insertedBonds)
+        self.bonds += insertedBonds
         
         // We could return the bonds here.
         
@@ -144,7 +144,8 @@ extension Compilation {
       if removedAtoms.count > 0 {
         var topology = createTopology()
         topology.remove(atoms: removedAtoms)
-        self.atoms =
+        self.atoms = topology.atoms
+        self.bonds = topology.bonds
       } else {
         converged = true
         break
@@ -165,12 +166,12 @@ extension Compilation {
   //          center types
   private mutating func createBulkAtomBonds() -> [UInt8] {
     let bondLength = createBondLength()
-    let matches = topology.match(
-      topology.atoms, algorithm: .absoluteRadius(bondLength * 1.1))
+    let matches = createTopology().match(
+      atoms, algorithm: .absoluteRadius(bondLength * 1.1))
     
     var insertedBonds: [SIMD2<UInt32>] = []
     var centerTypes: [UInt8] = []
-    for i in topology.atoms.indices {
+    for i in atoms.indices {
       let match = matches[i]
       if match.count > 5 {
         fatalError("Unexpected situation: match count > 5")
@@ -184,7 +185,7 @@ extension Compilation {
         fatalError("Pathological atoms should be removed.")
       }
     }
-    topology.insert(bonds: insertedBonds)
+    self.bonds += insertedBonds
     
     return centerTypes
   }

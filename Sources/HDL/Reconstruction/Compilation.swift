@@ -19,12 +19,6 @@ struct Compilation {
     self.material = material
   }
   
-  func createAtomTopology() -> Topology {
-    var output = Topology()
-    output.atoms = atoms
-    return output
-  }
-  
   func createOrbitals() -> [Topology.OrbitalStorage] {
     var output = Topology()
     output.atoms = atoms
@@ -114,6 +108,15 @@ extension Compilation {
     return bondLength
   }
   
+  private func createAtomMatches() -> [Topology.MatchStorage] {
+    var topology = Topology()
+    topology.atoms = atoms
+    
+    let bondLength = createBondLength()
+    return topology.match(
+      atoms, algorithm: .absoluteRadius(bondLength * 1.1))
+  }
+  
   // Remove atoms with less than two covalent bonds.
   //
   // Inputs:  material -> bond length
@@ -123,9 +126,7 @@ extension Compilation {
     // Loop over this a few times (typically less than 10).
     var converged = false
     for _ in 0..<100 {
-      let bondLength = createBondLength()
-      let matches = createAtomTopology().match(
-        atoms, algorithm: .absoluteRadius(bondLength * 1.1))
+      let matches = createAtomMatches()
       
       var removedAtoms: [UInt32] = []
       for i in atoms.indices {
@@ -147,7 +148,8 @@ extension Compilation {
       }
       
       if removedAtoms.count > 0 {
-        var topology = createAtomTopology()
+        var topology = Topology()
+        topology.atoms = atoms
         topology.remove(atoms: removedAtoms)
         self.atoms = topology.atoms
       } else {
@@ -169,9 +171,7 @@ extension Compilation {
   // Outputs: topology.bonds (insert)
   //          center types
   private mutating func createBulkAtomBonds() -> [UInt8] {
-    let bondLength = createBondLength()
-    let matches = createAtomTopology().match(
-      atoms, algorithm: .absoluteRadius(bondLength * 1.1))
+    let matches = createAtomMatches()
     
     var insertedBonds: [SIMD2<UInt32>] = []
     var centerTypes: [UInt8] = []

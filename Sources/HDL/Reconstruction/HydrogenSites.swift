@@ -90,8 +90,8 @@ extension Compilation {
       repeating: [],
       count: atoms.count)
     
-    let matches = Self.createMatches(hydrogenData: hydrogenData)
-    let filteredMatches = filter(matches: matches)
+    let rawMatches = Self.createMatches(hydrogenData: hydrogenData)
+    let filteredMatches = filter(matches: rawMatches)
     for match in filteredMatches {
       func createAtomList() -> [UInt32] {
         var atomList: [UInt32] = []

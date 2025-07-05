@@ -27,11 +27,11 @@ public struct Reconstruction {
     var compilation = Compilation(
       atoms: atoms,
       material: material)
-    compilation.compile()
+    let bonds = compilation.compile()
     
     var topology = Topology()
     topology.atoms = compilation.atoms
-    topology.bonds = compilation.bonds
+    topology.bonds = bonds
     return topology
   }
 }

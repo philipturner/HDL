@@ -19,7 +19,7 @@ extension Compilation {
   //          topology.atoms
   // Outputs: topology.bonds (insert)
   //          center types
-  private mutating func createCarbonSites() -> CarbonSiteMap {
+  func createCarbonSites() -> CarbonSiteMap {
     let matches = createAtomMatches()
     
     var output = CarbonSiteMap()

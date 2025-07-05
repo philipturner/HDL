@@ -6,15 +6,21 @@
 //
 
 extension Compilation {
+  // TODO: Refactor to just return the inserted atoms, instead of being a
+  // mutating function.
+  //
+  // Adds carbon atoms to places where 3 hydrogens collide.
+  //
   // Inputs:  material
   //          topology.atoms
   //          topology.bonds -> orbitals
   //          hydrogensToAtomsMap
   // Outputs: topology.atoms (remove)
   mutating func resolveThreeWayCollisions(
+    bonds: [SIMD2<UInt32>],
     hydrogensToAtomsMap: [[UInt32]]
   ) {
-    let orbitalLists = createOrbitals()
+    let orbitalLists = createOrbitals(bonds: bonds)
     
     var insertedAtoms: [Atom] = []
     for hydrogenSiteID in hydrogensToAtomsMap.indices {

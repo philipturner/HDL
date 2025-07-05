@@ -32,52 +32,37 @@ struct Compilation {
   //            steps.
   // Phase IV:  Eliminate passivation from the library code.
   // Phase V:   Fix up the handling of 'topology.bonds'.
-  mutating func compile() {
+  mutating func compile() -> [SIMD2<UInt32>] {
     removePathologicalAtoms()
     
     // Loop over this a few times (typically less than 10).
-    var converged = false
     for _ in 0..<100 {
       // TODO: Isolate and clarify this state mutation. Perhaps make Topology
       // transient (which it can be, at no cost) and store/return the bonds
       // separately.
       let carbonSites = createCarbonSites()
-      let hydrogenSites = createHydrogenSites()
+      let hydrogenSites = createHydrogenSites(
+        bonds: carbonSites.bonds)
       
       // Check whether there are still 3-way collisions.
       if hydrogenSites.hydrogensToAtomsMap.contains(where: { $0.count > 2 }) {
-        // Add center atoms to problematic sites.
         resolveThreeWayCollisions(
+          bonds: carbonSites.bonds,
           hydrogensToAtomsMap: hydrogenSites.hydrogensToAtomsMap)
-        
-        // Reverse the actions from the start of this iteration.
-        //
-        // TODO: Isolate and clarify this state mutation.
-        self.bonds = []
       } else {
         var dimerProcessor = DimerProcessor()
-        dimerProcessor.atomsToHydrogensMap = siteMap.atomsToHydrogensMap
-        dimerProcessor.hydrogensToAtomsMap = siteMap.hydrogensToAtomsMap
+        dimerProcessor.atomsToHydrogensMap = hydrogenSites.atomsToHydrogensMap
+        dimerProcessor.hydrogensToAtomsMap = hydrogenSites.hydrogensToAtomsMap
         
         let hydrogenChains = dimerProcessor.createHydrogenChains(
-          centerTypes: centerTypes)
-        let insertedBonds = dimerProcessor.destroyCollisions(
+          centerTypes: carbonSites.centerTypes)
+        let dimerBonds = dimerProcessor.destroyCollisions(
           hydrogenChains: hydrogenChains)
-        self.bonds += insertedBonds
-        
-        // We could return the bonds here.
-        
-        converged = true
-        break
+        return carbonSites.bonds + dimerBonds
       }
     }
-    guard converged else {
-      fatalError("Could not resolve 3-way collisions.")
-    }
     
-    // TODO: We can just return 'nil' here to signal that bonds could not be
-    // materialized. Or perhaps group together one of 3 internal convergence
-    // errors, which are beautifully shown in an error message.
+    fatalError("Could not resolve 3-way collisions.")
   }
 }
 
@@ -99,6 +84,12 @@ extension Compilation {
     return bondLength
   }
   
+  // TODO: It might be possible to merge several calls to this. Don't make the
+  // change until you've got the tests working again, because it will alter
+  // performance.
+  //
+  // Another blocker to this change: the minor relocation of a couple lines
+  // of code inside a loop.
   func createOrbitals(
     bonds: [SIMD2<UInt32>]
   ) -> [Topology.OrbitalStorage] {

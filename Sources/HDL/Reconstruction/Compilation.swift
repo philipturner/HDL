@@ -7,7 +7,6 @@
 
 struct Compilation {
   var atoms: [SIMD4<Float>]
-  var bonds: [SIMD2<UInt32>] // stop toward making this transient, not stored
   let material: MaterialType
   
   init(
@@ -15,15 +14,7 @@ struct Compilation {
     material: MaterialType
   ) {
     self.atoms = atoms
-    self.bonds = []
     self.material = material
-  }
-  
-  func createOrbitals() -> [Topology.OrbitalStorage] {
-    var output = Topology()
-    output.atoms = atoms
-    output.bonds = bonds
-    return output.nonbondingOrbitals()
   }
   
   // TODO: Refactor the data mutations / state variables throughout this
@@ -106,6 +97,15 @@ extension Compilation {
       bondLength = element.covalentRadius + element2.covalentRadius
     }
     return bondLength
+  }
+  
+  func createOrbitals(
+    bonds: [SIMD2<UInt32>]
+  ) -> [Topology.OrbitalStorage] {
+    var output = Topology()
+    output.atoms = atoms
+    output.bonds = bonds
+    return output.nonbondingOrbitals()
   }
   
   private func createAtomMatches() -> [Topology.MatchStorage] {

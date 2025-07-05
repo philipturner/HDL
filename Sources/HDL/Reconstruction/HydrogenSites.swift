@@ -8,6 +8,7 @@
 struct HydrogenSiteMap {
   var atomsToHydrogensMap: [[UInt32]] = []
   var hydrogensToAtomsMap: [[UInt32]] = []
+  var hydrogenSiteCenters: [SIMD3<Float>] = []
 }
 
 extension Compilation {
@@ -87,6 +88,41 @@ extension Compilation {
     return output
   }
   
+  private static func createAtomList(
+    match: Topology.MatchStorage,
+    hydrogenData: [SIMD4<Float>]
+  ) -> [UInt32] {
+    var atomList: [UInt32] = []
+    for j in match {
+      let data = hydrogenData[Int(j)]
+      let atomID = data.w.bitPattern
+      atomList.append(atomID)
+    }
+    if atomList.count >= 4 {
+      fatalError("4-way collisions are not handled yet.")
+    }
+    
+    // Sort the atom list, in-place.
+    atomList.sort()
+    return atomList
+  }
+  
+  private static func createSiteCenter(
+    match: Topology.MatchStorage,
+    hydrogenData: [SIMD4<Float>]
+  ) -> SIMD3<Float> {
+    var sum: SIMD3<Float> = .zero
+    for j in match {
+      let data = hydrogenData[Int(j)]
+      let position = unsafeBitCast(data, to: SIMD3<Float>.self)
+      sum += position
+    }
+    guard match.count > 0 else {
+      fatalError("Attempted to divide by zero.")
+    }
+    return sum / Float(match.count)
+  }
+  
   // Inputs:  material -> hydrogen data -> bond length
   //          topology.atoms -> hydrogen data
   //          topology.bonds -> hydrogen data -> orbitals
@@ -108,25 +144,17 @@ extension Compilation {
       repeating: [],
       count: atoms.count)
     for match in filteredMatches {
-      func createAtomList() -> [UInt32] {
-        var atomList: [UInt32] = []
-        for j in match {
-          let data = hydrogenData[Int(j)]
-          let atomID = data.w.bitPattern
-          atomList.append(atomID)
-        }
-        if atomList.count >= 4 {
-          fatalError("4-way collisions are not handled yet.")
-        }
-        
-        // Sort the atom list, in-place.
-        atomList.sort()
-        return atomList
-      }
+      let siteCenter = Self.createSiteCenter(
+        match: match,
+        hydrogenData: hydrogenData)
+      output.hydrogenSiteCenters.append(siteCenter)
       
       // Integrate the atom list into the map.
-      let atomList = createAtomList()
-      let hydrogenID = UInt32(output.hydrogensToAtomsMap.count)
+      let atomList = Self.createAtomList(
+        match: match,
+        hydrogenData: hydrogenData)
+      let hydrogenID = UInt32(
+        output.hydrogensToAtomsMap.count)
       output.hydrogensToAtomsMap.append(atomList)
       
       // Mutate the hydrogen list.

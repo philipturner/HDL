@@ -25,7 +25,6 @@ extension Compilation {
         continue
       }
       
-      // Iterate over the first three atoms in the collision.
       var orbitalPermutationCount: SIMD3<Int> = .zero
       for laneID in 0..<3 {
         let atomID = atomList[laneID]
@@ -33,8 +32,7 @@ extension Compilation {
         orbitalPermutationCount[laneID] = orbitalList.count
       }
       
-      var bulkBondLength = Constant(.square) { material }
-      bulkBondLength *= Float(3).squareRoot() / 4
+      let bondLength = createBondLength()
       var bestPermutationScore: Float = .greatestFiniteMagnitude
       var bestPermutationAverage: SIMD3<Float>?
       
@@ -61,9 +59,9 @@ extension Compilation {
             let orbital1 = orbitalList1[index1]
             let orbital2 = orbitalList2[index2]
             let orbital3 = orbitalList3[index3]
-            let estimate1 = position1 + bulkBondLength * orbital1
-            let estimate2 = position2 + bulkBondLength * orbital2
-            let estimate3 = position3 + bulkBondLength * orbital3
+            let estimate1 = position1 + bondLength * orbital1
+            let estimate2 = position2 + bondLength * orbital2
+            let estimate3 = position3 + bondLength * orbital3
             
             let delta12 = estimate1 - estimate2
             let delta13 = estimate1 - estimate3
@@ -89,7 +87,7 @@ extension Compilation {
       //
       // Choice based on the data: 3.5e-2
       // This entire procedure doesn't make sense from first principles.
-      guard bestPermutationScore < 0.035 * bulkBondLength,
+      guard bestPermutationScore < 0.035 * bondLength,
             let bestPermutationAverage else {
         fatalError("Could not find suitable orbital permutation.")
       }

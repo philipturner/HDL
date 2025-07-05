@@ -12,6 +12,66 @@ struct HydrogenSiteMap {
 }
 
 extension Compilation {
+  // Inputs:  material -> hydrogen data -> bond length
+  //          topology.atoms -> hydrogen data
+  //          topology.bonds -> hydrogen data -> orbitals
+  // Outputs: atomsToHydrogensMap
+  //          hydrogensToAtomsMap (length determined here)
+  func createHydrogenSites(
+    bonds: [SIMD2<UInt32>]
+  ) -> HydrogenSiteMap {
+    let orbitalLists = createOrbitalLists(
+      bonds: bonds)
+    let hydrogenData = createHydrogenData(
+      orbitalLists: orbitalLists)
+    let rawMatches = Self.createMatches(
+      hydrogenData: hydrogenData)
+    let filteredMatches = Self.filter(
+      matches: rawMatches,
+      hydrogenData: hydrogenData)
+    
+    var output = HydrogenSiteMap()
+    output.atomsToHydrogensMap = Array(
+      repeating: [],
+      count: atoms.count)
+    for match in filteredMatches {
+      let siteCenter = Self.createSiteCenter(
+        match: match,
+        hydrogenData: hydrogenData)
+      output.hydrogenSiteCenters.append(siteCenter)
+      
+      // Integrate the atom list into the map.
+      let atomList = Self.createAtomList(
+        match: match,
+        hydrogenData: hydrogenData)
+      let hydrogenID = UInt32(
+        output.hydrogensToAtomsMap.count)
+      output.hydrogensToAtomsMap.append(atomList)
+      
+      // Mutate the hydrogen list.
+      for j in atomList {
+        // Appending to the array in-place has a measurable performance
+        // improvement, compared to extract + modify + insert.
+        output.atomsToHydrogensMap[Int(j)].append(hydrogenID)
+      }
+    }
+    
+    // Sort each hydrogen list, in place.
+    for j in atoms.indices {
+      output.atomsToHydrogensMap[Int(j)].sort()
+    }
+    return output
+  }
+  
+  private func createOrbitalLists(
+    bonds: [SIMD2<UInt32>]
+  ) -> [Topology.OrbitalStorage] {
+    var output = Topology()
+    output.atoms = atoms
+    output.bonds = bonds
+    return output.nonbondingOrbitals()
+  }
+  
   // A reduced form each hydrogen atom, with the 4th vector slot storing
   // the index of the carbon that spawned it.
   //
@@ -121,54 +181,5 @@ extension Compilation {
       fatalError("Attempted to divide by zero.")
     }
     return sum / Float(match.count)
-  }
-  
-  // Inputs:  material -> hydrogen data -> bond length
-  //          topology.atoms -> hydrogen data
-  //          topology.bonds -> hydrogen data -> orbitals
-  // Outputs: atomsToHydrogensMap
-  //          hydrogensToAtomsMap (length determined here)
-  func createHydrogenSites(
-    orbitalLists: [Topology.OrbitalStorage]
-  ) -> HydrogenSiteMap {
-    let hydrogenData = createHydrogenData(
-      orbitalLists: orbitalLists)
-    let rawMatches = Self.createMatches(
-      hydrogenData: hydrogenData)
-    let filteredMatches = Self.filter(
-      matches: rawMatches,
-      hydrogenData: hydrogenData)
-    
-    var output = HydrogenSiteMap()
-    output.atomsToHydrogensMap = Array(
-      repeating: [],
-      count: atoms.count)
-    for match in filteredMatches {
-      let siteCenter = Self.createSiteCenter(
-        match: match,
-        hydrogenData: hydrogenData)
-      output.hydrogenSiteCenters.append(siteCenter)
-      
-      // Integrate the atom list into the map.
-      let atomList = Self.createAtomList(
-        match: match,
-        hydrogenData: hydrogenData)
-      let hydrogenID = UInt32(
-        output.hydrogensToAtomsMap.count)
-      output.hydrogensToAtomsMap.append(atomList)
-      
-      // Mutate the hydrogen list.
-      for j in atomList {
-        // Appending to the array in-place has a measurable performance
-        // improvement, compared to extract + modify + insert.
-        output.atomsToHydrogensMap[Int(j)].append(hydrogenID)
-      }
-    }
-    
-    // Sort each hydrogen list, in-place.
-    for j in atoms.indices {
-      output.atomsToHydrogensMap[Int(j)].sort()
-    }
-    return output
   }
 }

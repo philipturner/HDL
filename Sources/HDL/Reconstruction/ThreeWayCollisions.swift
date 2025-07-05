@@ -14,87 +14,14 @@ extension Compilation {
   //          hydrogensToAtomsMap
   // Outputs: topology.atoms (remove)
   func plugThreeWayCollisions(
-    siteMap: HydrogenSiteMap,
-    orbitalLists: [Topology.OrbitalStorage]
+    siteMap: HydrogenSiteMap
   ) -> [Atom] {
     var insertedAtoms: [Atom] = []
     for hydrogenSiteID in siteMap.hydrogensToAtomsMap.indices {
-      // The atom list is guaranteed to already be sorted.
       let atomList = siteMap.hydrogensToAtomsMap[hydrogenSiteID]
       guard atomList.count == 3 else {
         continue
       }
-      
-      #if false
-      var orbitalPermutationCount: SIMD3<Int> = .zero
-      for laneID in 0..<3 {
-        let atomID = atomList[laneID]
-        let orbitalList = orbitalLists[Int(atomID)]
-        orbitalPermutationCount[laneID] = orbitalList.count
-      }
-      
-      let bondLength = createBondLength()
-      var bestPermutationScore: Float = .greatestFiniteMagnitude
-      var bestPermutationAverage: SIMD3<Float>?
-      
-      // TODO: This entire search may be unnecessary, if the bond length is
-      // changed to the correct value.
-      
-      // Loop over all possible combinations of bond directions.
-      for index1 in 0..<orbitalPermutationCount[0] {
-        for index2 in 0..<orbitalPermutationCount[1] {
-          for index3 in 0..<orbitalPermutationCount[2] {
-            let atomID1 = atomList[0]
-            let atomID2 = atomList[1]
-            let atomID3 = atomList[2]
-            let atom1 = atoms[Int(atomID1)]
-            let atom2 = atoms[Int(atomID2)]
-            let atom3 = atoms[Int(atomID3)]
-            let position1 = atom1.position
-            let position2 = atom2.position
-            let position3 = atom3.position
-            
-            let orbitalList1 = orbitalLists[Int(atomID1)]
-            let orbitalList2 = orbitalLists[Int(atomID2)]
-            let orbitalList3 = orbitalLists[Int(atomID3)]
-            let orbital1 = orbitalList1[index1]
-            let orbital2 = orbitalList2[index2]
-            let orbital3 = orbitalList3[index3]
-            let estimate1 = position1 + bondLength * orbital1
-            let estimate2 = position2 + bondLength * orbital2
-            let estimate3 = position3 + bondLength * orbital3
-            
-            let delta12 = estimate1 - estimate2
-            let delta13 = estimate1 - estimate3
-            let delta23 = estimate2 - estimate3
-            let distance12 = (delta12 * delta12).sum().squareRoot()
-            let distance13 = (delta13 * delta13).sum().squareRoot()
-            let distance23 = (delta23 * delta23).sum().squareRoot()
-            
-            let score = distance12 + distance13 + distance23
-            let average = (estimate1 + estimate2 + estimate3) / 3
-            if score < bestPermutationScore {
-              bestPermutationScore = score
-              bestPermutationAverage = average
-            }
-          }
-        }
-      }
-      
-      // Limit for a 10 micron shift: 6.20e-2
-      // Limit for a  2 micron shift: 1.18e-2
-      // Limit for a    500 nm shift: 1.43e-3
-      // Limit for a    100 nm shift: 2.91e-4
-      //
-      // Choice based on the data: 3.5e-2
-      // This entire procedure doesn't make sense from first principles.
-      guard bestPermutationScore < 0.035 * bondLength,
-            let bestPermutationAverage else {
-        fatalError("Could not find suitable orbital permutation.")
-      }
-      #endif
-      
-      let bestPermutationAverage = siteMap.hydrogenSiteCenters[hydrogenSiteID]
       
       // Iterate over all 3 atoms in the collision.
       var atomicNumbersDict: [UInt8: Int] = [:]
@@ -139,8 +66,9 @@ extension Compilation {
         }
       }
       
+      let position = siteMap.hydrogenSiteCenters[hydrogenSiteID]
       let atom = Atom(
-        position: bestPermutationAverage,
+        position: position,
         atomicNumber: chosenAtomicNumber)
       insertedAtoms.append(atom)
     }

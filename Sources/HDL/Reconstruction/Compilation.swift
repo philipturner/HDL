@@ -40,16 +40,13 @@ struct Compilation {
     // Loop over this a few times (typically less than 10).
     for _ in 0..<100 {
       let carbonSites = createCarbonSites()
-      let orbitalLists = createOrbitals(
-        bonds: carbonSites.bonds)
       let hydrogenSites = createHydrogenSites(
-        orbitalLists: orbitalLists)
+        bonds: carbonSites.bonds)
       
       // Check whether there are still 3-way collisions.
       if hydrogenSites.hydrogensToAtomsMap.contains(where: { $0.count > 2 }) {
         let plugs = plugThreeWayCollisions(
-          siteMap: hydrogenSites,
-          orbitalLists: orbitalLists)
+          siteMap: hydrogenSites)
         self.atoms += plugs
       } else {
         var dimerProcessor = DimerProcessor()
@@ -66,11 +63,7 @@ struct Compilation {
     
     fatalError("Could not resolve 3-way collisions.")
   }
-}
-
-// MARK: - Utilities
-
-extension Compilation {
+  
   // Place hydrogens at the C-C bond length instead of the C-H bond length.
   //
   // Inputs:  material
@@ -79,15 +72,6 @@ extension Compilation {
     var bulkBondLength = Constant(.square) { material }
     bulkBondLength *= Float(3).squareRoot() / 4
     return bulkBondLength
-  }
-  
-  func createOrbitals(
-    bonds: [SIMD2<UInt32>]
-  ) -> [Topology.OrbitalStorage] {
-    var output = Topology()
-    output.atoms = atoms
-    output.bonds = bonds
-    return output.nonbondingOrbitals()
   }
   
   func createAtomMatches() -> [Topology.MatchStorage] {

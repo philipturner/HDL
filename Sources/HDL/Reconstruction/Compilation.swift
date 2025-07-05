@@ -6,16 +6,25 @@
 //
 
 struct Compilation {
+  var atoms: [SIMD4<Float>]
+  var bonds: [SIMD2<UInt32>] // stop toward making this transient, not stored
   let material: MaterialType
-  var topology: Topology
   
   init(
     atoms: [SIMD4<Float>],
     material: MaterialType
   ) {
+    self.atoms = atoms
+    self.bonds = []
     self.material = material
-    self.topology = Topology()
-    topology.insert(atoms: atoms)
+  }
+  
+  func createTopology() -> Topology {
+    // Avoid the computational overhead of calling 'insert'.
+    var output = Topology()
+    output.atoms = atoms
+    output.bonds = bonds
+    return output
   }
   
   // TODO: Refactor the data mutations / state variables throughout this
@@ -110,11 +119,11 @@ extension Compilation {
     var converged = false
     for _ in 0..<100 {
       let bondLength = createBondLength()
-      let matches = topology.match(
-        topology.atoms, algorithm: .absoluteRadius(bondLength * 1.1))
+      let matches = createTopology().match(
+        atoms, algorithm: .absoluteRadius(bondLength * 1.1))
       
       var removedAtoms: [UInt32] = []
-      for i in topology.atoms.indices {
+      for i in atoms.indices {
         let match = matches[i]
         if match.count > 5 {
           fatalError("Unexpected situation: match count > 5")
@@ -133,7 +142,9 @@ extension Compilation {
       }
       
       if removedAtoms.count > 0 {
+        var topology = createTopology()
         topology.remove(atoms: removedAtoms)
+        self.atoms =
       } else {
         converged = true
         break

@@ -6,7 +6,10 @@
 //
 
 public struct Reconstruction {
+  /// Required.
   public var atoms: [SIMD4<Float>]?
+  
+  /// Required.
   public var material: MaterialType?
   
   public init() {
@@ -25,6 +28,6 @@ public struct Reconstruction {
       atoms: atoms,
       material: material)
     compilation.compile()
-    return compilation.topology
+    return compilation.createTopology()
   }
 }

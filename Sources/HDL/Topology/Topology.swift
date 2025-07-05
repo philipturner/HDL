@@ -13,7 +13,7 @@ public struct Topology {
     
   }
 }
-  
+
 extension Topology {
   public mutating func insert(atoms: [Atom]) {
     for atom in atoms {

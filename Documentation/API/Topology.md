@@ -100,6 +100,10 @@ Adds new atoms/bonds to the topology.
 
 The new atoms and bonds are added directly to the end of the list. The atoms and bonds are not checked for duplicates. For example, if you specify a bond multiple times, it will be added multiple times. This behavior is different from `remove()`, which checks for duplication before removing.
 
+These members check for basic integrity (reasonable atomic number, valid atom index in a bond). Therefore, they may introduce computational overhead.
+
+> TODO: Remove these functions from the API. They are redundant runtime assertions.
+
 ```swift
 mutating func remove(atoms indices: [UInt32])
 mutating func remove(bonds indices: [UInt32])

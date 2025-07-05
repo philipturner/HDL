@@ -86,7 +86,11 @@ extension Compilation {
       // bond length.
       
       // 4.91e-6 * bulkBondLength - a test crashes
-      guard bestPermutationScore < 0.1 * bulkBondLength,
+      
+      // 4.91e-6 * bulkBondLength - a test crashes
+      // 1.17e-2 * bulkBondLength - limit for a  2 micron shift
+      // 6.19e-2 * bulkBondLength - limit for a 10 micron shift
+      guard bestPermutationScore < 6.20e-2 * bulkBondLength,
             let bestPermutationAverage else {
         fatalError("Could not find suitable orbital permutation.")
       }

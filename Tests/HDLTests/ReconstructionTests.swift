@@ -268,7 +268,7 @@ final class ReconstructionTests: XCTestCase {
     var reconstruction = Reconstruction()
     reconstruction.atoms = lattice.atoms.map {
       var output = $0
-      output.position += 2000 * SIMD3<Float>(-1, 1, -1)
+      output.position += 10000 * SIMD3<Float>(-1, 1, -1)
       return output
     }
     reconstruction.material = .elemental(.carbon)

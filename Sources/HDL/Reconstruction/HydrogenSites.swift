@@ -74,7 +74,7 @@ extension Compilation {
     // (1000 / 3.57) * (4e-7 nm) = 1e-4 nm
     // Both of these numbers are smaller than 1 pm.
     return matcher.match(
-      hydrogenAtoms, algorithm: .absoluteRadius(0.001))
+      hydrogenAtoms, algorithm: .absoluteRadius(0.005))
   }
   
   private static func filter(

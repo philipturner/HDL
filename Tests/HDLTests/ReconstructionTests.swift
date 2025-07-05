@@ -235,5 +235,50 @@ final class ReconstructionTests: XCTestCase {
   
   // TODO: New test: add a large offset to the atoms and see where it breaks
   // down.
+  func testShiftedLattice() throws {
+    let lattice = Lattice<Cubic> { h, k, l in
+      Bounds { 10 * h + 9 * k + 7 * l }
+      Material { .elemental(.carbon) }
+      
+      Volume {
+        Concave {
+          Origin { 1.5 * k + 1.5 * l }
+          
+          // Create a groove for the rod.
+          Concave {
+            Plane { k }
+            Plane { l }
+            Origin { 6.25 * k + 4 * l }
+            Plane { -k }
+            Plane { -l }
+          }
+          
+          Concave {
+            Origin { 2 * h }
+            
+            // Create a 45-degree inclined plane.
+            Plane { h - k }
+          }
+        }
+        
+        Replace { .empty }
+      }
+    }
+    
+    var reconstruction = Reconstruction()
+    reconstruction.atoms = lattice.atoms.map {
+      var output = $0
+      output.position += 10000 * SIMD3<Float>(-1, 1, -1)
+      return output
+    }
+    reconstruction.material = .elemental(.carbon)
+    
+    var topology = reconstruction.compile()
+    PassivationTests.passivate(topology: &topology)
+    XCTAssertEqual(topology.atoms.count, 5720)
+    XCTAssertEqual(topology.bonds.count, 9697)
+    PassivationTests.checkConnectivity(topology)
+    PassivationTests.checkNoOverlaps(topology)
+  }
 #endif
 }

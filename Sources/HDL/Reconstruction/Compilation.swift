@@ -134,7 +134,7 @@ extension Compilation {
     //
     // 0.01 * 0.154 nm = 1.5 pm
     return topology.match(
-      atoms, algorithm: .absoluteRadius(bondLength * 1.01))
+      atoms, algorithm: .absoluteRadius(bondLength * 1.008))
   }
   
   // Remove methyl groups and floating atoms from the list.

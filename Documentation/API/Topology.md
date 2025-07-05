@@ -10,6 +10,8 @@ var bonds: [SIMD2<UInt32>] { get set }
 The atoms and bonds backing the topology.
 
 > WARNING: Although `atoms` and `bonds` are mutable, the setters do not enforce self-consistency. The intended use case is overwriting atoms/bonds in-place (e.g. adjusting an atom's position). Use `insert()` and `remove()` when the size of these arrays changes.
+>
+> TODO: Revise this documentation in response to the removal of `insert()`.
 
 ```swift
 extension Topology {

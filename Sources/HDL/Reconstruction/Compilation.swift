@@ -48,7 +48,7 @@ struct Compilation {
       // Check whether there are still 3-way collisions.
       if hydrogenSites.hydrogensToAtomsMap.contains(where: { $0.count > 2 }) {
         let plugs = plugThreeWayCollisions(
-          hydrogensToAtomsMap: hydrogenSites.hydrogensToAtomsMap,
+          siteMap: hydrogenSites,
           orbitalLists: orbitalLists)
         self.atoms += plugs
       } else {

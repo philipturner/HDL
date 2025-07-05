@@ -14,17 +14,18 @@ extension Compilation {
   //          hydrogensToAtomsMap
   // Outputs: topology.atoms (remove)
   func plugThreeWayCollisions(
-    hydrogensToAtomsMap: [[UInt32]],
+    siteMap: HydrogenSiteMap,
     orbitalLists: [Topology.OrbitalStorage]
   ) -> [Atom] {
     var insertedAtoms: [Atom] = []
-    for hydrogenSiteID in hydrogensToAtomsMap.indices {
+    for hydrogenSiteID in siteMap.hydrogensToAtomsMap.indices {
       // The atom list is guaranteed to already be sorted.
-      let atomList = hydrogensToAtomsMap[hydrogenSiteID]
+      let atomList = siteMap.hydrogensToAtomsMap[hydrogenSiteID]
       guard atomList.count == 3 else {
         continue
       }
       
+      #if false
       var orbitalPermutationCount: SIMD3<Int> = .zero
       for laneID in 0..<3 {
         let atomID = atomList[laneID]
@@ -91,6 +92,9 @@ extension Compilation {
             let bestPermutationAverage else {
         fatalError("Could not find suitable orbital permutation.")
       }
+      #endif
+      
+      let bestPermutationAverage = siteMap.hydrogenSiteCenters[hydrogenSiteID]
       
       // Iterate over all 3 atoms in the collision.
       var atomicNumbersDict: [UInt8: Int] = [:]

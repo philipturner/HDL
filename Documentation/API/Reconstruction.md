@@ -5,10 +5,10 @@
 Surface reconstruction, _not_ followed by passivation. Useful for converting C(100)-(1×1) surfaces to C(100)-(2×1), fixing hydrogen collisions at concave corners, and removing methyl groups. Applies to any sp<sup>3</sup>-hybridized crystal. Relevant in both the `Cubic` and `Hexagonal` bases.
 
 ```swift
-// Similar to 'Descriptor' APIs, where data required to initialize a complex
-// object is specified, one property at a time. As a descriptor API, the value
-// of each property is 'Optional'. This contrasts with atoms and bonds in
-// 'Topology', but it is a justifiable choice.
+// Similar to 'Descriptor' APIs, the where data required to initialize a
+// complex object is specified, one property at a time. In line with these
+// APIs, each property is 'Optional' and defaults to 'nil'. This contrasts with
+// atoms and bonds in 'Topology', but it is a justifiable choice.
 struct Reconstruction {
   /// Required.
   var atoms: [SIMD4<Float>]?

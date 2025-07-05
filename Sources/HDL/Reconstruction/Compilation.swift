@@ -32,6 +32,7 @@ struct Compilation {
   // Phase III: Minimize the persistence of the two maps across compilation
   //            steps.
   // Phase IV:  Eliminate passivation from the library code.
+  // Phase V:   Fix up the handling of 'topology.bonds'.
   mutating func compile() {
     removePathologicalAtoms()
     

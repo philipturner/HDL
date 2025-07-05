@@ -32,6 +32,8 @@ struct Compilation {
   //            steps.
   // Phase IV:  Eliminate passivation from the library code.
   // Phase V:   Fix up the handling of 'topology.bonds'.
+  // Phase VI:  Remaining cleanups/TODOs and refinements to the internal code
+  //            for surface reconstruction.
   mutating func compile() -> [SIMD2<UInt32>] {
     removePathologicalAtoms()
     

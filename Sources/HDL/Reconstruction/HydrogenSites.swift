@@ -50,22 +50,20 @@ extension Compilation {
     var matcher = Topology()
     matcher.atoms = hydrogenAtoms
     
-    // TODO: Narrow the tolerance for the radius and see what goes wrong.
-    // Gather data about the smallest acceptable radius that doesn't make the
-    // tests go wrong. Repeat after the migration to a more stable algorithm.
+    // Original problem, caused by inexact bond length:
     //
-    // Also, don't forget to check for a performance regression.
-    
     // 14 pm - aluminum phosphide fails
     //  4 pm - surface reconstruction reproducers fail
     //  2 pm - hundreds of tests fail
-    
+    //
+    // Switching to lattice-aligned covalent bond length:
+    //
     //    1 pm - no test failures
     // 1e-6 nm - no test failures
     // 5e-7 nm - no test failures
     // 4e-7 nm - surface reconstruction reproducers fail
     // 2e-7 nm - a test crashes
-    
+    //
     // Rationale for new radius:
     //
     // surface reconstruction reproducer: 3.57 nm

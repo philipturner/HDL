@@ -109,18 +109,19 @@ extension Compilation {
     
     let bondLength = createBondLength()
     
-    // TODO: Gather data on tolerance required before vs. after the fix to
-    // bond length.
-    
+    // Original problem, caused by inexact bond length:
+    //
     // 1.037 - aluminum phosphide fails
     // 1.016 - surface reconstruction reproducers fail
     // 1.009 - hundreds of tests fail
-    
+    //
+    // Switching to lattice-aligned covalent bond length:
+    //
     // 1.001    - no tests fail
     // 1 + 3e-6 - no tests fail
     // 1 + 2e-6 - surface reconstruction reproducers fail
     // 1 + 1e-6 - a test crashes
-    
+    //
     // Rationale for new radius:
     //
     // surface reconstruction reproducer: 3.57 nm

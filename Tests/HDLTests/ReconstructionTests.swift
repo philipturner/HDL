@@ -232,5 +232,8 @@ final class ReconstructionTests: XCTestCase {
     PassivationTests.checkConnectivity(topology)
     PassivationTests.checkNoOverlaps(topology)
   }
+  
+  // TODO: New test: add a large offset to the atoms and see where it breaks
+  // down.
 #endif
 }

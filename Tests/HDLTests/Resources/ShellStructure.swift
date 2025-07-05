@@ -22,7 +22,7 @@ struct ShellStructure {
   
   mutating func compilationPass0() {
     let lattice = createLonsdaleiteLattice(element: element)
-    topology.insert(atoms: lattice.atoms)
+    topology.atoms += lattice.atoms
   }
   
   mutating func compilationPass1() {
@@ -36,7 +36,7 @@ struct ShellStructure {
             SIMD2(UInt32(i), UInt32(j)))
         }
       }
-      topology.insert(bonds: insertedBonds)
+      topology.bonds += insertedBonds
     }
     
     let orbitalLists = topology.nonbondingOrbitals()
@@ -58,8 +58,8 @@ struct ShellStructure {
           SIMD2(UInt32(i), UInt32(hydrogenID)))
       }
     }
-    topology.insert(atoms: insertedAtoms)
-    topology.insert(bonds: insertedBonds)
+    topology.atoms += insertedAtoms
+    topology.bonds += insertedBonds
   }
   
   mutating func compilationPass2() {
@@ -214,7 +214,7 @@ struct ShellStructure {
       removedAtoms.insert(UInt32(j))
     }
     
-    topology.insert(bonds: Array(insertedBonds))
+    topology.bonds += Array(insertedBonds)
     topology.remove(atoms: Array(removedAtoms))
   }
 }

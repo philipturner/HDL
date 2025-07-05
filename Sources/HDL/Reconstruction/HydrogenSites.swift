@@ -47,7 +47,7 @@ extension Compilation {
     // Create a transient topology to de-duplicate the hydrogens and merge
     // references between them.
     var matcher = Topology()
-    matcher.insert(atoms: hydrogenAtoms)
+    matcher.atoms = hydrogenAtoms
     return matcher.match(
       hydrogenAtoms, algorithm: .absoluteRadius(0.050))
   }

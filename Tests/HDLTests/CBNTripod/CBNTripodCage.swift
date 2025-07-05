@@ -91,7 +91,7 @@ struct CBNTripodCage: CBNTripodComponent {
   // Create the initial structure based on the lattice.
   mutating func compilationPass0() {
     let atoms = createLattice()
-    topology.insert(atoms: atoms)
+    topology.atoms += atoms
   }
   
   // Form C-C and Ge-C bonds, then make the structure a little closer to the
@@ -115,7 +115,7 @@ struct CBNTripodCage: CBNTripodComponent {
         insertedBonds.append(bond)
       }
     }
-    topology.insert(bonds: insertedBonds)
+    topology.bonds += insertedBonds
     
     // Move the germanium atom slightly upward.
     for i in topology.atoms.indices {
@@ -257,8 +257,8 @@ struct CBNTripodCage: CBNTripodComponent {
         insertedAtoms.append(hydrogen)
         insertedBonds.append(SIMD2(UInt32(carbonID), UInt32(hydrogenID)))
       }
-      topology.insert(atoms: insertedAtoms)
-      topology.insert(bonds: insertedBonds)
+      topology.atoms += insertedAtoms
+      topology.bonds += insertedBonds
     }
   }
   
@@ -299,8 +299,8 @@ struct CBNTripodCage: CBNTripodComponent {
         insertedBonds.append(SIMD2(UInt32(i), UInt32(hydrogenID)))
       }
     }
-    topology.insert(atoms: insertedAtoms)
-    topology.insert(bonds: insertedBonds)
+    topology.atoms += insertedAtoms
+    topology.bonds += insertedBonds
   }
   
   // Add the carbon dimer to the germanium.
@@ -329,8 +329,12 @@ struct CBNTripodCage: CBNTripodComponent {
       let carbonPosition1 = germanium.position + orbital * cGeBondLength
       let carbon1 = Atom(position: carbonPosition1, element: .carbon)
       let carbonID1 = topology.atoms.count
-      topology.insert(atoms: [carbon1])
-      topology.insert(bonds: [SIMD2(UInt32(germaniumID), UInt32(carbonID1))])
+      topology.atoms.append(carbon1)
+      
+      let bond = SIMD2(
+        UInt32(germaniumID),
+        UInt32(carbonID1))
+      topology.bonds.append(bond)
     }
     
     // Test out the new sp1 orbital generation functionality by adding the
@@ -353,8 +357,12 @@ struct CBNTripodCage: CBNTripodComponent {
       let carbonPosition2 = carbon1.position + orbital * ccBondLength
       let carbon2 = Atom(position: carbonPosition2, element: .carbon)
       let carbonID2 = topology.atoms.count
-      topology.insert(atoms: [carbon2])
-      topology.insert(bonds: [SIMD2(UInt32(carbonID1), UInt32(carbonID2))])
+      topology.atoms.append(carbon2)
+      
+      let bond = SIMD2(
+        UInt32(carbonID1),
+        UInt32(carbonID2))
+      topology.bonds.append(bond)
     }
   }
   

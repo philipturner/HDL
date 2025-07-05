@@ -23,7 +23,7 @@ struct GrapheneThiol {
         Replace { .empty }
       }
     }
-    topology.insert(atoms: lattice.atoms)
+    topology.atoms += lattice.atoms
   }
   
   mutating func compilationPass1() {
@@ -67,7 +67,7 @@ struct GrapheneThiol {
         insertedBonds.append(bond)
       }
     }
-    topology.insert(bonds: insertedBonds)
+    topology.bonds += insertedBonds
   }
   
   mutating func compilationPass3() {
@@ -142,7 +142,7 @@ struct GrapheneThiol {
         }
       }
     }
-    topology.insert(atoms: insertedAtoms)
-    topology.insert(bonds: insertedBonds)
+    topology.atoms += insertedAtoms
+    topology.bonds += insertedBonds
   }
 }

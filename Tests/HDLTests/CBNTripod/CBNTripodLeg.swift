@@ -96,7 +96,7 @@ struct CBNTripodLeg: CBNTripodComponent {
   
   mutating func compilationPass0() {
     let atoms = createLattice()
-    topology.insert(atoms: atoms)
+    topology.atoms += atoms
   }
   
   mutating func compilationPass1() {
@@ -112,7 +112,7 @@ struct CBNTripodLeg: CBNTripodComponent {
         insertedBonds.append(bond)
       }
     }
-    topology.insert(bonds: insertedBonds)
+    topology.bonds += insertedBonds
     
     /*
      C2-C3=1.4015         C3-C2=1.4015
@@ -221,8 +221,8 @@ struct CBNTripodLeg: CBNTripodComponent {
       let position = neighbor.position + delta * bondLength
       topology.atoms[i].position = position
     }
-    topology.insert(atoms: insertedAtoms)
-    topology.insert(bonds: insertedBonds)
+    topology.atoms += insertedAtoms
+    topology.bonds += insertedBonds
   }
   
   mutating func compilationPass3() {
@@ -285,8 +285,8 @@ struct CBNTripodLeg: CBNTripodComponent {
     }
     precondition(nitrogenID != -1)
     
-    topology.insert(atoms: insertedAtoms)
-    topology.insert(bonds: insertedBonds)
+    topology.atoms += insertedAtoms
+    topology.bonds += insertedBonds
     
     // Shift the entire molecule according to the nitrogen's position.
     let nitrogen = topology.atoms[nitrogenID]

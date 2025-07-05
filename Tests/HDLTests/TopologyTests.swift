@@ -7,7 +7,7 @@ final class TopologyTests: XCTestCase {
     let lonsdaleite = Lonsdaleite()
     var topology = Topology()
     
-    topology.insert(atoms: lonsdaleite.atoms)
+    topology.atoms += lonsdaleite.atoms
     XCTAssertEqual(topology.atoms, lonsdaleite.atoms)
     XCTAssertEqual(topology.bonds, [])
     
@@ -15,8 +15,8 @@ final class TopologyTests: XCTestCase {
     XCTAssertEqual(topology.atoms, [])
     XCTAssertEqual(topology.bonds, [])
     
-    topology.insert(atoms: lonsdaleite.atoms)
-    topology.insert(bonds: lonsdaleite.bonds)
+    topology.atoms += lonsdaleite.atoms
+    topology.bonds += lonsdaleite.bonds
     XCTAssertEqual(topology.atoms, lonsdaleite.atoms)
     XCTAssertEqual(topology.bonds, lonsdaleite.bonds)
     
@@ -24,7 +24,7 @@ final class TopologyTests: XCTestCase {
     XCTAssertEqual(topology.atoms, lonsdaleite.atoms)
     XCTAssertEqual(topology.bonds, [])
     
-    topology.insert(bonds: lonsdaleite.bonds)
+    topology.bonds += lonsdaleite.bonds
     XCTAssertEqual(topology.atoms, lonsdaleite.atoms)
     XCTAssertEqual(topology.bonds, lonsdaleite.bonds)
     
@@ -76,8 +76,8 @@ final class TopologyTests: XCTestCase {
     
     // Remove all carbon-hydrogen bonds and ensure the remaining topology
     // appears as expected.
-    topology.insert(atoms: lonsdaleite.atoms)
-    topology.insert(bonds: lonsdaleite.bonds)
+    topology.atoms += lonsdaleite.atoms
+    topology.bonds += lonsdaleite.bonds
     topology.remove(bonds: removedBondIDs)
     XCTAssertEqual(topology.atoms, lonsdaleite.atoms)
     XCTAssertEqual(topology.bonds, originalCarbonBonds)
@@ -88,8 +88,8 @@ final class TopologyTests: XCTestCase {
     
     // Remove all hydrogen atoms and ensure the remaining carbon-carbon bonds
     // appear as expected.
-    topology.insert(atoms: lonsdaleite.atoms)
-    topology.insert(bonds: lonsdaleite.bonds)
+    topology.atoms += lonsdaleite.atoms
+    topology.bonds += lonsdaleite.bonds
     topology.remove(atoms: removedAtomIDs)
     XCTAssertEqual(topology.atoms, carbonAtoms)
     XCTAssertEqual(topology.bonds, compactedCarbonBonds)
@@ -98,8 +98,8 @@ final class TopologyTests: XCTestCase {
   func testMap() throws {
     let lonsdaleite = Lonsdaleite()
     var topology = Topology()
-    topology.insert(atoms: lonsdaleite.atoms)
-    topology.insert(bonds: lonsdaleite.bonds)
+    topology.atoms += lonsdaleite.atoms
+    topology.bonds += lonsdaleite.bonds
     
     // bonds -> atoms
     do {
@@ -192,8 +192,8 @@ final class TopologyTests: XCTestCase {
     }
     
     var topology = Topology()
-    topology.insert(atoms: shuffledAtoms)
-    topology.insert(bonds: shuffledBonds)
+    topology.atoms += shuffledAtoms
+    topology.bonds += shuffledBonds
     
     func checkSelfConsistency() {
       let map = topology.map(.atoms, to: .atoms)
@@ -291,7 +291,7 @@ final class TopologyTests: XCTestCase {
     XCTAssertEqual(expectedImpurity, dopantConcentration, accuracy: 0.01)
     
     var topology = Topology()
-    topology.insert(atoms: lattice.atoms)
+    topology.atoms += lattice.atoms
     let matches = topology.match(
       lattice.atoms, algorithm: .covalentBondLength(2.1),
       maximumNeighborCount: 50)
@@ -361,7 +361,7 @@ final class TopologyTests: XCTestCase {
     let carbons = lonsdaleite.atoms.filter { $0.atomicNumber == 6 }
     do {
       var topology = Topology()
-      topology.insert(atoms: carbons)
+      topology.atoms += carbons
       let matchesCovalent = topology.match(
         topology.atoms, algorithm: .covalentBondLength(1.1))
       XCTAssertEqual(matchesCovalent.count, carbons.count)
@@ -384,7 +384,7 @@ final class TopologyTests: XCTestCase {
     
     do {
       var topology = Topology()
-      topology.insert(atoms: lonsdaleite.atoms)
+      topology.atoms += lonsdaleite.atoms
       let matches = topology.match(topology.atoms)
       XCTAssertEqual(matches.count, lonsdaleite.atoms.count)
       
@@ -410,8 +410,8 @@ final class TopologyTests: XCTestCase {
     var expectedBonds: [SIMD2<UInt32>]
     do {
       var topology = Topology()
-      topology.insert(atoms: lonsdaleite.atoms)
-      topology.insert(bonds: lonsdaleite.bonds)
+      topology.atoms += lonsdaleite.atoms
+      topology.bonds += lonsdaleite.bonds
       topology.sort()
       XCTAssertGreaterThan(topology.atoms.count, 0)
       XCTAssertGreaterThan(topology.bonds.count, 0)
@@ -423,7 +423,7 @@ final class TopologyTests: XCTestCase {
     let hydrogens = lonsdaleite.atoms.filter { $0.atomicNumber == 1 }
     do {
       var topology = Topology()
-      topology.insert(atoms: carbons)
+      topology.atoms += carbons
       let carbonMatches = topology.match(topology.atoms)
       
       for i in carbons.indices {
@@ -448,7 +448,7 @@ final class TopologyTests: XCTestCase {
             }
           }
         }
-        topology.insert(bonds: bonds)
+        topology.bonds += bonds
       }
       
       let hydrogenMatches = topology.match(hydrogens)
@@ -458,7 +458,7 @@ final class TopologyTests: XCTestCase {
       XCTAssertNotEqual(hydrogenMatches.count, lonsdaleite.atoms.count)
       
       let hydrogenStart = topology.atoms.count
-      topology.insert(atoms: hydrogens)
+      topology.atoms += hydrogens
       XCTAssertGreaterThan(hydrogenMatches.count, 0)
       
       for i in hydrogens.indices {
@@ -473,7 +473,7 @@ final class TopologyTests: XCTestCase {
         } else {
           bond = SIMD2(carbon, hydrogen)
         }
-        topology.insert(bonds: [bond])
+        topology.bonds.append(bond)
       }
       
       XCTAssertNotEqual(topology.atoms, expectedAtoms)
@@ -497,8 +497,8 @@ final class TopologyTests: XCTestCase {
   func testNonbondingOrbitalsLonsdaleite() throws {
     let lonsdaleite = Lonsdaleite()
     var topology = Topology()
-    topology.insert(atoms: lonsdaleite.atoms)
-    topology.insert(bonds: lonsdaleite.bonds)
+    topology.atoms += lonsdaleite.atoms
+    topology.bonds += lonsdaleite.bonds
     
     let hydrogenIndices = lonsdaleite.atoms.indices.filter {
       lonsdaleite.atoms[$0].atomicNumber == 1
@@ -513,9 +513,9 @@ final class TopologyTests: XCTestCase {
     XCTAssertGreaterThan(matches.count, 0)
     
     var hydrogenTopology = Topology()
-    hydrogenTopology.insert(atoms: lonsdaleite.atoms.filter {
+    hydrogenTopology.atoms += lonsdaleite.atoms.filter {
       $0.atomicNumber == 1
-    })
+    }
     let hydrogenMatches = hydrogenTopology.match(topology.atoms)
     XCTAssertGreaterThan(hydrogenTopology.atoms.count, 0)
     XCTAssertEqual(hydrogenMatches.count, topology.atoms.count)
@@ -590,7 +590,7 @@ final class TopologyTests: XCTestCase {
       Material { .elemental(.carbon) }
     }
     var topology = Topology()
-    topology.insert(atoms: lattice.atoms)
+    topology.atoms += lattice.atoms
     let matches = topology.match(topology.atoms)
     XCTAssertEqual(lattice.atoms.count, topology.atoms.count)
     XCTAssertEqual(matches.count, topology.atoms.count)
@@ -607,7 +607,7 @@ final class TopologyTests: XCTestCase {
           bonds.append(SIMD2(j, UInt32(i)))
         }
       }
-      topology.insert(bonds: bonds)
+      topology.bonds += bonds
       
       statsBefore[matchesRange.count - 1] += 1
     }
@@ -661,7 +661,7 @@ final class TopologyTests: XCTestCase {
     var topology = Topology()
     let hydrogen = Atom(position: .zero, element: .hydrogen)
     let atoms = [Atom](repeating: hydrogen, count: 40)
-    topology.insert(atoms: atoms)
+    topology.atoms += atoms
     
     var bonds: [SIMD2<UInt32>] = []
     let arguments: [SIMD2<Int>] = [
@@ -682,7 +682,7 @@ final class TopologyTests: XCTestCase {
         bonds.append(bond)
       }
     }
-    topology.insert(bonds: bonds)
+    topology.bonds += bonds
     
     let atomsToAtomsMap = topology.map(.atoms, to: .atoms)
     let map6 = atomsToAtomsMap[0]

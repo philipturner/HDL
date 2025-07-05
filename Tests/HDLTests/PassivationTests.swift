@@ -68,8 +68,8 @@ final class PassivationTests: XCTestCase {
         insertedBonds.append(bond)
       }
     }
-    topology.insert(atoms: insertedAtoms)
-    topology.insert(bonds: insertedBonds)
+    topology.atoms += insertedAtoms
+    topology.bonds += insertedBonds
   }
   
   func testCommonLattice() throws {

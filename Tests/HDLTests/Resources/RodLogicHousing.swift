@@ -12,7 +12,7 @@ struct RodLogicHousing {
   
   mutating func compilationPass0() {
     let lattice = createHousingLattice()
-    topology.insert(atoms: lattice.atoms)
+    topology.atoms += lattice.atoms
   }
 }
 

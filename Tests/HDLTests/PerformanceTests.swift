@@ -547,7 +547,7 @@ final class PerformanceTests: XCTestCase {
         switch index {
         case 0:
           var topology = Topology()
-          topology.insert(atoms: lattice.atoms)
+          topology.atoms = lattice.atoms
           topology.sort()
           
           atoms = topology.atoms
@@ -578,7 +578,7 @@ final class PerformanceTests: XCTestCase {
       if testParallel {
         DispatchQueue.concurrentPerform(iterations: 2) { z in
           var topology = Topology()
-          topology.insert(atoms: trial.atoms)
+          topology.atoms = trial.atoms
           let resultGrid = topology.sort()
           if z == 0 {
             resultGrid1 = resultGrid
@@ -591,11 +591,11 @@ final class PerformanceTests: XCTestCase {
       
       let startGrid = cross_platform_media_time()
       var topology = Topology()
-      topology.insert(atoms: trial.atoms)
+      topology.atoms = trial.atoms
       let resultGrid = topology.sort()
       if testParallel {
         var topology = Topology()
-        topology.insert(atoms: trial.atoms)
+        topology.atoms = trial.atoms
         _ = topology.sort()
       }
       let endGrid = cross_platform_media_time()

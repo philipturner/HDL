@@ -291,7 +291,7 @@ final class MatchTests: XCTestCase {
             insertedBonds.append(SIMD2(UInt32(i), UInt32(j)))
           }
         }
-        topology.insert(bonds: insertedBonds)
+        topology.bonds += insertedBonds
         topology.remove(atoms: removedAtoms)
       }
       
@@ -319,7 +319,7 @@ final class MatchTests: XCTestCase {
             insertedAtoms.append(hydrogen)
           }
         }
-        hydrogenTopology.insert(atoms: insertedAtoms)
+        hydrogenTopology.atoms += insertedAtoms
       }
       
       // De-duplicate the hydrogens.
@@ -421,7 +421,7 @@ final class MatchTests: XCTestCase {
       do {
         let start = cross_platform_media_time()
         var topology = Topology()
-        topology.insert(atoms: lattice.atoms)
+        topology.atoms += lattice.atoms
         topology.sort()
         let end = cross_platform_media_time()
         
@@ -432,7 +432,7 @@ final class MatchTests: XCTestCase {
       do {
         let start = cross_platform_media_time()
         var topology = Topology()
-        topology.insert(atoms: lattice.atoms)
+        topology.atoms += lattice.atoms
         let matches = topology.match(topology.atoms)
         let end = cross_platform_media_time()
         

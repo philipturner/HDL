@@ -94,7 +94,7 @@ extension BackBoardComponent {
       }
     }
     
-    topology.insert(bonds: insertedBonds)
+    topology.bonds += insertedBonds
     topology.remove(atoms: removedAtoms)
   }
   
@@ -119,8 +119,8 @@ extension BackBoardComponent {
         insertedBonds.append(bond)
       }
     }
-    topology.insert(atoms: insertedAtoms)
-    topology.insert(bonds: insertedBonds)
+    topology.atoms += insertedAtoms
+    topology.bonds += insertedBonds
   }
 }
 
@@ -177,7 +177,7 @@ struct BackBoardSmallLeft: BackBoardComponent {
         Replace { .empty }
       }
     }
-    topology.insert(atoms: lattice.atoms)
+    topology.atoms += lattice.atoms
   }
 }
 
@@ -248,7 +248,7 @@ struct BackBoardSmallRight: BackBoardComponent {
         Replace { .empty }
       }
     }
-    topology.insert(atoms: lattice.atoms)
+    topology.atoms += lattice.atoms
   }
 }
 
@@ -316,6 +316,6 @@ struct BackBoardLarge: BackBoardComponent {
         Replace { .empty }
       }
     }
-    topology.insert(atoms: lattice.atoms)
+    topology.atoms += lattice.atoms
   }
 }

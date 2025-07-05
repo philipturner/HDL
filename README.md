@@ -89,7 +89,7 @@ struct Topology {
 Encapsulates low-level operations during bond topology formation:
 - `map` - query the bonds that reference each atom
 - `match` - $O(n)$ neighbor search
-- `orbitals` - positions of unpaired electrons
+- `nonbondingOrbitals` - positions of unpaired electrons
 - `remove` - update the bonds after atoms shift to fill a gap in the list
 - `sort` - reorder the atoms to improve memory locality
 

@@ -100,8 +100,11 @@ extension Compilation {
     // Limit for a  2 micron shift: 1.0007   -> 0.11 pm
     // Limit for a    500 nm shift: 1.00032  -> 0.049 pm
     // Limit for a    100 nm shift: 1.000056 -> 0.008 pm
+    //
+    // Choice based on the data: 1.0021 (0.3 pm)
+    // Most sensible choice from first principles: 1.03 (4.6 pm)
     return topology.match(
-      atoms, algorithm: .absoluteRadius(bondLength * 1.0021))
+      atoms, algorithm: .absoluteRadius(bondLength * 1.03))
   }
   
   // Remove methyl groups and floating atoms from the list.

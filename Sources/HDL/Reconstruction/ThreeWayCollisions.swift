@@ -86,6 +86,9 @@ extension Compilation {
       // Limit for a  2 micron shift: 1.18e-2
       // Limit for a    500 nm shift: 1.43e-3
       // Limit for a    100 nm shift: 2.91e-4
+      //
+      // Choice based on the data: 3.5e-2
+      // This entire procedure doesn't make sense from first principles.
       guard bestPermutationScore < 0.035 * bulkBondLength,
             let bestPermutationAverage else {
         fatalError("Could not find suitable orbital permutation.")

@@ -32,8 +32,8 @@ struct Compilation {
   //            steps.
   // Phase IV:  Eliminate passivation from the library code.
   // Phase V:   Fix up the handling of 'topology.bonds'.
-  // Phase VI:  Remaining cleanups/TODOs and refinements to the internal code
-  //            for surface reconstruction.
+  // Phase VI:  Remaining TODOs to the internal code for surface reconstruction.
+  //            Clean up the annotations to the function signatures.
   mutating func compile() -> [SIMD2<UInt32>] {
     removePathologicalAtoms()
     
@@ -47,9 +47,10 @@ struct Compilation {
       
       // Check whether there are still 3-way collisions.
       if hydrogenSites.hydrogensToAtomsMap.contains(where: { $0.count > 2 }) {
-        resolveThreeWayCollisions(
+        let plugs = plugThreeWayCollisions(
           hydrogensToAtomsMap: hydrogenSites.hydrogensToAtomsMap,
           orbitalLists: orbitalLists)
+        self.atoms += plugs
       } else {
         var dimerProcessor = DimerProcessor()
         dimerProcessor.atomsToHydrogensMap = hydrogenSites.atomsToHydrogensMap

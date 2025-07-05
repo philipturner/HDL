@@ -6,9 +6,6 @@
 //
 
 extension Compilation {
-  // TODO: Refactor to just return the inserted atoms, instead of being a
-  // mutating function.
-  //
   // Adds carbon atoms to places where 3 hydrogens collide.
   //
   // Inputs:  material
@@ -16,10 +13,10 @@ extension Compilation {
   //          topology.bonds -> orbitals
   //          hydrogensToAtomsMap
   // Outputs: topology.atoms (remove)
-  mutating func resolveThreeWayCollisions(
+  func plugThreeWayCollisions(
     hydrogensToAtomsMap: [[UInt32]],
     orbitalLists: [Topology.OrbitalStorage]
-  ) {
+  ) -> [Atom] {
     var insertedAtoms: [Atom] = []
     for hydrogenSiteID in hydrogensToAtomsMap.indices {
       // The atom list is guaranteed to already be sorted.
@@ -135,7 +132,6 @@ extension Compilation {
         atomicNumber: chosenAtomicNumber)
       insertedAtoms.append(atom)
     }
-    
-    self.atoms += insertedAtoms
+    return insertedAtoms
   }
 }

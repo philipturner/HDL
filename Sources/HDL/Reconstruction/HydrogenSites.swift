@@ -65,8 +65,18 @@ extension Compilation {
     // 5e-7 nm - no test failures
     // 4e-7 nm - surface reconstruction reproducers fail
     // 2e-7 nm - a test crashes
+    
+    // Rationale for new radius:
+    //
+    // surface reconstruction reproducer: 3.57 nm
+    // world dimension: 256 nm
+    // conservative overestimate: 1 μm
+    //
+    // (256 / 3.57) * (4e-7 nm) = 3e-5 nm
+    // (1000 / 3.57) * (4e-7 nm) = 1e-4 nm
+    // Both of these numbers are smaller than 1 pm.
     return matcher.match(
-      hydrogenAtoms, algorithm: .absoluteRadius(0.010))
+      hydrogenAtoms, algorithm: .absoluteRadius(0.001))
   }
   
   private static func filter(

@@ -65,6 +65,8 @@ struct Compilation {
           hydrogenChains: hydrogenChains)
         topology.insert(bonds: insertedBonds)
         
+        // We could return the bonds here.
+        
         converged = true
         break
       }
@@ -73,7 +75,9 @@ struct Compilation {
       fatalError("Could not resolve 3-way collisions.")
     }
     
-    PassivationImpl.compile(topology: &topology)
+    // We can just return 'nil' here to signal that bonds could not be
+    // materialized. Or perhaps group together one of 3 internal convergence
+    // errors, which are beautifully shown in an error message.
   }
 }
 

@@ -27,7 +27,8 @@ final class ReconstructionTests: XCTestCase {
     var reconstruction = Reconstruction()
     reconstruction.atoms = lattice.atoms
     reconstruction.material = .checkerboard(.carbon, .germanium)
-    let topology = reconstruction.compile()
+    var topology = reconstruction.compile()
+    PassivationTests.passivate(topology: &topology)
     XCTAssertEqual(topology.atoms.count, 860)
     XCTAssertEqual(topology.bonds.count, 1318)
     PassivationTests.checkConnectivity(topology)
@@ -44,7 +45,8 @@ final class ReconstructionTests: XCTestCase {
     var reconstruction = Reconstruction()
     reconstruction.atoms = lattice.atoms
     reconstruction.material = .checkerboard(.phosphorus, .aluminum)
-    let topology = reconstruction.compile()
+    var topology = reconstruction.compile()
+    PassivationTests.passivate(topology: &topology)
     XCTAssertEqual(topology.atoms.count, 384)
     XCTAssertEqual(topology.bonds.count, 564)
     PassivationTests.checkConnectivity(topology)
@@ -86,7 +88,8 @@ final class ReconstructionTests: XCTestCase {
     reconstruction.material = .checkerboard(.silicon, .carbon)
     
     for _ in 0..<2 {
-      let topology = reconstruction.compile()
+      var topology = reconstruction.compile()
+      PassivationTests.passivate(topology: &topology)
       XCTAssertEqual(topology.atoms.count, 658)
       XCTAssertEqual(topology.bonds.count, 959)
       PassivationTests.checkConnectivity(topology)
@@ -161,7 +164,7 @@ final class ReconstructionTests: XCTestCase {
     reconstruction.material = .elemental(.carbon)
     
     let start = cross_platform_media_time()
-    let topology = reconstruction.compile()
+    var topology = reconstruction.compile()
     let end = cross_platform_media_time()
     if Self.printPerformanceSummary {
       // expected: 3.1 ms
@@ -171,6 +174,7 @@ final class ReconstructionTests: XCTestCase {
       print("reproducerBefore: \(formatted) ms")
     }
     
+    PassivationTests.passivate(topology: &topology)
     XCTAssertEqual(topology.atoms.count, 5735)
     XCTAssertEqual(topology.bonds.count, 9751)
     PassivationTests.checkConnectivity(topology)
@@ -212,7 +216,7 @@ final class ReconstructionTests: XCTestCase {
     reconstruction.material = .elemental(.carbon)
     
     let start = cross_platform_media_time()
-    let topology = reconstruction.compile()
+    var topology = reconstruction.compile()
     let end = cross_platform_media_time()
     if Self.printPerformanceSummary {
       // expected: 6.6 ms
@@ -222,6 +226,7 @@ final class ReconstructionTests: XCTestCase {
       print("reproducerAfter: \(formatted) ms")
     }
     
+    PassivationTests.passivate(topology: &topology)
     XCTAssertEqual(topology.atoms.count, 5720)
     XCTAssertEqual(topology.bonds.count, 9697)
     PassivationTests.checkConnectivity(topology)

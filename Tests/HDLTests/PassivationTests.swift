@@ -31,6 +31,47 @@ final class PassivationTests: XCTestCase {
     }
   }
   
+  static func passivate(topology: inout Topology) {
+    func createHydrogen(
+      atomID: UInt32,
+      orbital: SIMD3<Float>
+    ) -> Atom {
+      let atom = topology.atoms[Int(atomID)]
+      let atomElement = Element(rawValue: atom.atomicNumber)
+      guard let atomElement else {
+        fatalError("This should never happen.")
+      }
+      
+      var bondLength = atomElement.covalentRadius
+      bondLength += Element.hydrogen.covalentRadius
+      
+      let position = atom.position + bondLength * orbital
+      return Atom(position: position, element: .hydrogen)
+    }
+    
+    let orbitalLists = topology.nonbondingOrbitals()
+    
+    var insertedAtoms: [Atom] = []
+    var insertedBonds: [SIMD2<UInt32>] = []
+    for atomID in topology.atoms.indices {
+      let orbitalList = orbitalLists[atomID]
+      for orbital in orbitalList {
+        let hydrogen = createHydrogen(
+          atomID: UInt32(atomID),
+          orbital: orbital)
+        let hydrogenID = topology.atoms.count + insertedAtoms.count
+        insertedAtoms.append(hydrogen)
+        
+        let bond = SIMD2(
+          UInt32(atomID),
+          UInt32(hydrogenID))
+        insertedBonds.append(bond)
+      }
+    }
+    topology.insert(atoms: insertedAtoms)
+    topology.insert(bonds: insertedBonds)
+  }
+  
   func testCommonLattice() throws {
     let lattice = Self.commonLattice()
     XCTAssertEqual(lattice.atoms.count, 621)
@@ -38,7 +79,8 @@ final class PassivationTests: XCTestCase {
     var reconstruction = Reconstruction()
     reconstruction.atoms = lattice.atoms
     reconstruction.material = .checkerboard(.silicon, .carbon)
-    let topology = reconstruction.compile()
+    var topology = reconstruction.compile()
+    PassivationTests.passivate(topology: &topology)
     
     var groupIVAtomCount: Int = .zero
     for atom in topology.atoms {
@@ -60,7 +102,8 @@ final class PassivationTests: XCTestCase {
     var reconstruction = Reconstruction()
     reconstruction.atoms = lattice.atoms
     reconstruction.material = .checkerboard(.silicon, .carbon)
-    let topology = reconstruction.compile()
+    var topology = reconstruction.compile()
+    PassivationTests.passivate(topology: &topology)
     PassivationTests.checkConnectivity(topology)
     
     var hydrogenAtoms: [Atom] = []
@@ -117,7 +160,8 @@ final class PassivationTests: XCTestCase {
       var reconstruction = Reconstruction()
       reconstruction.atoms = lattice.atoms
       reconstruction.material = .checkerboard(.silicon, .carbon)
-      let oldTopology = reconstruction.compile()
+      var oldTopology = reconstruction.compile()
+      PassivationTests.passivate(topology: &oldTopology)
       
       var topology = Topology()
       topology.atoms = oldTopology.atoms.filter { $0[3] == 1 }
@@ -142,6 +186,10 @@ final class PassivationTests: XCTestCase {
   
   // A sorted list of hydrogens from one invocation of 'Reconstruction' on the
   // common lattice. The exact results may vary from machine to machine.
+  //
+  // 'Reconstruction' has since been revised to remove the built-in hydrogen
+  // passivation feature, thus simplifying and generalizing the API. This
+  // unit test was critical to correctly implementing the elision.
   private static func expectedSortedHydrogens() -> [SIMD4<Float>] {
     return [
       SIMD4<Float>(0.047, 0.047, 0.047, 1),

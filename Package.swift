@@ -24,8 +24,7 @@ let package = Package(
         .product(name: "Atomics", package: "swift-atomics"),
       ]),
     
-    // TODO: Migrate this to the Swift Testing framework once all other
-    // maintenance has been completed.
+    // TODO: Migrate this to the Swift Testing framework.
     //
     // This was omitted from the latest round of maintenance, due to low
     // priority.

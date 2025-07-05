@@ -1,6 +1,6 @@
 # Hardware Description Language
 
-> TODO: Do not rush this PR. Clean up the code for `topology.sort` and other warnings regarding concurrency. Make sure it works correctly and efficiently on Windows before merging it.
+> Do not rush this PR. Clean up the code for `topology.sort` and other warnings regarding concurrency. Make sure it works correctly and efficiently on Windows before merging it.
 >
 > Address all TODOs except those explicitly marked as out-of-scope (preceding prototyping from users).
 
@@ -66,16 +66,16 @@ Atomic numbers can be any element from Group III - VII, Period II - IV of the pe
 
 ```swift
 // Specify lattice edits, if any, in the trailing closure.
-Lattice<Basis> { h, k, l in
+let lattice = Lattice<Basis> { h, k, l in
   Material { ... }
   Bounds { ... }
 }
 
 // Property to retrieve the geometry.
-Lattice<Basis>.atoms
+let atoms = lattice.atoms
 ```
 
-Object encapsulating crystal plane algebra.
+Encapsulates crystal plane algebra.
 
 Creates a lattice of crystal unit cells to edit. Coordinates are represented in numbers of crystal unit cells. The coordinate system may be mapped to a non-orthonormal coordinate system internally. Keep this in mind when processing `SIMD3<Float>` vectors. For example, avoid normalizing any vectors.
 

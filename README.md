@@ -80,11 +80,18 @@ Object encapsulating crystal plane algebra.
 Creates a lattice of crystal unit cells to edit. Coordinates are represented in numbers of crystal unit cells. The coordinate system may be mapped to a non-orthonormal coordinate system internally. Keep this in mind when processing `SIMD3<Float>` vectors. For example, avoid normalizing any vectors.
 
 ```swift
-// Initialize an empty topology. Geometry will be added using member functions.
-var topology = Topology()
+struct Topology {
+  var atoms: [Atom]
+  var bonds: [SIMD2<UInt32>]
+}
 ```
 
-Encapsulates low-level operations during bond topology formation. These include $O(n)$ neighbor searching, insertion/removal of atoms/bonds, and Morton reordering.
+Encapsulates low-level operations during bond topology formation:
+- `map` - query the bonds that reference each atom
+- `match` - $O(n)$ neighbor search
+- `orbitals` - positions of unpaired electrons
+- `remove` - update the bonds after atoms shift to fill a gap in the list
+- `sort` - reorder the atoms to improve memory locality
 
 ## Testing
 

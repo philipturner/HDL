@@ -3,17 +3,6 @@
 The following APIs are available for `Topology`.
 
 ```swift
-var atoms: [Atom] { get set }
-var bonds: [SIMD2<UInt32>] { get set }
-```
-
-The atoms and bonds backing the topology.
-
-> WARNING: Although `atoms` and `bonds` are mutable, the setters do not enforce self-consistency. The intended use case is overwriting atoms/bonds in-place (e.g. adjusting an atom's position). Use `insert()` and `remove()` when the size of these arrays changes.
->
-> TODO: Revise this documentation in response to the removal of `insert()`.
-
-```swift
 extension Topology {
   enum MapNode {
     case atoms
@@ -33,9 +22,8 @@ func map(
 
 // Example of usage.
 var topology = Topology()
-topology.insert(atoms: atoms)
-topology.insert(bonds: bonds)
-
+topology.atoms = atoms
+topology.bonds = bonds
 let atomsToAtomsMap = topology.map(.atoms, to: .atoms)
 let atomsToBondsMap = topology.map(.atoms, to: .bonds)
 let bondsToAtomsMap = topology.map(.bonds, to: .atoms)
@@ -67,18 +55,12 @@ func match(
 
 // Example of usage.
 var topology = Topology()
-topology.insert(atoms: atoms1)
+topology.atoms = atom1
 let closeMatches = topology.match(atoms2)
 let farMatches = topology.match(
   atoms2, algorithm: .covalentBondLength(2))
 let angstromMatches = topology.match(
   atoms2, algorithm: .absoluteRadius(0.1))
-  
-// Another example of usage.
-var atoms = [Atom(...), Atom(...)]
-let atomsLocationsInStructure = topology.match(atoms)
-someFunction(atoms[0], atomLocationsInStructure[0])
-someFunction(atoms[1], atomLocationsInStructure[1])
 ```
 
 Match the `source` atoms to target atom indices, where the targets reside in the `Topology`. The output has the same dimensions as the input array.
@@ -94,28 +76,15 @@ For `covalentBondScale`, bond length is determined by summing the covalent radii
 You are encouraged to sort the topology before calling `match()`. Otherwise, the search algorithm may degrade from $O(n)$ to $O(n^2)$. The overhead of sorting is significant and often takes more time than just running the match. Therefore, the internal implementation only performs sorting when the atom count is ~10,000. This is a performance sweet spot for highly ordered distributions (e.g. atoms directly fetched from a crystal lattice). However, it may not be a sweet spot for extremely disordered distributions.
 
 ```swift
-mutating func insert(atoms: [Atom])
-mutating func insert(bonds: [SIMD2<UInt32>])
-```
-
-Adds new atoms/bonds to the topology.
-
-The new atoms and bonds are added directly to the end of the list. The atoms and bonds are not checked for duplicates. For example, if you specify a bond multiple times, it will be added multiple times. This behavior is different from `remove()`, which checks for duplication before removing.
-
-These members check for basic integrity (reasonable atomic number, valid atom index in a bond). Therefore, they may introduce computational overhead.
-
-> TODO: Remove these functions from the API. They are redundant runtime assertions.
-
-```swift
 mutating func remove(atoms indices: [UInt32])
 mutating func remove(bonds indices: [UInt32])
 ```
 
-Removes atoms/bonds at the specified indices. For `removeAtoms`, bonds connected to the removed atoms are also removed.
+Removes atoms or bonds at the specified indices. When removing an atom, the bonds connected to the atom are also removed.
 
 An index may be specified multiple times in the input. The atom or bond will only be removed once.
 
-The order of atoms and bonds is preserved after removal. The removed items are taken out of the list, and the remainder is compacted in place. This behavior is different from `sort()`, which scrambles the relative order of atoms.
+The order of atoms and bonds is preserved after removal. The removed items are taken out of the list, and the remainder are compacted in place. This behavior is different from `sort()`, which scrambles the relative order of atoms.
 
 ```swift
 extension Topology {
@@ -160,3 +129,5 @@ mutating func sort() -> [UInt32]
 Sorts atoms in Morton order, then sorts bonds in ascending order based on atom indices.
 
 The topology should be sorted before entering into a simulator. Sorting causes nearby atoms to appear in consecutive memory locations. OpenMM utilizes this spatial locality to compute nonbonded forces very fast. If you forget to sort, the algorithmic complexity may increase from $O(n)$ to $O(n^2)$.
+
+Note that the spatial locality of the crystal lattice (8&ndash;12 wide atom blocks) typically achieves the same effect as sorting. But true Morton order results in the maximum possible degree of spatial locality.

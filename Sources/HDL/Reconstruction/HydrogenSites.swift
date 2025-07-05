@@ -12,11 +12,6 @@ struct HydrogenSiteMap {
 }
 
 extension Compilation {
-  // Inputs:  material -> hydrogen data -> bond length
-  //          topology.atoms -> hydrogen data
-  //          topology.bonds -> hydrogen data -> orbitals
-  // Outputs: atomsToHydrogensMap
-  //          hydrogensToAtomsMap (length determined here)
   func createHydrogenSites(
     bonds: [SIMD2<UInt32>]
   ) -> HydrogenSiteMap {
@@ -72,12 +67,11 @@ extension Compilation {
     return output.nonbondingOrbitals()
   }
   
-  // A reduced form each hydrogen atom, with the 4th vector slot storing
-  // the index of the carbon that spawned it.
-  //
-  // Inputs: material -> bond length
-  //         topology.atoms
-  //         topology.bonds -> orbitals
+  // A compact data structure for a hydrogen site.
+  // slot 0: position.x
+  // slot 1: position.y
+  // slot 2: position.z
+  // slot 3: index of the carbon that spawned it
   private func createHydrogenData(
     orbitalLists: [Topology.OrbitalStorage]
   ) -> [SIMD4<Float>] {
@@ -100,16 +94,15 @@ extension Compilation {
   private static func createMatches(
     hydrogenData: [SIMD4<Float>]
   ) -> [Topology.MatchStorage] {
-    let hydrogenAtoms = hydrogenData.map {
+    // Give all the atoms a valid atomic number, for safety when invoking the
+    // match procedure.
+    let atoms = hydrogenData.map {
       var atom = $0
       atom.w = 1
       return atom
     }
-    
-    // Create a transient topology to de-duplicate the hydrogens and merge
-    // references between them.
-    var matcher = Topology()
-    matcher.atoms = hydrogenAtoms
+    var topology = Topology()
+    topology.atoms = atoms
     
     // Limit for a 10 micron shift: 5.0 pm
     // Limit for a  2 micron shift: 0.9 pm
@@ -118,8 +111,8 @@ extension Compilation {
     //
     // Choice based on the data: 2.7 pm
     // Most sensible choice from first principles: 10 pm
-    return matcher.match(
-      hydrogenAtoms, algorithm: .absoluteRadius(0.010))
+    return topology.match(
+      atoms, algorithm: .absoluteRadius(0.010))
   }
   
   private static func filter(

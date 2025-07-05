@@ -78,8 +78,6 @@ struct Compilation {
     var topology = Topology()
     topology.atoms = atoms
     
-    let bondLength = createBondLength()
-    
     // Limit for a 10 micron shift: 1.008    -> 1.2 pm
     // Limit for a  2 micron shift: 1.0007   -> 0.11 pm
     // Limit for a    500 nm shift: 1.00032  -> 0.049 pm
@@ -87,15 +85,12 @@ struct Compilation {
     //
     // Choice based on the data: 1.0021 (0.3 pm)
     // Most sensible choice from first principles: 1.03 (4.6 pm)
+    let bondLength = createBondLength()
     return topology.match(
       atoms, algorithm: .absoluteRadius(bondLength * 1.03))
   }
   
   // Remove methyl groups and floating atoms from the list.
-  //
-  // Inputs:  material -> bond length
-  //          topology.atoms
-  // Outputs: topology.atoms (remove)
   private mutating func removePathologicalAtoms() {
     // Loop over this a few times (typically less than 10).
     for _ in 0..<100 {

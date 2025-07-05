@@ -11,14 +11,6 @@ struct CarbonSiteMap {
 }
 
 extension Compilation {
-  // Form all center atom bonds in the lattice interior.
-  //
-  // Returns the center type of each atom.
-  //
-  // Inputs:  material -> bond length
-  //          topology.atoms
-  // Outputs: topology.bonds (insert)
-  //          center types
   func createCarbonSites() -> CarbonSiteMap {
     let matches = createAtomMatches()
     

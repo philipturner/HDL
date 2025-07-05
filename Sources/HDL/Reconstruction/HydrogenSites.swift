@@ -155,7 +155,7 @@ extension Compilation {
       fatalError("4-way collisions are not handled yet.")
     }
     
-    // Sort the atom list, in-place.
+    // Sort the atom list, in place.
     atomList.sort()
     return atomList
   }

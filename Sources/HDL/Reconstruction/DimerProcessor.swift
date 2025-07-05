@@ -77,8 +77,6 @@ struct DimerProcessor {
   }
 }
 
-// MARK: - Utilities
-
 private struct DimerGeometry {
   var bridgeheadID: UInt32?
   var sidewallID: UInt32?

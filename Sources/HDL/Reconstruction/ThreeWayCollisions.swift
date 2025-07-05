@@ -6,13 +6,6 @@
 //
 
 extension Compilation {
-  // Adds carbon atoms to places where 3 hydrogens collide.
-  //
-  // Inputs:  material
-  //          topology.atoms
-  //          topology.bonds -> orbitals
-  //          hydrogensToAtomsMap
-  // Outputs: topology.atoms (remove)
   func plugThreeWayCollisions(
     siteMap: HydrogenSiteMap
   ) -> [Atom] {

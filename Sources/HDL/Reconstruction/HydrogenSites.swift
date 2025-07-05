@@ -49,6 +49,10 @@ extension Compilation {
     // references between them.
     var matcher = Topology()
     matcher.atoms = hydrogenAtoms
+    
+    // TODO: Narrow the tolerance for the radius and see what goes wrong.
+    // Gather data about the smallest acceptable radius that doesn't make the
+    // tests go wrong. Repeat after the migration to a more stable algorithm.
     return matcher.match(
       hydrogenAtoms, algorithm: .absoluteRadius(0.050))
   }

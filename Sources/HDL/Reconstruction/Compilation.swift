@@ -71,6 +71,10 @@ struct Compilation {
 // MARK: - Utilities
 
 extension Compilation {
+  // TODO: Modify the code to use the bulk lattice constant instead of the
+  // covalent radii of the atoms. Try to eliminate 'createBondLength()' from
+  // every place where it appears.
+  
   // Place hydrogens at the C-C bond length instead of the C-H bond length.
   //
   // Inputs:  material
@@ -104,17 +108,13 @@ extension Compilation {
       atoms, algorithm: .absoluteRadius(bondLength * 1.1))
   }
   
-  // TODO: Perhaps change this to be non-mutating, so the state changes are
-  // more explicit.
-  //
-  // Remove atoms with less than two covalent bonds.
+  // Remove methyl groups and floating atoms from the list.
   //
   // Inputs:  material -> bond length
   //          topology.atoms
   // Outputs: topology.atoms (remove)
   private mutating func removePathologicalAtoms() {
     // Loop over this a few times (typically less than 10).
-    var converged = false
     for _ in 0..<100 {
       let matches = createAtomMatches()
       
@@ -143,14 +143,10 @@ extension Compilation {
         topology.remove(atoms: removedAtoms)
         self.atoms = topology.atoms
       } else {
-        converged = true
-        break
+        return
       }
     }
-    guard converged else {
-      fatalError("Could not remove pathological atoms.")
-    }
     
-    // TODO: Use the 'nil' return convention to restructure unbounded loops.
+    fatalError("Could not remove pathological atoms.")
   }
 }

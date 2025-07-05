@@ -129,30 +129,6 @@ final class PassivationTests: XCTestCase {
     XCTAssertEqual(matchCountStats[2], 0)
   }
   
-  // Measure the "extended volume" of the structure, whichever exact
-  // terminology was used in Nanosystems. Measure according to the center
-  // position of the atoms, not the edge of their atomic radius. Fluorine
-  // should have a larger volume than hydrogen, which has a larger volume
-  // than unpassivated. In all cases, the number of C-Si bonds is the same.
-  
-  // Test hydrogen passivation during vs. after the reconstruction. If done
-  // manually afterward, the "extended volume" should increase. In addition,
-  // the hydrogens within a dimer should grow closer. Implement this closeness
-  // test by matching hydrogen passivators extracted from the two different
-  // crystals. Find the closest 1-2 hydrogens near each abnormally large
-  // C-Si bond.
-  //
-  // Wait...it looks like the new bonding structure already affects the
-  // placement of the hydrogens? Calculate the theoretical hydrogen
-  // position in the absence of surface reconstruction. Ensure it agrees with
-  // actual placed hydrogens in a primitive passivation algorithm that
-  // generates a C(100)-(1×1) surface.
-  
-  // Setting up these tests now, to ensure further code changes don't alter
-  // the positions of hydrogens.
-  //
-  // Will adapt this test afterward, to account for the variability between
-  // machines.
   func testHydrogenPositions() throws {
     func createHydrogens() -> [SIMD4<Float>] {
       let lattice = Self.commonLattice()

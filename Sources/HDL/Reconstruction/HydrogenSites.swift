@@ -17,8 +17,10 @@ extension Compilation {
   // Inputs: material -> bond length
   //         topology.atoms
   //         topology.bonds -> orbitals
-  private func createHydrogenData() -> [SIMD4<Float>] {
-    let orbitalLists = createOrbitals()
+  private func createHydrogenData(
+    bonds: [SIMD2<UInt32>]
+  ) -> [SIMD4<Float>] {
+    let orbitalLists = createOrbitals(bonds: bonds)
     let bondLength = createBondLength()
     
     var output: [SIMD4<Float>] = []
@@ -52,46 +54,51 @@ extension Compilation {
       hydrogenAtoms, algorithm: .absoluteRadius(0.050))
   }
   
+  private static func filter(
+    matches: [Topology.MatchStorage],
+    hydrogenData: [SIMD4<Float>]
+  ) -> [Topology.MatchStorage] {
+    var output: [Topology.MatchStorage] = []
+    for i in hydrogenData.indices {
+      let match = matches[i]
+      
+      func isCompatible() -> Bool {
+        if match.count > 1 {
+          for j in match where i != j {
+            if i > j {
+              return false
+            }
+          }
+        }
+        return true
+      }
+      
+      if isCompatible() {
+        output.append(match)
+      }
+    }
+    return output
+  }
+  
   // Inputs:  material -> hydrogen data -> bond length
   //          topology.atoms -> hydrogen data
   //          topology.bonds -> hydrogen data -> orbitals
   // Outputs: atomsToHydrogensMap
   //          hydrogensToAtomsMap (length determined here)
-  func createHydrogenSites() -> HydrogenSiteMap {
-    let hydrogenData = createHydrogenData()
-    
-    func filter(
-      matches: [Topology.MatchStorage]
-    ) -> [Topology.MatchStorage] {
-      var output: [Topology.MatchStorage] = []
-      for i in hydrogenData.indices {
-        let match = matches[i]
-        
-        func isCompatible() -> Bool {
-          if match.count > 1 {
-            for j in match where i != j {
-              if i > j {
-                return false
-              }
-            }
-          }
-          return true
-        }
-        
-        if isCompatible() {
-          output.append(match)
-        }
-      }
-      return output
-    }
+  func createHydrogenSites(
+    bonds: [SIMD2<UInt32>]
+  ) -> HydrogenSiteMap {
+    let hydrogenData = createHydrogenData(bonds: bonds)
+    let rawMatches = Self.createMatches(
+      hydrogenData: hydrogenData)
+    let filteredMatches = Self.filter(
+      matches: rawMatches,
+      hydrogenData: hydrogenData)
     
     var output = HydrogenSiteMap()
     output.atomsToHydrogensMap = Array(
       repeating: [],
       count: atoms.count)
-    
-    let rawMatches = Self.createMatches(hydrogenData: hydrogenData)
-    let filteredMatches = filter(matches: rawMatches)
     for match in filteredMatches {
       func createAtomList() -> [UInt32] {
         var atomList: [UInt32] = []

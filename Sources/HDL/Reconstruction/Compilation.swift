@@ -41,14 +41,14 @@ struct Compilation {
       // TODO: Isolate and clarify this state mutation. Perhaps make Topology
       // transient (which it can be, at no cost) and store/return the bonds
       // separately.
-      let centerTypes = createBulkAtomBonds()
-      let siteMap = createHydrogenSites()
+      let carbonSites = createCarbonSites()
+      let hydrogenSites = createHydrogenSites()
       
       // Check whether there are still 3-way collisions.
-      if siteMap.hydrogensToAtomsMap.contains(where: { $0.count > 2 }) {
+      if hydrogenSites.hydrogensToAtomsMap.contains(where: { $0.count > 2 }) {
         // Add center atoms to problematic sites.
         resolveThreeWayCollisions(
-          hydrogensToAtomsMap: siteMap.hydrogensToAtomsMap)
+          hydrogensToAtomsMap: hydrogenSites.hydrogensToAtomsMap)
         
         // Reverse the actions from the start of this iteration.
         //
@@ -75,7 +75,7 @@ struct Compilation {
       fatalError("Could not resolve 3-way collisions.")
     }
     
-    // We can just return 'nil' here to signal that bonds could not be
+    // TODO: We can just return 'nil' here to signal that bonds could not be
     // materialized. Or perhaps group together one of 3 internal convergence
     // errors, which are beautifully shown in an error message.
   }
@@ -163,5 +163,7 @@ extension Compilation {
     guard converged else {
       fatalError("Could not remove pathological atoms.")
     }
+    
+    // TODO: Use the 'nil' return convention to restructure unbounded loops.
   }
 }

@@ -289,6 +289,7 @@ extension DimerProcessor {
       fatalError("Took too many iterations to find length of dimer chain.")
     }
     
+    // TODO: Use the 'nil' return convention to restructure unbounded loops.
     return dimerChain
   }
   

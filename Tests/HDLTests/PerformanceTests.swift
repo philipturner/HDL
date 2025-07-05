@@ -2,29 +2,6 @@ import XCTest
 import HDL
 import Numerics
 
-func queryTickCount() -> UInt64 {
-  #if os(macOS)
-  return mach_continuous_time()
-  #else
-  var largeInteger = LARGE_INTEGER()
-  QueryPerformanceCounter(&largeInteger)
-  return UInt64(largeInteger.QuadPart)
-  #endif
-}
-
-func ticksPerSecond() -> Int {
-  #if os(macOS)
-  return 24_000_000
-  #else
-  return 10_000_000
-  #endif
-}
-
-func cross_platform_media_time() -> Double {
-  let elapsedTicks = queryTickCount()
-  return Double(elapsedTicks) / Double(ticksPerSecond())
-}
-
 private func fmt(_ start: Double, _ end: Double) -> String {
   let seconds = end - start
   if seconds > 1 {
@@ -102,7 +79,7 @@ final class PerformanceTests: XCTestCase {
   
 #if RELEASE
   func testGoldSurface() throws {
-    let overallStart = cross_platform_media_time()
+    let overallStart = Profiler.time()
     var gridInitStart: Double = 0
     var gridInitEnd: Double = 0
     var intersectStart: Double = 0
@@ -112,13 +89,13 @@ final class PerformanceTests: XCTestCase {
     
     let scaleFactor: Float = 2
     let lattice = Lattice<Cubic> { h, k, l in
-      gridInitStart = cross_platform_media_time()
+      gridInitStart = Profiler.time()
       Bounds { scaleFactor * 40 * (h + k + l) }
       Material { .elemental(.gold) }
       
       Volume {
-        gridInitEnd = cross_platform_media_time()
-        intersectStart = cross_platform_media_time()
+        gridInitEnd = Profiler.time()
+        intersectStart = Profiler.time()
         
         Convex {
           Origin { scaleFactor * 20 * (h + k + l) }
@@ -149,15 +126,15 @@ final class PerformanceTests: XCTestCase {
           }
         }
         
-        intersectEnd = cross_platform_media_time()
-        replaceStart = cross_platform_media_time()
+        intersectEnd = Profiler.time()
+        replaceStart = Profiler.time()
         Replace { .empty }
-        replaceEnd = cross_platform_media_time()
+        replaceEnd = Profiler.time()
       }
     }
     XCTAssertEqual(lattice.atoms.count, 57601)
     
-    let overallEnd = cross_platform_media_time()
+    let overallEnd = Profiler.time()
     if Self.printPerformanceSummary {
       print("gold surface:")
       print("- overall:   \(fmt(overallStart, overallEnd))")
@@ -176,7 +153,7 @@ final class PerformanceTests: XCTestCase {
   }
   
   func testSiliconProbe() throws {
-    let overallStart = cross_platform_media_time()
+    let overallStart = Profiler.time()
     var gridInitStart: Double = 0
     var gridInitEnd: Double = 0
     var intersectStart: Double = 0
@@ -185,13 +162,13 @@ final class PerformanceTests: XCTestCase {
     var replaceEnd: Double = 0
     
     let lattice = Lattice<Cubic> { h, k, l in
-      gridInitStart = cross_platform_media_time()
+      gridInitStart = Profiler.time()
       Bounds { 50 * (h + k + l) }
       Material { .elemental(.silicon) }
       
       Volume {
-        gridInitEnd = cross_platform_media_time()
-        intersectStart = cross_platform_media_time()
+        gridInitEnd = Profiler.time()
+        intersectStart = Profiler.time()
         
         var directions: [SIMD3<Float>] = []
         directions.append([1, 1, 0])
@@ -250,15 +227,15 @@ final class PerformanceTests: XCTestCase {
           }
         }
         
-        intersectEnd = cross_platform_media_time()
-        replaceStart = cross_platform_media_time()
+        intersectEnd = Profiler.time()
+        replaceStart = Profiler.time()
         Replace { .empty }
-        replaceEnd = cross_platform_media_time()
+        replaceEnd = Profiler.time()
       }
     }
     XCTAssertEqual(lattice.atoms.count, 81142)
     
-    let overallEnd = cross_platform_media_time()
+    let overallEnd = Profiler.time()
     if Self.printPerformanceSummary {
       print("silicon probe:")
       print("- overall:   \(fmt(overallStart, overallEnd))")
@@ -276,7 +253,7 @@ final class PerformanceTests: XCTestCase {
   }
   
   func testGoldSurface2() throws {
-    let overallStart = cross_platform_media_time()
+    let overallStart = Profiler.time()
     var gridInitStart: Double = 0
     var gridInitEnd: Double = 0
     var intersectStart: Double = 0
@@ -286,13 +263,13 @@ final class PerformanceTests: XCTestCase {
     
     let scaleFactor: Float = 6
     let lattice = Lattice<Cubic> { h, k, l in
-      gridInitStart = cross_platform_media_time()
+      gridInitStart = Profiler.time()
       Bounds { scaleFactor * 40 * (h + k + l) }
       Material { .elemental(.gold) }
       
       Volume {
-        gridInitEnd = cross_platform_media_time()
-        intersectStart = cross_platform_media_time()
+        gridInitEnd = Profiler.time()
+        intersectStart = Profiler.time()
         
         Convex {
           Origin { scaleFactor * 20 * (h + k + l) }
@@ -307,15 +284,15 @@ final class PerformanceTests: XCTestCase {
           }
         }
         
-        intersectEnd = cross_platform_media_time()
-        replaceStart = cross_platform_media_time()
+        intersectEnd = Profiler.time()
+        replaceStart = Profiler.time()
         Replace { .empty }
-        replaceEnd = cross_platform_media_time()
+        replaceEnd = Profiler.time()
       }
     }
     XCTAssertEqual(lattice.atoms.count, 173517)
     
-    let overallEnd = cross_platform_media_time()
+    let overallEnd = Profiler.time()
     if Self.printPerformanceSummary {
       print("gold surface 2:")
       print("- overall:   \(fmt(overallStart, overallEnd))")
@@ -333,7 +310,7 @@ final class PerformanceTests: XCTestCase {
   }
   
   func testSiliconProbe2() throws {
-    let overallStart = cross_platform_media_time()
+    let overallStart = Profiler.time()
     var gridInitStart: Double = 0
     var gridInitEnd: Double = 0
     var intersectStart: Double = 0
@@ -346,14 +323,14 @@ final class PerformanceTests: XCTestCase {
     var replaceEnd2: Double = 0
     
     let lattice = Lattice<Cubic> { h, k, l in
-      gridInitStart = cross_platform_media_time()
+      gridInitStart = Profiler.time()
       Bounds { 80 * (h + k + l) }
       Material { .elemental(.silicon) }
       let topCutoff: Float = 67
       
       Volume {
-        gridInitEnd = cross_platform_media_time()
-        intersectStart = cross_platform_media_time()
+        gridInitEnd = Profiler.time()
+        intersectStart = Profiler.time()
         
         var directions: [SIMD3<Float>] = []
         directions.append([1, 1, 0])
@@ -456,11 +433,11 @@ final class PerformanceTests: XCTestCase {
           }
         }
         
-        intersectEnd = cross_platform_media_time()
-        replaceStart = cross_platform_media_time()
+        intersectEnd = Profiler.time()
+        replaceStart = Profiler.time()
         Replace { .empty }
-        replaceEnd = cross_platform_media_time()
-        intersectStart2 = cross_platform_media_time()
+        replaceEnd = Profiler.time()
+        intersectStart2 = Profiler.time()
         
         Convex {
           for pass in passes {
@@ -494,15 +471,15 @@ final class PerformanceTests: XCTestCase {
           }
         }
         
-        intersectEnd2 = cross_platform_media_time()
-        replaceStart2 = cross_platform_media_time()
+        intersectEnd2 = Profiler.time()
+        replaceStart2 = Profiler.time()
         Replace { .atom(.carbon) }
-        replaceEnd2 = cross_platform_media_time()
+        replaceEnd2 = Profiler.time()
       }
     }
     XCTAssertEqual(lattice.atoms.count, 64226)
     
-    let overallEnd = cross_platform_media_time()
+    let overallEnd = Profiler.time()
     intersectEnd += intersectEnd2 - intersectStart2
     replaceEnd += replaceEnd2 - replaceStart2
     if Self.printPerformanceSummary {
@@ -570,7 +547,7 @@ final class PerformanceTests: XCTestCase {
     for trialID in 0..<4 {
       let trial = Trial(lattice: lattice, index: trialID)
       
-      let startParallel = cross_platform_media_time()
+      let startParallel = Profiler.time()
       nonisolated(unsafe)
       var resultGrid1: [UInt32] = []
       nonisolated(unsafe)
@@ -587,9 +564,9 @@ final class PerformanceTests: XCTestCase {
           }
         }
       }
-      let endParallel = cross_platform_media_time()
+      let endParallel = Profiler.time()
       
-      let startGrid = cross_platform_media_time()
+      let startGrid = Profiler.time()
       var topology = Topology()
       topology.atoms = trial.atoms
       let resultGrid = topology.sort()
@@ -598,16 +575,16 @@ final class PerformanceTests: XCTestCase {
         topology.atoms = trial.atoms
         _ = topology.sort()
       }
-      let endGrid = cross_platform_media_time()
+      let endGrid = Profiler.time()
       
-      let startOctree = cross_platform_media_time()
+      let startOctree = Profiler.time()
       let octree = OctreeSorter(atoms: trial.atoms)
       let resultOctree = octree.mortonReordering()
       if testParallel {
         let octree = OctreeSorter(atoms: trial.atoms)
         _ = octree.mortonReordering()
       }
-      let endOctree = cross_platform_media_time()
+      let endOctree = Profiler.time()
       
       XCTAssertEqual(resultGrid, resultOctree)
       if testParallel {

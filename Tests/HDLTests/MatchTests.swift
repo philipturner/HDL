@@ -271,9 +271,9 @@ final class MatchTests: XCTestCase {
       
       // Match carbons against carbons.
       do {
-        let start = cross_platform_media_time()
+        let start = Profiler.time()
         let matches = topology.match(topology.atoms)
-        let end = cross_platform_media_time()
+        let end = Profiler.time()
         summary.ccMetrics.append(
           SIMD3(
             topology.atoms.count,
@@ -324,10 +324,10 @@ final class MatchTests: XCTestCase {
       
       // De-duplicate the hydrogens.
       do {
-        let start = cross_platform_media_time()
+        let start = Profiler.time()
         let matches = hydrogenTopology.match(
           hydrogenTopology.atoms, algorithm: .absoluteRadius(0.020))
-        let end = cross_platform_media_time()
+        let end = Profiler.time()
         summary.hhMetrics.append(
           SIMD3(
             hydrogenTopology.atoms.count,
@@ -350,11 +350,11 @@ final class MatchTests: XCTestCase {
       
       // Locate the carbons attached to each hydrogen collision site.
       do {
-        let start = cross_platform_media_time()
+        let start = Profiler.time()
         _ = topology.match(
           hydrogenTopology.atoms,
           algorithm: .absoluteRadius(1.1 * createCCBondLength()))
-        let end = cross_platform_media_time()
+        let end = Profiler.time()
         summary.hcMetrics.append(
           SIMD3(
             hydrogenTopology.atoms.count,
@@ -419,22 +419,22 @@ final class MatchTests: XCTestCase {
       atomCountStats.append("- atoms: \(lattice.atoms.count)")
       
       do {
-        let start = cross_platform_media_time()
+        let start = Profiler.time()
         var topology = Topology()
         topology.atoms += lattice.atoms
         topology.sort()
-        let end = cross_platform_media_time()
+        let end = Profiler.time()
         
         let microseconds = Int((end - start) * 1e6)
         let repr = reprUsPerAtom(microseconds, lattice.atoms.count)
         sortStats.append("- sort: \(repr)")
       }
       do {
-        let start = cross_platform_media_time()
+        let start = Profiler.time()
         var topology = Topology()
         topology.atoms += lattice.atoms
         let matches = topology.match(topology.atoms)
-        let end = cross_platform_media_time()
+        let end = Profiler.time()
         
         let microseconds = Int((end - start) * 1e6)
         let repr = reprUsPerAtom(microseconds, lattice.atoms.count)

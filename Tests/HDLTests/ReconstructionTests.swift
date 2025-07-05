@@ -163,9 +163,9 @@ final class ReconstructionTests: XCTestCase {
     reconstruction.atoms = lattice.atoms
     reconstruction.material = .elemental(.carbon)
     
-    let start = cross_platform_media_time()
+    let start = Profiler.time()
     var topology = reconstruction.compile()
-    let end = cross_platform_media_time()
+    let end = Profiler.time()
     if Self.printPerformanceSummary {
       // expected: 3.1 ms
       let elapsedSeconds = end - start
@@ -215,9 +215,9 @@ final class ReconstructionTests: XCTestCase {
     reconstruction.atoms = lattice.atoms
     reconstruction.material = .elemental(.carbon)
     
-    let start = cross_platform_media_time()
+    let start = Profiler.time()
     var topology = reconstruction.compile()
-    let end = cross_platform_media_time()
+    let end = Profiler.time()
     if Self.printPerformanceSummary {
       // expected: 6.6 ms
       let elapsedSeconds = end - start

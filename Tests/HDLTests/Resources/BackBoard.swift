@@ -23,25 +23,25 @@ extension BackBoardComponent {
   // of the code is maximum possible performance available from the public API.
   // Another is performance of typical code segments.
   mutating func compile(reportingPerformance: Bool) {
-    let checkpoint0 = cross_platform_media_time()
+    let checkpoint0 = Profiler.time()
     
     compilationPass0()
     XCTAssertEqual(topology.atoms.count, Self.expectedTopologyState[0]![0])
     XCTAssertEqual(topology.bonds.count, Self.expectedTopologyState[0]![1])
     
-    let checkpoint1 = cross_platform_media_time()
+    let checkpoint1 = Profiler.time()
     
     compilationPass1()
     XCTAssertEqual(topology.atoms.count, Self.expectedTopologyState[1]![0])
     XCTAssertEqual(topology.bonds.count, Self.expectedTopologyState[1]![1])
     
-    let checkpoint2 = cross_platform_media_time()
+    let checkpoint2 = Profiler.time()
     
     compilationPass2()
     XCTAssertEqual(topology.atoms.count, Self.expectedTopologyState[2]![0])
     XCTAssertEqual(topology.bonds.count, Self.expectedTopologyState[2]![1])
     
-    let checkpoint3 = cross_platform_media_time()
+    let checkpoint3 = Profiler.time()
     
     guard reportingPerformance else {
       return

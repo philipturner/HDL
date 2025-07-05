@@ -86,7 +86,7 @@ let carbonLattice = Lattice<Hexagonal> { h, k, l in
     // Move the player position from the origin to (0, 0, 0.25).
     Origin { 0.25 * l }
     
-    // Create a plane pointing from the origin to positive `l`.
+    // Create a plane pointing from the origin to positive 'l'.
     Plane { l }
     
     // Remove all atoms on the positive side of the plane.
@@ -114,7 +114,7 @@ do {
   let lonsdaleiteConstant = Constant(.hexagon) { .elemental(.carbon) }
   
   // Each hexagon's current side length is the value of
-  // `lonsdaleiteConstant`. Dividing by this constant, changes the hexagon
+  // 'lonsdaleiteConstant'. Dividing by this constant, changes the hexagon
   // so its sides are all 1 nm.
   grapheneHexagonScale = 1 / lonsdaleiteConstant
   

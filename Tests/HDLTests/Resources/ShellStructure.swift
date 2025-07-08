@@ -7,9 +7,7 @@
 
 import HDL
 import Numerics
-
-// TODO: Remove all remaining `precondition` statements, as they don't function
-// correctly in release mode. Perhaps convert them to XCT assertions.
+import XCTest
 
 struct ShellStructure {
   var element: Element
@@ -101,27 +99,29 @@ struct ShellStructure {
       guard matches[i].count > 1 else {
         continue
       }
-      precondition(matches[i].count == 2, "Too many overlapping atoms.")
+      guard matches[i].count == 2 else {
+        fatalError("Too many overlapping atoms.")
+      }
       
       var j: Int = -1
       for match in matches[i] where i != match {
         j = Int(match)
       }
       let atomJ = topology.atoms[j]
-      precondition(atomI.atomicNumber == atomJ.atomicNumber)
+      XCTAssertEqual(atomI.atomicNumber, atomJ.atomicNumber)
       
       // Choose the carbon with the lowest index, or the H duplicate associated
       // with that carbon.
       let neighborsI = atomsToAtomsMap[i]
       let neighborsJ = atomsToAtomsMap[j]
-      precondition(neighborsI.count == neighborsJ.count)
+      XCTAssertEqual(neighborsI.count, neighborsJ.count)
       if atomI.atomicNumber == 1 {
-        precondition(neighborsI.count == 1)
+        XCTAssertEqual(neighborsI.count, 1)
         guard neighborsI.first! < neighborsJ.first! else {
           continue
         }
       } else {
-        precondition(neighborsI.count == 4)
+        XCTAssertEqual(neighborsI.count, 4)
         guard i < j else {
           continue
         }
@@ -170,8 +170,8 @@ struct ShellStructure {
             maxIndex = indexI
           }
         }
-        precondition(maxIndex >= 0)
-        precondition(!orbitalJMatches.contains(maxIndex))
+        XCTAssertGreaterThanOrEqual(maxIndex, 0)
+        XCTAssertFalse(orbitalJMatches.contains(maxIndex))
         orbitalJMatches.append(maxIndex)
       }
       let nullOrbital = Orbital(
@@ -204,7 +204,7 @@ struct ShellStructure {
           // The hydrogen from the first atom must be superseded by the carbon
           // from the second atom. That carbon is not registered as overlapping
           // anything, because its position differs from the replaced hydrogen.
-          precondition(!removedAtoms.contains(orbitalJ.neighborID))
+          XCTAssertFalse(removedAtoms.contains(orbitalJ.neighborID))
           removedAtoms.insert(orbitalI.neighborID)
           insertedBonds.insert(SIMD2(UInt32(i), orbitalJ.neighborID))
         default:

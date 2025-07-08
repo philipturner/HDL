@@ -9,9 +9,6 @@ import HDL
 import Numerics
 import XCTest
 
-// TODO: Remove all remaining `precondition` statements, as they don't function
-// correctly in release mode. Perhaps convert them to XCT assertions.
-
 struct CBNTripodLeg: CBNTripodComponent {
   var topology: Topology
   
@@ -212,7 +209,7 @@ struct CBNTripodLeg: CBNTripodComponent {
       }
       
       let neighbors = atomsToAtomsMap[i]
-      precondition(neighbors.count == 1)
+      XCTAssertEqual(neighbors.count, 1)
       let neighbor = topology.atoms[Int(neighbors.first!)]
       var delta = atom.position - neighbor.position
       delta /= (delta * delta).sum().squareRoot()
@@ -283,7 +280,7 @@ struct CBNTripodLeg: CBNTripodComponent {
         }
       }
     }
-    precondition(nitrogenID != -1)
+    XCTAssertNotEqual(nitrogenID, -1)
     
     topology.atoms += insertedAtoms
     topology.bonds += insertedBonds
@@ -305,7 +302,7 @@ struct CBNTripodLeg: CBNTripodComponent {
       let neighbors = atomsToAtomsMap[i]
       switch atom.atomicNumber {
       case 1:
-        precondition(neighbors.count == 1)
+        XCTAssertEqual(neighbors.count, 1)
         hybridizations.append(.sp3)
       case 6:
         if neighbors.count == 3 {
@@ -319,13 +316,13 @@ struct CBNTripodLeg: CBNTripodComponent {
         // This is unexpectedly sp2 hybridization because of the lone pair. It
         // works to our advantage because we are removing hydrogens by the rule
         // of whether they're attached to an sp2 or sp3 atom.
-        precondition(neighbors.count == 3)
+        XCTAssertEqual(neighbors.count, 3)
         hybridizations.append(.sp2)
       case 9:
-        precondition(neighbors.count == 1)
+        XCTAssertEqual(neighbors.count, 1)
         hybridizations.append(.sp3)
       case 14:
-        precondition(neighbors.count == 4)
+        XCTAssertEqual(neighbors.count, 4)
         hybridizations.append(.sp3)
       default:
         fatalError("Unexpected atomic number.")

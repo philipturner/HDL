@@ -9,9 +9,7 @@ import Foundation
 import HDL
 import Numerics
 import QuaternionModule
-
-// TODO: Remove all remaining `precondition` statements, as they don't function
-// correctly in release mode. Perhaps convert them to XCT assertions.
+import XCTest
 
 // This data structure holds objects wrapping the individual components. At the
 // end, it stitches them all together into one topology. The data structure
@@ -57,10 +55,10 @@ struct CBNTripod {
       }
       legs.append(output)
     }
-    precondition(createAtoms().count == 75)
+    XCTAssertEqual(createAtoms().count, 75)
     
     attachLegs()
-    precondition(createAtoms().count == 63)
+    XCTAssertEqual(createAtoms().count, 63)
   }
   
   // Add a function to irreversibly replace the silicon atoms with hydrogen
@@ -97,8 +95,8 @@ extension CBNTripod {
           break
         }
       }
-      precondition(methylCarbonID >= 0)
-      precondition(benzeneCarbonID >= 0)
+      XCTAssertGreaterThanOrEqual(methylCarbonID, 0)
+      XCTAssertGreaterThanOrEqual(benzeneCarbonID, 0)
       
       var methylCarbon = topology.atoms[methylCarbonID]
       var benzeneCarbon = topology.atoms[benzeneCarbonID]
@@ -161,9 +159,9 @@ extension CBNTripod {
         default: break
         }
       }
-      precondition(nitrogenID >= 0)
-      precondition(siliconID >= 0)
-      precondition(germaniumID >= 0)
+      XCTAssertGreaterThanOrEqual(nitrogenID, 0)
+      XCTAssertGreaterThanOrEqual(siliconID, 0)
+      XCTAssertGreaterThanOrEqual(germaniumID, 0)
       topology.atoms[germaniumID].atomicNumber = 6
       
       // Update the leg's topology and initialize its pivot ID.
@@ -175,8 +173,8 @@ extension CBNTripod {
     
     // Delete the carbonyl groups from the adamantane cage.
     do {
-      precondition(carbonylCarbonIDs.count == 3)
-      precondition(cageCarbonIDs.count == 3)
+      XCTAssertEqual(carbonylCarbonIDs.count, 3)
+      XCTAssertEqual(cageCarbonIDs.count, 3)
       var topology = cage.topology
       let atomsToAtomsMap = topology.map(.atoms, to: .atoms)
       
@@ -190,7 +188,7 @@ extension CBNTripod {
         topology.atoms[cageCarbonID].atomicNumber = 14
         
         let atom = topology.atoms[carbonylCarbonID]
-        precondition(atom.atomicNumber == 6)
+        XCTAssertEqual(atom.atomicNumber, 6)
         
         let neighbors = atomsToAtomsMap[carbonylCarbonID]
         for neighborID in neighbors {
@@ -215,7 +213,7 @@ extension CBNTripod {
         topology.atoms[i].atomicNumber = 6
         cagePivotIDs.append(i)
       }
-      precondition(cagePivotIDs.count == 3)
+      XCTAssertEqual(cagePivotIDs.count, 3)
       
       // Update the cage's topology.
       cage.topology = topology

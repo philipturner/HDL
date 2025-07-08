@@ -9,9 +9,6 @@ import HDL
 import Numerics
 import XCTest
 
-// TODO: Remove all remaining `precondition` statements, as they don't function
-// correctly in release mode. Perhaps convert them to XCT assertions.
-
 struct CBNTripodCage: CBNTripodComponent {
   var topology: Topology
   
@@ -148,43 +145,19 @@ struct CBNTripodCage: CBNTripodComponent {
       guard germaniumID >= 0 else {
         continue
       }
-      precondition(carbonID >= 0)
+      XCTAssertGreaterThanOrEqual(carbonID, 0)
       let germanium = topology.atoms[germaniumID]
       let carbon = topology.atoms[carbonID]
       
-//      print()
-      func logDelta(_ delta: SIMD3<Float>, _ element: Element) {
-//        let length = (delta * delta).sum().squareRoot()
-//        let ideal = (element == .carbon) ? ccBondLength : geCBondLength
-//        print(length, element.description, "-", length - ideal)
-      }
-      func logAngles() {
-//        var geCDelta = atom.position - germanium.position
-//        var ccDelta = atom.position - carbon.position
-//        geCDelta /= (geCDelta * geCDelta).sum().squareRoot()
-//        ccDelta /= (ccDelta * ccDelta).sum().squareRoot()
-//
-//        let dot1 = (ccDelta * -geCDelta).sum()
-//        let dot2 = ccDelta.y
-//        let angle1 = 180 - Float.acos(dot1) * 180 / .pi
-//        let angle2 = Float.acos(dot2) * 180 / .pi
-//        print("-", angle1 - 109.47, angle2)
-      }
-      
       // Iterate until both bonds reach equilibrium length.
-      logAngles()
       for _ in 0..<5 {
         var geCDelta = atom.position - germanium.position
-        logDelta(geCDelta, .germanium)
         geCDelta /= (geCDelta * geCDelta).sum().squareRoot()
         atom.position = germanium.position + geCDelta * geCBondLength
         
         var ccDelta = atom.position - carbon.position
-        logDelta(ccDelta, .carbon)
         ccDelta /= (ccDelta * ccDelta).sum().squareRoot()
         atom.position = carbon.position + ccDelta * ccBondLength
-        
-        logAngles()
       }
       topology.atoms[i] = atom
     }
@@ -475,7 +448,7 @@ extension CBNTripodCage {
     // legs points toward +Z.
     let basisX = SIMD3<Float>(1, 0, -1) / Float(2).squareRoot()
     let basisY = SIMD3<Float>(1, 1, 1) / Float(3).squareRoot()
-    precondition((basisX * basisY).sum().magnitude < 1e-3)
+    XCTAssertLessThan((basisX * basisY).sum().magnitude, 1e-3)
     
     func cross<T: Real & SIMDScalar>(
       _ x: SIMD3<T>, _ y: SIMD3<T>
@@ -488,7 +461,7 @@ extension CBNTripodCage {
     }
     let basisZ = -cross(basisX, basisY)
     let basisZLength = (basisZ * basisZ).sum().squareRoot()
-    precondition((basisZLength - 1).magnitude < 1e-3)
+    XCTAssertLessThan((basisZLength - 1).magnitude, 1e-3)
     
     for i in atoms.indices {
       var atom = atoms[i]
@@ -506,7 +479,7 @@ extension CBNTripodCage {
         germaniumID = i
       }
     }
-    precondition(germaniumID != -1)
+    XCTAssertNotEqual(germaniumID, -1)
     
     // Center the cage so the germanium is at (0, 0, 0).
     let germaniumPosition = atoms[germaniumID].position

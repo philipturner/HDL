@@ -1,14 +1,14 @@
 # Hardware Description Language
 
-> Do not rush this PR. Clean up the code for `topology.sort` and other warnings regarding concurrency. Make sure it works correctly and efficiently on Windows before merging it.
+> Do not rush this PR. Clean up the code for `topology.sort` and other warnings regarding concurrency. Understand and justify/delete the commented out code in `CubicGrid`. Make sure the branch works correctly and efficiently on Windows before merging it.
 >
-> Address all TODOs except those explicitly marked as out-of-scope (preceding prototyping from users).
+> Address all TODOs except those explicitly marked as out-of-scope (preceding prototyping from users). Knock out the preconditions (which are hazardous, silently failing tests) before further work on refactoring the internals.
 
 Domain-specific language for molecular nanotechnology. This repository includes a geometry and bond topology compiler.
 
 Table of Contents
 - [Overview](#overview)
-- API
+- [API](#)
     - [Lattice](./Documentation/API/Lattice.md)
     - [Reconstruction](./Documentation/API/Reconstruction.md)
     - [Topology](./Documentation/API/Topology.md)

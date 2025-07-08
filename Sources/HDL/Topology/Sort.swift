@@ -73,6 +73,10 @@ struct GridSorter {
 
 // MARK: - Morton Reordering
 
+// TODO: Begin the refactoring by identifying the appropriate performance
+// tests, to detect performance regressions after each change. Understand
+// how the test calculates performance statistics.
+
 extension GridSorter {
   func invertOrder(_ input: [UInt32]) -> [UInt32] {
     if input.count == 0 {

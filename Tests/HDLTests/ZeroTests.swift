@@ -125,31 +125,6 @@ final class ZeroTests: XCTestCase {
       }
       XCTAssertEqual(lattice.atoms.count, 0)
     }
-//    do {
-//      let lattice = Lattice<Hexagonal> { h, k, l in
-//        let h2k = h + 2 * k
-//        Bounds { 0 * h + 0 * h2k + 1 * l }
-//        Material { .checkerboard(.silicon, .carbon) }
-//      }
-//      print(lattice.atoms.count)
-//    }
-    do {
-      let lattice = Lattice<Hexagonal> { h, k, l in
-        let h2k = h + 2 * k
-        Bounds { 0 * h + 0 * h2k + 0 * l }
-        Material { .checkerboard(.silicon, .carbon) }
-      }
-      XCTAssertEqual(lattice.atoms.count, 0)
-    }
-  }
-  
-  // Temporary test to isolate the crasher.
-  func testCrasher() throws {
-//    let lattice = Lattice<Hexagonal> { h, k, l in
-//      let h2k = h + 2 * k
-//      Bounds { 0 * h + 0 * h2k + 1 * l }
-//      Material { .checkerboard(.silicon, .carbon) }
-//    }
   }
   
   func testLatticeBoundsPlane() throws {

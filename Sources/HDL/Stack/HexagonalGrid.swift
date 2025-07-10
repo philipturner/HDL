@@ -240,17 +240,33 @@ struct HexagonalGrid: LatticeGrid {
     }
     repeatingUnit.highHalf.highHalf = SIMD4(repeating: 0)
     
-    var transformedBounds = transformHKLtoHH2KL(bounds)
-    transformedBounds = SIMD3(transformedBounds.x * 1 / 3,
-                              transformedBounds.y * 2 + 1,
-                              transformedBounds.z)
-    
-    // Prevent floating-point error from causing incorrect rounding.
-    guard let boundsX = Int(exactly: bounds.x) else {
-      fatalError("Bounds x should always be an integer.")
+    func createBoundsX() -> Float {
+      // Prevent floating-point error from causing incorrect rounding.
+      guard let boundsX = Int(exactly: bounds.x) else {
+        fatalError("Bounds x should always be an integer.")
+      }
+      
+      // Map:
+      // 0 1 2 3 4 5 6
+      // 0 1 1 1 2 2 2
+      //
+      // This would have already rounded up in floating-point arithmetic:
+      // 1 -> 0.333 -> 1
+      // 2 -> 0.667 -> 1
+      // 3 -> 1.000 -> 1
+      // 4 -> 1.333 -> 2
+      //
+      // We map this to an integer operation that results in the same effect.
+      // It looks counterintuitive. This is needed to ensure floating point
+      // error doesn't change the result (e.g. multiplying by 0.33333333).
+      let divided: Int = (boundsX + 2) / 3
+      return Float(divided)
     }
-    transformedBounds.x = Float((boundsX + 2) / 3)
-    
+    let transformedBounds = SIMD3<Float>(
+      createBoundsX(),
+      bounds.y + 1,
+      bounds.z)
+      
     dimensions = SIMD3<Int32>(transformedBounds.rounded(.up))
     dimensions.replace(with: SIMD3.zero, where: dimensions .< 0)
     atomicNumbers = Array(repeating: repeatingUnit, count: Int(
@@ -353,13 +369,6 @@ struct HexagonalGrid: LatticeGrid {
 private func transformHH2KLtoHKL(_ input: SIMD3<Float>) -> SIMD3<Float> {
   var output = SIMD3(1, 0, 0) * input.x
   output += SIMD3(1, 2, 0) * input.y
-  output += SIMD3(0, 0, 1) * input.z
-  return output
-}
-
-private func transformHKLtoHH2KL(_ input: SIMD3<Float>) -> SIMD3<Float> {
-  var output = SIMD3(1, 0, 0) * input.x
-  output += SIMD3(-0.5, 0.5, 0) * input.y
   output += SIMD3(0, 0, 1) * input.z
   return output
 }

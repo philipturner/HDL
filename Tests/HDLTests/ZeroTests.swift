@@ -143,6 +143,15 @@ final class ZeroTests: XCTestCase {
     }
   }
   
+  // Temporary test to isolate the crasher.
+  func testCrasher() throws {
+//    let lattice = Lattice<Hexagonal> { h, k, l in
+//      let h2k = h + 2 * k
+//      Bounds { 0 * h + 0 * h2k + 1 * l }
+//      Material { .checkerboard(.silicon, .carbon) }
+//    }
+  }
+  
   func testLatticeBoundsPlane() throws {
     
   }

@@ -5,11 +5,15 @@ import HDL
 //
 // APIs:
 //
-// Lattice -> Bounds -> atoms
-//   test zero bounds
-// Lattice -> Bounds -> Volume/Plane -> atoms
-//   use a plane that changes the output in the finite case
-//   test both finite and zero bounds
+// test all of Cubic, Hexagonal procedurally in a loop
+//   Lattice -> Bounds -> atoms
+//     test (0, 0, finite) for each of 3 dimensions
+//     test zero bounds
+//   Lattice -> Bounds -> Volume/Plane -> atoms
+//     use a plane that changes the output in the finite case
+//     test finite bounds
+//     test (0, 0, finite) for each of 3 dimensions
+//     test zero bounds
 // Topology -> map
 //   test finite atoms, no bonds
 //   test no atoms, no bonds
@@ -31,6 +35,8 @@ import HDL
 //   check that returned index array has zero length
 // Reconstruction
 //   compile with zero atoms, and a standard material
+//
+// Use silicon carbide as the standard material
 //
 // Run ZeroTests both in Swift release mode and Swift debug mode. Must catch
 // runtime validation checks that were triggered (out of bounds, null

@@ -6,16 +6,16 @@ The following keywords may be called inside a `Lattice`.
 protocol Basis
 Cubic: Basis
 Hexagonal: Basis
-Planar: Basis // in development
+Planar: Basis // proposed new API
 ```
 
 Coordinate spaces for defining vectors in.
 
 ```swift
 Bounds { SIMD3<Float> }
-Bounds { 10 * h + 10 * k + 10 * l } // cubic
-Bounds { 10 * h + 10 * (h + 2 * k) + 10 * l } // hexagonal
-Bounds { 10 * h + 10 * (h + 2 * k) } // planar (in development)
+Bounds { 10 * h + 10 * k + 10 * l } // Cubic
+Bounds { 10 * h + 10 * (h + 2 * k) + 10 * l } // Hexagonal
+Bounds { 10 * h + 10 * (h + 2 * k) } // Planar (proposed new API)
 ```
 
 Sets the working set of crystal unit cells. The box spans from the world origin `[0, 0, 0]` the specified vector. This must be called in the top-level scope, before any `Volume` keywords.
@@ -27,7 +27,7 @@ Constant(ConstantType) { MaterialType }
 ConstantType.hexagon // Hexagonal - hexagon side length
 ConstantType.prism   // Hexagonal - prism height
 ConstantType.square  // Cubic - square side length
-ConstantType.plane   // Planar - hexagon side length (in development)
+ConstantType.plane   // Planar - hexagon side length (proposed new API)
 
 // Query the lattice constant for diamond.
 let latticeConstant = Constant(.square) { .elemental(.carbon) }

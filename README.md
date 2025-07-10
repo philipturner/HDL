@@ -79,6 +79,8 @@ Encapsulates crystal plane algebra.
 
 Creates a lattice of crystal unit cells to edit. Coordinates are represented in numbers of crystal unit cells. The coordinate system may be mapped to a non-orthonormal coordinate system internally. Keep this in mind when processing `SIMD3<Float>` vectors. For example, avoid normalizing any vectors.
 
+> TODO: Improve the documentation, relocating the above statement somewhere else.
+
 ```swift
 struct Topology {
   var atoms: [Atom]

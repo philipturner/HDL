@@ -10,6 +10,7 @@ import HDL
 //     test finite atoms, finite bonds, no indices
 //     test finite atoms, no bonds, no indices
 //     test no atoms, no bonds, no indices
+//   test finite atoms, no bonds, finite atom indices
 // Topology -> sort
 //   test finite atoms, no bonds
 //     redundant coverage among the repo's test suite as a whole, but still
@@ -382,6 +383,11 @@ final class ZeroTests: XCTestCase {
   }
   
   func testTopologyRemove() throws {
-    
+    // Topology -> remove
+    //   test all of remove(atoms:), remove(bonds:) procedurally in a loop
+    //     test finite atoms, finite bonds, no indices
+    //     test finite atoms, no bonds, no indices
+    //     test no atoms, no bonds, no indices
+    //   test finite atoms, no bonds, finite atom indices
   }
 }

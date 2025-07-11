@@ -5,10 +5,6 @@ import HDL
 
 // APIs:
 //
-// Topology -> match
-//   test finite topology.atoms, zero input
-//   test zero topology.atoms, finite input
-//   test zero topology.atoms, zero input
 // Topology -> nonbondingOrbitals
 //   test all of sp, sp2, sp3 procedurally in a loop
 //     test finite atoms, no bonds
@@ -316,7 +312,7 @@ final class ZeroTests: XCTestCase {
     
     // no atoms, no bonds
     do {
-      var topology = Topology()
+      let topology = Topology()
       
       // .atoms, .atoms
       do {
@@ -335,6 +331,36 @@ final class ZeroTests: XCTestCase {
         let map = topology.map(.bonds, to: .atoms)
         XCTAssertEqual(map.count, 0)
       }
+    }
+  }
+  
+  func testTopologyMatch() throws {
+    // finite topology.atoms, zero input
+    do {
+      var topology = Topology()
+      topology.atoms = Self.createDefaultAtoms()
+      
+      let matches = topology.match([])
+      XCTAssertEqual(matches.count, 0)
+    }
+    
+    // zero topology.atoms, finite input
+    do {
+      let topology = Topology()
+      
+      let matches = topology.match(Self.createDefaultAtoms())
+      XCTAssertEqual(matches.count, 4)
+      for atomID in 0..<4 {
+        XCTAssertEqual(matches[atomID].count, 0)
+      }
+    }
+    
+    // zero topology.atoms, zero input
+    do {
+      let topology = Topology()
+      
+      let matches = topology.match([])
+      XCTAssertEqual(matches.count, 0)
     }
   }
 }

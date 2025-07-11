@@ -49,9 +49,8 @@ struct GridSorter {
     self.atoms = atoms
     
     if atoms.count == 0 {
-      // TODO: Try to remove this conditional.
       origin = .zero
-      dimensions = .init(repeating: 1)
+      dimensions = .init(repeating: 0.5)
     } else {
       var minimum = SIMD3<Float>(repeating: .greatestFiniteMagnitude)
       var maximum = -minimum

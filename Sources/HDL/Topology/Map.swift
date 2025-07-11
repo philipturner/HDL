@@ -56,16 +56,6 @@ extension Topology {
       fatalError("The source node must always be atoms.")
     }
     
-    let connectionsMap = createConnectionsMap(targetNode: targetNode)
-    return connectionsMap
-  }
-}
-
-extension Topology {
-  // TODO: Merge this with the calling function, now that map is simplified.
-  private func createConnectionsMap(
-    targetNode: MapNode
-  ) -> [MapStorage] {
     var connectionsMap = [SIMD8<Int32>](
       repeating: .init(repeating: -1), count: atoms.count)
     guard atoms.count > 0 else {

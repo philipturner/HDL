@@ -49,6 +49,7 @@ struct GridSorter {
     self.atoms = atoms
     
     if atoms.count == 0 {
+      // TODO: Try to remove this conditional.
       origin = .zero
       dimensions = .init(repeating: 1)
     } else {
@@ -79,6 +80,7 @@ struct GridSorter {
 
 extension GridSorter {
   func invertOrder(_ input: [UInt32]) -> [UInt32] {
+    // TODO: Try to remove this conditional.
     if input.count == 0 {
       return []
     }

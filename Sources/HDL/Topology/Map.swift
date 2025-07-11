@@ -59,6 +59,8 @@ extension Topology {
     var connectionsMap = [SIMD8<Int32>](
       repeating: .init(repeating: -1), count: atoms.count)
     guard atoms.count > 0 else {
+      // TODO: Remove this and similar guard statements. Or if it's needed,
+      // document that the reason is pointer allocation.
       return []
     }
     
@@ -120,13 +122,11 @@ extension Topology {
           }
         }
         
-        // TODO: Unit test how the compiler behaves when it receives an empty
-        // array, without adding any special checks/early returns for edge cases.
         let taskCount = (2 * bonds.count + taskSize - 1) / taskSize
-        if taskCount <= 1 {
-          for taskID in 0..<taskCount {
-            execute(taskID: taskID)
-          }
+        if taskCount == 0 {
+          
+        } else if taskCount == 1 {
+          execute(taskID: 0)
         } else {
           DispatchQueue.concurrentPerform(iterations: taskCount) { z in
             execute(taskID: z)

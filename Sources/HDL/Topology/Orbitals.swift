@@ -98,12 +98,9 @@ extension Topology {
     
     let taskCount = (atoms.count + taskSize - 1) / taskSize
     if taskCount == 0 {
-      // TODO: Unit test how the compiler behaves when it receives an empty
-      // array, without adding any special checks/early returns for edge cases.
+      
     } else if taskCount == 1 {
-      for taskID in 0..<taskCount {
-        execute(taskID: taskID)
-      }
+      execute(taskID: 0)
     } else {
       DispatchQueue.concurrentPerform(iterations: taskCount) { z in
         execute(taskID: z)

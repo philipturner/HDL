@@ -5,12 +5,6 @@ import HDL
 
 // APIs:
 //
-// Topology -> remove
-//   test all of remove(atoms:), remove(bonds:) procedurally in a loop
-//     test finite atoms, finite bonds, no indices
-//     test finite atoms, no bonds, no indices
-//     test no atoms, no bonds, no indices
-//   test finite atoms, no bonds, finite atom indices
 // Topology -> sort
 //   test finite atoms, no bonds
 //     redundant coverage among the repo's test suite as a whole, but still
@@ -383,11 +377,59 @@ final class ZeroTests: XCTestCase {
   }
   
   func testTopologyRemove() throws {
-    // Topology -> remove
-    //   test all of remove(atoms:), remove(bonds:) procedurally in a loop
-    //     test finite atoms, finite bonds, no indices
-    //     test finite atoms, no bonds, no indices
-    //     test no atoms, no bonds, no indices
-    //   test finite atoms, no bonds, finite atom indices
+    // finite atoms, finite bonds, no indices
+    do {
+      var topology = Topology()
+      topology.atoms = Self.createDefaultAtoms()
+      topology.bonds = [
+        SIMD2(0, 1),
+        SIMD2(1, 2),
+        SIMD2(2, 3),
+      ]
+      XCTAssertEqual(topology.atoms.count, 4)
+      XCTAssertEqual(topology.bonds.count, 3)
+      
+      topology.remove(atoms: [])
+      topology.remove(bonds: [])
+      XCTAssertEqual(topology.atoms.count, 4)
+      XCTAssertEqual(topology.bonds.count, 3)
+    }
+    
+    // finite atoms, no bonds, no indices
+    do {
+      var topology = Topology()
+      topology.atoms = Self.createDefaultAtoms()
+      XCTAssertEqual(topology.atoms.count, 4)
+      XCTAssertEqual(topology.bonds.count, 0)
+      
+      topology.remove(atoms: [])
+      topology.remove(bonds: [])
+      XCTAssertEqual(topology.atoms.count, 4)
+      XCTAssertEqual(topology.bonds.count, 0)
+    }
+    
+    // no atoms, no bonds, no indices
+    do {
+      var topology = Topology()
+      XCTAssertEqual(topology.atoms.count, 0)
+      XCTAssertEqual(topology.bonds.count, 0)
+      
+      topology.remove(atoms: [])
+      topology.remove(bonds: [])
+      XCTAssertEqual(topology.atoms.count, 0)
+      XCTAssertEqual(topology.bonds.count, 0)
+    }
+    
+    // finite atoms, no bonds, finite atom indices
+    do {
+      var topology = Topology()
+      topology.atoms = Self.createDefaultAtoms()
+      XCTAssertEqual(topology.atoms.count, 4)
+      XCTAssertEqual(topology.bonds.count, 0)
+      
+      topology.remove(atoms: [1, 3])
+      XCTAssertEqual(topology.atoms.count, 2)
+      XCTAssertEqual(topology.bonds.count, 0)
+    }
   }
 }

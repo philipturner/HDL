@@ -37,6 +37,8 @@ The results of this function follow a few particular rules:
 - If either index is `.bonds`, the target indices are sorted in ascending order.
 - If both nodes are `.atoms`, the target indices correspond to bonds in ascending order (of the bond index).
 
+> TODO: Major red flag, the order may be nondeterministic for `(.atoms, .atoms)` with large enough systems to trigger parallelization.
+
 ```swift
 extension Topology {
   enum MatchAlgorithm {

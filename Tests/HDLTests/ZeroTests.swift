@@ -363,4 +363,37 @@ final class ZeroTests: XCTestCase {
       XCTAssertEqual(matches.count, 0)
     }
   }
+  
+  func testTopologyNonbondingOrbitals() throws {
+    // Topology -> nonbondingOrbitals
+    //   test all of sp, sp2, sp3 procedurally in a loop
+    //     test finite atoms, no bonds
+    //     test no atoms, no bonds
+    
+    let hybridizations: [Topology.OrbitalHybridization] = [
+      .sp, .sp2, .sp3
+    ]
+    
+    // finite atoms, no bonds
+    do {
+      var topology = Topology()
+      topology.atoms = Self.createDefaultAtoms()
+      
+      let orbitalLists = topology.nonbondingOrbitals(
+        hybridization: .sp)
+      XCTAssertEqual(orbitalLists.count, 4)
+      for atomID in 0..<4 {
+        XCTAssertEqual(orbitalLists[atomID].count, 0)
+      }
+    }
+    
+    // no atoms, no bonds
+    do {
+      let topology = Topology()
+      
+      let orbitalLists = topology.nonbondingOrbitals(
+        hybridization: .sp)
+      XCTAssertEqual(orbitalLists.count, 0)
+    }
+  }
 }

@@ -5,7 +5,7 @@
 //  Created by Philip Turner on 12/2/23.
 //
 
-import Foundation
+import Dispatch
 
 extension Topology {
   @discardableResult

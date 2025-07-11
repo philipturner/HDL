@@ -127,6 +127,7 @@ extension Topology {
               idToWrite = Int32(truncatingIfNeeded: i / 2)
             }
             
+            // TODO: Major red flag, the order of atoms is nondeterministic.
             let pointer = atomicPointer.advanced(by: atomID)
             let atomic = UnsafeAtomic<Int16>(at: pointer)
             let lane = atomic.loadThenWrappingIncrement(ordering: .relaxed)

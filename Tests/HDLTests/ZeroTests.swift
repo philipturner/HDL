@@ -32,6 +32,15 @@ import HDL
 // while developing the tests.
 
 final class ZeroTests: XCTestCase {
+  static func createDefaultAtoms() -> [Atom] {
+    return [
+      Atom(position: SIMD3(0.000, 0.000, 0.000), element: .carbon),
+      Atom(position: SIMD3(1.000, 0.000, 0.000), element: .carbon),
+      Atom(position: SIMD3(0.000, 1.000, 0.000), element: .carbon),
+      Atom(position: SIMD3(0.000, 0.000, 1.000), element: .carbon),
+    ]
+  }
+  
   func testLatticeBounds() throws {
     // Test cubic lattices.
     do {
@@ -278,12 +287,7 @@ final class ZeroTests: XCTestCase {
     // finite atoms, no bonds
     do {
       var topology = Topology()
-      topology.atoms = [
-        Atom(position: SIMD3(0.000, 0.000, 0.000), element: .carbon),
-        Atom(position: SIMD3(1.000, 0.000, 0.000), element: .carbon),
-        Atom(position: SIMD3(0.000, 1.000, 0.000), element: .carbon),
-        Atom(position: SIMD3(0.000, 0.000, 1.000), element: .carbon),
-      ]
+      topology.atoms = Self.createDefaultAtoms()
       
       // .atoms, .atoms
       do {

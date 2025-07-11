@@ -1,5 +1,7 @@
 # Lattice
 
+> TODO: Document somewhere that the `Lattice` DSL is not thread-safe.
+
 The following keywords may be called inside a `Lattice`.
 
 ```swift

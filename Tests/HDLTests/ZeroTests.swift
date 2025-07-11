@@ -11,8 +11,11 @@ import HDL
 //     test finite atoms, no bonds, no indices
 //     test no atoms, no bonds, no indices
 // Topology -> sort
+//   test finite atoms, no bonds
+//     redundant coverage among the repo's test suite as a whole, but still
+//     feels right for completeness here
 //   test no atoms, no bonds
-//   check that returned index array has zero length
+//     check that returned index array has zero length
 // Reconstruction
 //   compile with zero atoms, and a standard material
 //
@@ -376,6 +379,9 @@ final class ZeroTests: XCTestCase {
         XCTAssertEqual(orbitalLists.count, 0)
       }
     }
+  }
+  
+  func testTopologyRemove() throws {
     
   }
 }

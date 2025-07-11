@@ -55,7 +55,7 @@ extension Compilation {
         } else if dominantAtomicNumber == element2.rawValue {
           chosenAtomicNumber = element1.rawValue
         } else {
-          fatalError("Could not resolve identity of inserted atom in checkerboard structure.")
+          fatalError("Could not resolve identity of inserted atom.")
         }
       }
       

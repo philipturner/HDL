@@ -80,10 +80,6 @@ struct GridSorter {
 
 extension GridSorter {
   func invertOrder(_ input: [UInt32]) -> [UInt32] {
-    // TODO: Try to remove this conditional.
-    if input.count == 0 {
-      return []
-    }
     return [UInt32](unsafeUninitializedCapacity: input.count) {
       $1 = input.count
       let baseAddress = $0.baseAddress.unsafelyUnwrapped

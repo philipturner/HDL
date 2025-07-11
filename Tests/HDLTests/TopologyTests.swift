@@ -101,20 +101,6 @@ final class TopologyTests: XCTestCase {
     topology.atoms += lonsdaleite.atoms
     topology.bonds += lonsdaleite.bonds
     
-    // bonds -> atoms
-    do {
-      let map = topology.map(.bonds, to: .atoms)
-      XCTAssertEqual(map.count, topology.bonds.count)
-      
-      for bondID in map.indices {
-        let bond = topology.bonds[bondID]
-        let slice = map[bondID]
-        XCTAssertEqual(slice.count, 2)
-        XCTAssertEqual(slice[slice.startIndex + 0], bond[0])
-        XCTAssertEqual(slice[slice.startIndex + 1], bond[1])
-      }
-    }
-    
     // atoms -> bonds
     do {
       var bondCoverage = [Bool](

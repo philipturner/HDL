@@ -298,12 +298,6 @@ final class ZeroTests: XCTestCase {
           XCTAssertEqual(map[atomID].count, 0)
         }
       }
-      
-      // .bonds, .atoms
-      do {
-        let map = topology.map(.bonds, to: .atoms)
-        XCTAssertEqual(map.count, 0)
-      }
     }
     
     // no atoms, no bonds
@@ -319,12 +313,6 @@ final class ZeroTests: XCTestCase {
       // .atoms, .bonds
       do {
         let map = topology.map(.atoms, to: .bonds)
-        XCTAssertEqual(map.count, 0)
-      }
-      
-      // .bonds, .atoms
-      do {
-        let map = topology.map(.bonds, to: .atoms)
         XCTAssertEqual(map.count, 0)
       }
     }

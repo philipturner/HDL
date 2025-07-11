@@ -50,29 +50,19 @@ extension Topology {
     _ sourceNode: MapNode,
     to targetNode: MapNode
   ) -> [MapStorage] {
-    switch (sourceNode, targetNode) {
-    case (.atoms, _):
-      let connectionsMap = createConnectionsMap(targetNode: targetNode)
-      return unsafeBitCast(connectionsMap, to: [_].self)
-    case (.bonds, .atoms):
-      var outputStorage: [MapStorage] = []
-      outputStorage.reserveCapacity(bonds.count)
-      for i in bonds.indices {
-        let bond = bonds[i]
-        var vector = SIMD8<Int32>.zero
-        vector[0] = Int32(truncatingIfNeeded: bond[0])
-        vector[1] = Int32(truncatingIfNeeded: bond[1])
-        vector[7] = 2
-        outputStorage.append(MapStorage(storage: vector))
-      }
-      return outputStorage
-    case (.bonds, .bonds):
-      fatalError("Bonds to bonds map is not supported.")
+    // Keeping the first argument around to preserve the DSL-like syntax of
+    // explicitly specifying the start and end nodes.
+    guard sourceNode == .atoms else {
+      fatalError("The source node must always be atoms.")
     }
+    
+    let connectionsMap = createConnectionsMap(targetNode: targetNode)
+    return unsafeBitCast(connectionsMap, to: [_].self)
   }
 }
 
 extension Topology {
+  // TODO: Merge this with the calling function, now that map is simplified.
   private func createConnectionsMap(
     targetNode: MapNode
   ) -> [SIMD8<Int32>] {

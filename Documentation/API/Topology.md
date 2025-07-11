@@ -26,13 +26,12 @@ topology.atoms = atoms
 topology.bonds = bonds
 let atomsToAtomsMap = topology.map(.atoms, to: .atoms)
 let atomsToBondsMap = topology.map(.atoms, to: .bonds)
-let bondsToAtomsMap = topology.map(.bonds, to: .atoms)
 ```
 
 Create a map that points from atoms/bonds to a list of connected atoms/bonds.
 
 The results of this function follow a few particular rules:
-- The source and target nodes cannot both be `.bonds`.
+- The source node must be `.atoms`.
 - The number of targets for a given source node cannot exceed 8.
 - If either index is `.bonds`, the target indices are sorted in ascending order.
 - If both nodes are `.atoms`, the target indices correspond to bonds in ascending order (of the bond index).

@@ -20,12 +20,12 @@ protocol CBNTripodComponent {
 extension CBNTripodComponent {
   // Check that all bonds are correctly assigned.
   func createBondRecord() -> [SIMD2<UInt8>: Int] {
-    let bondsToAtomsMap = topology.map(.bonds, to: .atoms)
     var bondRecord: [SIMD2<UInt8>: Int] = [:]
-    for atomList in bondsToAtomsMap {
-      var atomicNumbers = atomList.map {
-        topology.atoms[Int($0)].atomicNumber
-      }
+    for bond in topology.bonds {
+      var atomicNumbers: [UInt8] = [
+        topology.atoms[Int(bond[0])].atomicNumber,
+        topology.atoms[Int(bond[1])].atomicNumber,
+      ]
       atomicNumbers.sort()
       
       let key = SIMD2(atomicNumbers[0], atomicNumbers[1])

@@ -32,11 +32,8 @@ Create a map that points from atoms/bonds to a list of connected atoms/bonds.
 
 The results of this function follow a few particular rules:
 - The source node must be `.atoms`.
-- The number of targets for a given source node cannot exceed 8.
-- If either index is `.bonds`, the target indices are sorted in ascending order.
-- If both nodes are `.atoms`, the target indices correspond to bonds in ascending order (of the bond index).
-
-> TODO: Major red flag, the order may be nondeterministic for `(.atoms, .atoms)` with large enough systems to trigger parallelization.
+- The number of targets for a given source node must not exceed 8.
+- The indices are not guaranteed to be sorted in any particular order, for performance reasons. The underlying implementation uses multithreading + atomic synchronization when the bond count exceeds 2500.
 
 ```swift
 extension Topology {

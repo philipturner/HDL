@@ -680,27 +680,24 @@ final class TopologyTests: XCTestCase {
     XCTAssertEqual(map8.count, 8)
     XCTAssertEqual(map9.count, 8)
     
-    for i in 0..<4 {
-      let map = atomsToAtomsMap[i * 10]
-      for j in 0..<6 {
-        let expected = i * 10 + j + 1
-        XCTAssertEqual(map[j], .init(expected))
-      }
-    }
-    
-    XCTAssertEqual(map6[5],  1 + 5)
-    XCTAssertEqual(map7[5], 11 + 5)
-    XCTAssertEqual(map8[5], 21 + 5)
-    XCTAssertEqual(map9[5], 31 + 5)
-    
+    // This is 0x7FFF_FFFF because the subscript getter performs a bitmask
+    // operation, and the underlying value is 0xFFFF_FFFF.
     XCTAssertEqual(map6[6], 0x7FFF_FFFF)
-    XCTAssertEqual(map7[6], 11 + 6)
-    XCTAssertEqual(map8[6], 21 + 6)
-    XCTAssertEqual(map9[6], 31 + 6)
+    XCTAssertEqual(map6[7], 6)
+    XCTAssertEqual(map7[7], 7)
     
-    XCTAssertEqual(map6[7], .init(map6.count))
-    XCTAssertEqual(map7[7], .init(map7.count))
-    XCTAssertEqual(map8[7], 21 + 7)
-    XCTAssertEqual(map9[7], 31 + 7)
+    XCTAssertGreaterThan(map8[5], 20)
+    XCTAssertGreaterThan(map8[6], 20)
+    XCTAssertGreaterThan(map8[7], 20)
+    XCTAssertLessThan(map8[5], 29)
+    XCTAssertLessThan(map8[6], 29)
+    XCTAssertLessThan(map8[7], 29)
+    
+    XCTAssertGreaterThan(map9[5], 30)
+    XCTAssertGreaterThan(map9[6], 30)
+    XCTAssertGreaterThan(map9[7], 30)
+    XCTAssertLessThan(map9[5], 40)
+    XCTAssertLessThan(map9[6], 40)
+    XCTAssertLessThan(map9[7], 40)
   }
 }

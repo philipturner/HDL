@@ -474,7 +474,7 @@ private func matchImpl(
         }
         castedCount[Int(laneID)] = UInt8(truncatingIfNeeded: localBuffer.count)
         
-        // Sort the matches in ascending order of distance.
+        // Sort the matches in order of ascending distance.
         localBuffer.sort { $0.y < $1.y }
         
         let compactedOpaque = OpaquePointer(

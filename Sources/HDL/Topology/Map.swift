@@ -57,7 +57,7 @@ extension Topology {
     }
     
     let connectionsMap = createConnectionsMap(targetNode: targetNode)
-    return unsafeBitCast(connectionsMap, to: [_].self)
+    return connectionsMap
   }
 }
 
@@ -65,7 +65,7 @@ extension Topology {
   // TODO: Merge this with the calling function, now that map is simplified.
   private func createConnectionsMap(
     targetNode: MapNode
-  ) -> [SIMD8<Int32>] {
+  ) -> [MapStorage] {
     var connectionsMap = [SIMD8<Int32>](
       repeating: .init(repeating: -1), count: atoms.count)
     guard atoms.count > 0 else {
@@ -117,7 +117,7 @@ extension Topology {
               idToWrite = Int32(truncatingIfNeeded: i / 2)
             }
             
-            // TODO: Major red flag, the order of atoms is nondeterministic.
+            // The use of atomics here makes the order nondeterministic.
             let pointer = atomicPointer.advanced(by: atomID)
             let atomic = UnsafeAtomic<Int16>(at: pointer)
             let lane = atomic.loadThenWrappingIncrement(ordering: .relaxed)
@@ -155,6 +155,6 @@ extension Topology {
     }
     
     atomicPointer.deallocate()
-    return connectionsMap
+    return unsafeBitCast(connectionsMap, to: [MapStorage].self)
   }
 }

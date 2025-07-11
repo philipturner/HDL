@@ -9,14 +9,6 @@ struct Compilation {
   var atoms: [SIMD4<Float>]
   let material: MaterialType
   
-  init(
-    atoms: [SIMD4<Float>],
-    material: MaterialType
-  ) {
-    self.atoms = atoms
-    self.material = material
-  }
-  
   mutating func compile() -> [SIMD2<UInt32>] {
     removeMethylSites()
     

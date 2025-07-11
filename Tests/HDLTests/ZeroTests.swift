@@ -3,18 +3,6 @@ import HDL
 
 // Unit test how various APIs respond when they receive arrays of zero length.
 
-// APIs:
-//
-// Reconstruction
-//   compile with zero atoms, and a standard material
-//
-// Use silicon carbide as the standard material
-//
-// Run ZeroTests both in Swift release mode and Swift debug mode. Must catch
-// runtime validation checks that were triggered (out of bounds, null
-// unwrapping, integer overflow). Easiest approach is to always use debug mode
-// while developing the tests.
-
 final class ZeroTests: XCTestCase {
   static func createDefaultAtoms() -> [Atom] {
     return [
@@ -444,5 +432,14 @@ final class ZeroTests: XCTestCase {
       let sortedIndices = topology.sort()
       XCTAssertEqual(sortedIndices.count, 0)
     }
+  }
+  
+  func testReconstruction() throws {
+    var reconstruction = Reconstruction()
+    reconstruction.atoms = []
+    reconstruction.material = .checkerboard(.silicon, .carbon)
+    let topology = reconstruction.compile()
+    XCTAssertEqual(topology.atoms.count, 0)
+    XCTAssertEqual(topology.bonds.count, 0)
   }
 }

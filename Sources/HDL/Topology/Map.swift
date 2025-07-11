@@ -58,11 +58,6 @@ extension Topology {
     
     var connectionsMap = [SIMD8<Int32>](
       repeating: .init(repeating: -1), count: atoms.count)
-    guard atoms.count > 0 else {
-      // TODO: Remove this and similar guard statements. Or if it's needed,
-      // document that the reason is pointer allocation.
-      return []
-    }
     
     // Optimization: use atomics with 16 bits instead of 32 bits
     nonisolated(unsafe)

@@ -2,8 +2,6 @@
 
 The following APIs are available for `Topology`.
 
-> TODO: Sort the functions in alphabetical order.
-
 ```swift
 extension Topology {
   enum MapNode {
@@ -36,7 +34,8 @@ Create a map that points from atoms/bonds to a list of connected atoms/bonds.
 The results of this function follow a few particular rules:
 - The source and target nodes cannot both be `.bonds`.
 - The number of targets for a given source node cannot exceed 8.
-- If one of the nodes is `.bonds`, the target indices are sorted. Otherwise, the target indices (which are `.atoms`) correspond to bonds in ascending order.
+- If either index is `.bonds`, the target indices are sorted in ascending order.
+- If both nodes are `.atoms`, the target indices correspond to bonds in ascending order (of the bond index).
 
 ```swift
 extension Topology {
@@ -78,17 +77,6 @@ For `covalentBondScale`, bond length is determined by summing the covalent radii
 You are encouraged to sort the topology before calling `match()`. Otherwise, the search algorithm may degrade from $O(n)$ to $O(n^2)$. The overhead of sorting is significant and often takes more time than just running the match. Therefore, the internal implementation only performs sorting when the atom count is ~10,000. This is a performance sweet spot for highly ordered distributions (e.g. atoms directly fetched from a crystal lattice). However, it may not be a sweet spot for extremely disordered distributions.
 
 ```swift
-mutating func remove(atoms indices: [UInt32])
-mutating func remove(bonds indices: [UInt32])
-```
-
-Removes atoms or bonds at the specified indices. When removing an atom, the bonds connected to the atom are also removed.
-
-An index may be specified multiple times in the input. The atom or bond will only be removed once.
-
-The order of atoms and bonds is preserved after removal. The removed items are taken out of the list, and the remainder are compacted in place. This behavior is different from `sort()`, which scrambles the relative order of atoms.
-
-```swift
 extension Topology {
   enum OrbitalHybridization {
     case sp
@@ -121,6 +109,17 @@ Free radicals and lone pairs are treated the same way. This means a nitrogen wit
 For the carbon in an acetylene radical, only one orbital is reported. The reported orbital contains the free radical and is collinear with the two carbon atoms. It is also the only orbital known with absolute positional certainty. The two pi orbitals could be rotated into a infinite number of specific positions around the axis. It may be possible to exactly determine their orientation relative to other pi orbitals in a carbyne rod. However, that heuristic involves more than just immediate neighbors.
 
 Another edge case is halogens. They have three sp3 lone pairs, which cannot be positionally constrained. Therefore, the compiler cannot generate a discrete set of orbital orientations for halogens.  Nonbonding orbitals of divalent oxygen and trivalent nitrogen can be computed analytically from the neighbor atom positions. The discrepancy between treatment of Group VII and Group V/VI has an analogue in purely hydrocarbon matter. Primary carbons report zero orbitals, while secondary and tertiary carbons report 1&ndash;2 orbitals.
+
+```swift
+mutating func remove(atoms indices: [UInt32])
+mutating func remove(bonds indices: [UInt32])
+```
+
+Removes atoms or bonds at the specified indices. When removing an atom, the bonds connected to the atom are also removed.
+
+An index may be specified multiple times in the input. The atom or bond will only be removed once.
+
+The order of atoms and bonds is preserved after removal. The removed items are taken out of the list, and the remainder are compacted in place. This behavior is different from `sort()`, which scrambles the relative order of atoms.
 
 ```swift
 // Sorts the atoms and returns the old atoms' indices in the new list.

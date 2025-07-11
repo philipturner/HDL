@@ -2,6 +2,8 @@
 
 The following APIs are available for `Topology`.
 
+> TODO: Sort the functions in alphabetical order.
+
 ```swift
 extension Topology {
   enum MapNode {

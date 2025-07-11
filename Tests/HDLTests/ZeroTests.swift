@@ -5,9 +5,6 @@ import HDL
 
 // APIs:
 //
-// Topology -> map
-//   test finite atoms, no bonds
-//   test no atoms, no bonds
 // Topology -> match
 //   test finite topology.atoms, zero input
 //   test zero topology.atoms, finite input
@@ -275,5 +272,65 @@ final class ZeroTests: XCTestCase {
     //   0 * h + 0 * h2k + 1 * l
     // explicitly forbidden right now:
     //   0 * h + 0 * h2k + 0 * l
+  }
+  
+  func testTopologyMap() throws {
+    // finite atoms, no bonds
+    do {
+      var topology = Topology()
+      topology.atoms = [
+        Atom(position: SIMD3(0.000, 0.000, 0.000), element: .carbon),
+        Atom(position: SIMD3(1.000, 0.000, 0.000), element: .carbon),
+        Atom(position: SIMD3(0.000, 1.000, 0.000), element: .carbon),
+        Atom(position: SIMD3(0.000, 0.000, 1.000), element: .carbon),
+      ]
+      
+      // .atoms, .atoms
+      do {
+        let map = topology.map(.atoms, to: .atoms)
+        XCTAssertEqual(map.count, 4)
+        for atomID in 0..<4 {
+          XCTAssertEqual(map[atomID].count, 0)
+        }
+      }
+      
+      // .atoms, .bonds
+      do {
+        let map = topology.map(.atoms, to: .bonds)
+        XCTAssertEqual(map.count, 4)
+        for atomID in 0..<4 {
+          XCTAssertEqual(map[atomID].count, 0)
+        }
+      }
+      
+      // .bonds, .atoms
+      do {
+        let map = topology.map(.bonds, to: .atoms)
+        XCTAssertEqual(map.count, 0)
+      }
+    }
+    
+    // no atoms, no bonds
+    do {
+      var topology = Topology()
+      
+      // .atoms, .atoms
+      do {
+        let map = topology.map(.atoms, to: .atoms)
+        XCTAssertEqual(map.count, 0)
+      }
+      
+      // .atoms, .bonds
+      do {
+        let map = topology.map(.atoms, to: .bonds)
+        XCTAssertEqual(map.count, 0)
+      }
+      
+      // .bonds, .atoms
+      do {
+        let map = topology.map(.bonds, to: .atoms)
+        XCTAssertEqual(map.count, 0)
+      }
+    }
   }
 }

@@ -421,8 +421,7 @@ private func matchImpl(
     let taskCount = scope.endI - scope.startI
     
     if taskCount == 0 {
-      // TODO: Unit test how the compiler behaves when it receives an empty
-      // array, without adding any special checks/early returns for edge cases.
+      
     } else if taskCount == 1 {
       innerLoop3(0)
       finishInnerLoop3(0)

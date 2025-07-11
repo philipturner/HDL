@@ -1,8 +1,6 @@
 # Hardware Description Language
 
 > Do not rush this PR. Clean up the code for `topology.sort` and other warnings regarding concurrency. Understand and justify/delete the commented out code in `CubicGrid`. Make sure the branch works correctly and efficiently on Windows before merging it.
->
-> Address all TODOs except those explicitly marked as out-of-scope (preceding prototyping from users). Knock out the preconditions (which are hazardous, silently failing tests) before further work on refactoring the internals. Also knock out the instances where zero-sized arrays have undefined behavior. And the other small cleanups, like the unspecified optimization opportunity.
 
 Domain-specific language for molecular nanotechnology. This repository includes a geometry and bond topology compiler.
 

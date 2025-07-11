@@ -5,15 +5,6 @@ import HDL
 
 // APIs:
 //
-// test all of Cubic, Hexagonal procedurally in a loop
-//   Lattice -> Bounds -> atoms
-//     test (0, 0, finite) for each of 3 dimensions
-//     test zero bounds
-//   Lattice -> Bounds -> Volume/Plane -> atoms
-//     use a plane that changes the output in the finite case
-//     test finite bounds
-//     test (0, 0, finite) for each of 3 dimensions
-//     test zero bounds
 // Topology -> map
 //   test finite atoms, no bonds
 //   test no atoms, no bonds
@@ -21,7 +12,7 @@ import HDL
 //   test finite topology.atoms, zero input
 //   test zero topology.atoms, finite input
 //   test zero topology.atoms, zero input
-// Topology -> orbitals
+// Topology -> nonbondingOrbitals
 //   test all of sp, sp2, sp3 procedurally in a loop
 //     test finite atoms, no bonds
 //     test no atoms, no bonds
@@ -108,7 +99,6 @@ final class ZeroTests: XCTestCase {
       }
       XCTAssertEqual(lattice.atoms.count, 0)
     }
-    
     do {
       let lattice = Lattice<Hexagonal> { h, k, l in
         let h2k = h + 2 * k
@@ -125,9 +115,165 @@ final class ZeroTests: XCTestCase {
       }
       XCTAssertEqual(lattice.atoms.count, 0)
     }
+    // crasher:
+    //   0 * h + 0 * h2k + 1 * l
+    // explicitly forbidden right now:
+    //   0 * h + 0 * h2k + 0 * l
   }
   
   func testLatticeBoundsPlane() throws {
+    // Test cubic lattices.
+    do {
+      // 1, 1, 1
+      let lattice = Lattice<Cubic> { h, k, l in
+        Bounds { 1 * h + 1 * k + 1 * l }
+        Material { .checkerboard(.silicon, .carbon) }
+        
+        Volume {
+          Origin { 0.5 * h + 0.5 * k + 0.5 * l }
+          Plane { h + k + l }
+          Replace { .empty }
+        }
+      }
+      XCTAssertEqual(lattice.atoms.count, 8)
+    }
+    do {
+      // 1, 1, 0
+      let lattice = Lattice<Cubic> { h, k, l in
+        Bounds { 1 * h + 1 * k + 0 * l }
+        Material { .checkerboard(.silicon, .carbon) }
+        
+        Volume {
+          Origin { 0.5 * h + 0.5 * k + 0.5 * l }
+          Plane { h + k + l }
+          Replace { .empty }
+        }
+      }
+      XCTAssertEqual(lattice.atoms.count, 4)
+    }
+    do {
+      // 1, 0, 0
+      let lattice = Lattice<Cubic> { h, k, l in
+        Bounds { 1 * h + 0 * k + 0 * l }
+        Material { .checkerboard(.silicon, .carbon) }
+        
+        Volume {
+          Origin { 0.5 * h + 0.5 * k + 0.5 * l }
+          Plane { h + k + l }
+          Replace { .empty }
+        }
+      }
+      XCTAssertEqual(lattice.atoms.count, 2)
+    }
+    do {
+      // 0, 0, 0
+      let lattice = Lattice<Cubic> { h, k, l in
+        Bounds { 0 * h + 0 * k + 0 * l }
+        Material { .checkerboard(.silicon, .carbon) }
+        
+        Volume {
+          Origin { 0.5 * h + 0.5 * k + 0.5 * l }
+          Plane { h + k + l }
+          Replace { .empty }
+        }
+      }
+      XCTAssertEqual(lattice.atoms.count, 1)
+    }
     
+    // Test hexagonal lattices.
+    do {
+      // 1, 1, 1
+      let lattice = Lattice<Hexagonal> { h, k, l in
+        let h2k = h + 2 * k
+        Bounds { 1 * h + 1 * h2k + 1 * l }
+        Material { .checkerboard(.silicon, .carbon) }
+        
+        Volume {
+          Origin { 0.5 * h + 0.5 * h2k + 0.5 * l }
+          Plane { h + h2k + l }
+          Replace { .empty }
+        }
+      }
+      XCTAssertEqual(lattice.atoms.count, 7)
+    }
+    do {
+      // 0, 1, 1
+      let lattice = Lattice<Hexagonal> { h, k, l in
+        let h2k = h + 2 * k
+        Bounds { 0 * h + 1 * h2k + 1 * l }
+        Material { .checkerboard(.silicon, .carbon) }
+        
+        Volume {
+          Origin { 0.5 * h + 0.5 * h2k + 0.5 * l }
+          Plane { h + h2k + l }
+          Replace { .empty }
+        }
+      }
+      XCTAssertEqual(lattice.atoms.count, 3)
+    }
+    do {
+      // 1, 0, 1
+      let lattice = Lattice<Hexagonal> { h, k, l in
+        let h2k = h + 2 * k
+        Bounds { 1 * h + 0 * h2k + 1 * l }
+        Material { .checkerboard(.silicon, .carbon) }
+        
+        Volume {
+          Origin { 0.5 * h + 0.5 * h2k + 0.5 * l }
+          Plane { h + h2k + l }
+          Replace { .empty }
+        }
+      }
+      XCTAssertEqual(lattice.atoms.count, 0)
+    }
+    do {
+      // 1, 1, 0
+      let lattice = Lattice<Hexagonal> { h, k, l in
+        let h2k = h + 2 * k
+        Bounds { 1 * h + 1 * h2k + 0 * l }
+        Material { .checkerboard(.silicon, .carbon) }
+        
+        Volume {
+          Origin { 0.5 * h + 0.5 * h2k + 0.5 * l }
+          Plane { h + h2k + l }
+          Replace { .empty }
+        }
+      }
+      XCTAssertEqual(lattice.atoms.count, 0)
+    }
+    do {
+      // 1, 0, 0
+      let lattice = Lattice<Hexagonal> { h, k, l in
+        let h2k = h + 2 * k
+        Bounds { 1 * h + 0 * h2k + 0 * l }
+        Material { .checkerboard(.silicon, .carbon) }
+        
+        Volume {
+          Origin { 0.5 * h + 0.5 * h2k + 0.5 * l }
+          Plane { h + h2k + l }
+          Replace { .empty }
+        }
+      }
+      XCTAssertEqual(lattice.atoms.count, 0)
+    }
+    do {
+      // 0, 1, 0
+      let lattice = Lattice<Hexagonal> { h, k, l in
+        let h2k = h + 2 * k
+        Bounds { 0 * h + 1 * h2k + 0 * l }
+        Material { .checkerboard(.silicon, .carbon) }
+        
+        Volume {
+          Origin { 0.5 * h + 0.5 * h2k + 0.5 * l }
+          Plane { h + h2k + l }
+          Replace { .empty }
+        }
+      }
+      XCTAssertEqual(lattice.atoms.count, 0)
+    }
+    // crasher:
+    //   0 * h + 0 * h2k + 1 * l
+    // explicitly forbidden right now:
+    //   0 * h + 0 * h2k + 0 * l
   }
 }

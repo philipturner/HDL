@@ -207,7 +207,6 @@ extension GridSorter {
       // Very important: deciding the granularity with which to parallelize the
       // grid. 0.5 looks way too small for sparser lattices like SiC and Si.
       let threshold = min(2.0, max(0.5, highestLevelSize * 0.51))
-      print(threshold)
       
       // TODO: Refactor this to move it outside of the enclosing function,
       // isolating the mutable context it sees. Do all of this without causing
@@ -318,10 +317,15 @@ extension GridSorter {
     var largeGridCellCount = 0
     for gridCell in gridCells {
       maxCellSize = max(maxCellSize, gridCell.0.count)
+      print(gridCell.0.count)
       if gridCell.0.count > 64 {
         largeGridCellCount += 1
       }
     }
+    print("average:", Int(Double(atoms.count) / Double(largeGridCellCount)))
+    print("octree start size:", octreeStartSize)
+    print("highest level size:", highestLevelSize)
+    print("threshold:", min(2.0, max(0.5, highestLevelSize * 0.51)))
     
     if largeGridCellCount >= 3 {
       DispatchQueue.concurrentPerform(

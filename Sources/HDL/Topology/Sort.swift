@@ -50,6 +50,21 @@ extension Topology {
 //
 // Implement this fix once the entire 'Sort' file is refactored and easier
 // to work with, without introducing new regressions.
+//
+// New ideas:
+// - Defer this to until you have a functioning renderer, to debug glitches
+//   where visualizing the atoms helps massively.
+// - Reduce the task count when the number of cells is very large,
+//   merging nearby cells in the list.
+//   - This creates a more homogeneous atom count and should reduce the spike
+//     in overhead.
+//   - Before doing this, thoroughly de-mystify the latency as a function of
+//     lattice size, and have specific benchmarks (in milliseconds) to refer
+//     to.
+//
+// Choice: defer changes to the underlying algorithm until we have a working
+// renderer on Windows. Instead, include an attempt to improve workload
+// distribution in this PR.
 private struct LevelSizes {
   var highest: Float
   var octreeStart: Float
@@ -325,12 +340,17 @@ extension GridSorter {
     }
     let maxCellAtomCount = createMaxCellAtomCount()
     
-    var largeGridCellCount = 0
-    for cell in gridCells {
-      if cell.range.count > 64 {
-        largeGridCellCount += 1
+    func createLargeCellCount() -> Int {
+      var output = 0
+      for cell in gridCells {
+        let atomCount = cell.range.count
+        if atomCount > 64 {
+          output += 1
+        }
       }
+      return output
     }
+    let largeGridCellCount = createLargeCellCount()
     
     if largeGridCellCount >= 3 {
       let taskCount = gridCells.count

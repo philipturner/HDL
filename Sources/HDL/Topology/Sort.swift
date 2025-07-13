@@ -19,7 +19,7 @@ extension Topology {
       atoms[i] = previousAtoms[Int(mortonIndex)]
     }
     
-    let inverted = grid.invertOrder(reordering)
+    let inverted = GridSorter.invertOrder(reordering)
     for i in bonds.indices {
       let bond = SIMD2<Int>(truncatingIfNeeded: bonds[i])
       var newBond: SIMD2<UInt32> = .zero
@@ -36,6 +36,36 @@ extension Topology {
       }
     }
     return inverted
+  }
+}
+
+struct GridSorter {
+  var atoms: [Atom] = []
+  
+  var origin: SIMD3<Float>
+  var dimensions: SIMD3<Float>
+  
+  init(atoms: [Atom]) {
+    self.atoms = atoms
+    
+    if atoms.count == 0 {
+      origin = .zero
+      dimensions = .init(repeating: 0.5)
+    } else {
+      var minimum = SIMD3<Float>(repeating: .greatestFiniteMagnitude)
+      var maximum = -minimum
+      for atom in atoms {
+        let position = atom.position
+        minimum.replace(with: position, where: position .< minimum)
+        maximum.replace(with: position, where: position .> maximum)
+      }
+      
+      origin = minimum
+      dimensions = maximum - minimum
+      dimensions.replace(
+        with: SIMD3(repeating: 0.5),
+        where: dimensions .< 0.5)
+    }
   }
 }
 
@@ -107,37 +137,10 @@ private struct GridCell {
   var size: Float
 }
 
-struct GridSorter {
-  var atoms: [Atom] = []
-  
-  var origin: SIMD3<Float>
-  var dimensions: SIMD3<Float>
-  
-  init(atoms: [Atom]) {
-    self.atoms = atoms
-    
-    if atoms.count == 0 {
-      origin = .zero
-      dimensions = .init(repeating: 0.5)
-    } else {
-      var minimum = SIMD3<Float>(repeating: .greatestFiniteMagnitude)
-      var maximum = -minimum
-      for atom in atoms {
-        let position = atom.position
-        minimum.replace(with: position, where: position .< minimum)
-        maximum.replace(with: position, where: position .> maximum)
-      }
-      
-      origin = minimum
-      dimensions = maximum - minimum
-      dimensions.replace(
-        with: SIMD3(repeating: 0.5),
-        where: dimensions .< 0.5)
-    }
-  }
+private struct Grid {
+  var data: [UInt32] = []
+  var cells: [GridCell] = []
 }
-
-// MARK: - Morton Reordering
 
 // Performance tests:
 //
@@ -198,7 +201,7 @@ struct GridSorter {
 // 1030400 atoms | 82.7 ms
 
 extension GridSorter {
-  func invertOrder(_ input: [UInt32]) -> [UInt32] {
+  static func invertOrder(_ input: [UInt32]) -> [UInt32] {
     return [UInt32](unsafeUninitializedCapacity: input.count) {
       $1 = input.count
       let baseAddress = $0.baseAddress.unsafelyUnwrapped
@@ -210,119 +213,122 @@ extension GridSorter {
     }
   }
   
-  func mortonReordering() -> [UInt32] {
-    var gridData: [UInt32] = []
-    var gridCells: [GridCell] = []
+  private func createGrid() -> Grid {
     let levelSizes = LevelSizes(dimensions: dimensions)
+    var grid = Grid()
     
-    do {
-      let dictionary: UnsafeMutablePointer<UInt32> =
-        .allocate(capacity: 8 * atoms.count)
-      defer { dictionary.deallocate() }
-      
-      // TODO: Refactor this to move it outside of the enclosing function,
-      // isolating the mutable context it sees. Do all of this without causing
-      // a performance regression.
-      func traverseGrid(
-        atomIDs: UnsafeBufferPointer<UInt32>,
-        levelOrigin: SIMD3<Float>,
-        levelSize: Float
-      ) {
-        if levelSize < levelSizes.threshold {
-          let rangeStart = gridData.count
-          gridData += atomIDs
-          let rangeEnd = gridData.count
-          
-          let cell = GridCell(
-            range: rangeStart..<rangeEnd,
-            origin: levelOrigin,
-            size: levelSize)
-          gridCells.append(cell)
-          return
-        }
+    let dictionary: UnsafeMutablePointer<UInt32> =
+      .allocate(capacity: 8 * atoms.count)
+    defer { dictionary.deallocate() }
+    
+    // TODO: Refactor this to move it outside of the enclosing function,
+    // isolating the mutable context it sees. Do all of this without causing
+    // a performance regression.
+    func traverseGrid(
+      atomIDs: UnsafeBufferPointer<UInt32>,
+      levelOrigin: SIMD3<Float>,
+      levelSize: Float
+    ) {
+      if levelSize < levelSizes.threshold {
+        let rangeStart = grid.data.count
+        grid.data += atomIDs
+        let rangeEnd = grid.data.count
         
-        // Write to the dictionary.
-        var dictionaryCount: SIMD8<Int> = .zero
-        for atomID in atomIDs {
-          @inline(__always)
-          func createAtomOffset() -> SIMD3<Float> {
-            let atom = atoms[Int(atomID)]
-            return atom.position - self.origin
-          }
-          
-          var index = SIMD3<UInt32>(repeating: 1)
-          index.replace(
-            with: SIMD3.zero,
-            where: createAtomOffset() .< levelOrigin)
-          
-          let key = (index &<< SIMD3(0, 1, 2)).wrappedSum()
-          let previousCount = dictionaryCount[Int(key)]
-          dictionaryCount[Int(key)] += 1
-          dictionary[Int(key) * atomIDs.count + previousCount] = atomID
-        }
-        
-        withUnsafeTemporaryAllocation(
-          of: UInt32.self,
-          capacity: dictionaryCount.wrappedSum()
-        ) { allocationBuffer in
-          @inline(__always)
-          func allocationPointer() -> UnsafeMutablePointer<UInt32> {
-            allocationBuffer.baseAddress.unsafelyUnwrapped
-          }
-          
-          var start = 0
-          for key in 0..<UInt32(8) {
-            let allocationSize = dictionaryCount[Int(key)]
-            guard allocationSize > 0 else {
-              continue
-            }
-            
-            let newPointer = allocationPointer() + start
-            start += allocationSize
-            
-            newPointer.initialize(
-              from: dictionary + Int(key) * atomIDs.count,
-              count: allocationSize)
-          }
-          
-          // TODO: Use a different variable, instead of letting a reference
-          // to a mutable state variable survive across 2 different contexts.
-          start = 0
-          for key in 0..<UInt32(8) {
-            let allocationSize = dictionaryCount[Int(key)]
-            guard allocationSize > 0 else {
-              continue
-            }
-            
-            let newPointer = allocationPointer() + start
-            start += allocationSize
-            
-            @inline(__always)
-            func createNewOrigin() -> SIMD3<Float> {
-              let intOffset = (key &>> SIMD3(0, 1, 2)) & 1
-              let floatOffset = SIMD3<Float>(intOffset) * 2 - 1
-              return levelOrigin + floatOffset * levelSize / 2
-            }
-            let newBufferPointer = UnsafeBufferPointer(
-              start: newPointer,
-              count: allocationSize)
-            traverseGrid(
-              atomIDs: newBufferPointer,
-              levelOrigin: createNewOrigin(),
-              levelSize: levelSize / 2)
-          }
-        }
+        let cell = GridCell(
+          range: rangeStart..<rangeEnd,
+          origin: levelOrigin,
+          size: levelSize)
+        grid.cells.append(cell)
+        return
       }
       
-      let levelOrigin = SIMD3<Float>(repeating: levelSizes.octreeStart)
-      let initialArray = atoms.indices.map(UInt32.init)
-      initialArray.withUnsafeBufferPointer { bufferPointer in
-        traverseGrid(
-          atomIDs: bufferPointer,
-          levelOrigin: levelOrigin,
-          levelSize: levelSizes.octreeStart)
+      // Write to the dictionary.
+      var dictionaryCount: SIMD8<Int> = .zero
+      for atomID in atomIDs {
+        @inline(__always)
+        func createAtomOffset() -> SIMD3<Float> {
+          let atom = atoms[Int(atomID)]
+          return atom.position - self.origin
+        }
+        
+        var index = SIMD3<UInt32>(repeating: 1)
+        index.replace(
+          with: SIMD3.zero,
+          where: createAtomOffset() .< levelOrigin)
+        
+        let key = (index &<< SIMD3(0, 1, 2)).wrappedSum()
+        let previousCount = dictionaryCount[Int(key)]
+        dictionaryCount[Int(key)] += 1
+        dictionary[Int(key) * atomIDs.count + previousCount] = atomID
+      }
+      
+      withUnsafeTemporaryAllocation(
+        of: UInt32.self,
+        capacity: dictionaryCount.wrappedSum()
+      ) { allocationBuffer in
+        @inline(__always)
+        func allocationPointer() -> UnsafeMutablePointer<UInt32> {
+          allocationBuffer.baseAddress.unsafelyUnwrapped
+        }
+        
+        var start = 0
+        for key in 0..<UInt32(8) {
+          let allocationSize = dictionaryCount[Int(key)]
+          guard allocationSize > 0 else {
+            continue
+          }
+          
+          let newPointer = allocationPointer() + start
+          start += allocationSize
+          
+          newPointer.initialize(
+            from: dictionary + Int(key) * atomIDs.count,
+            count: allocationSize)
+        }
+        
+        // TODO: Use a different variable, instead of letting a reference
+        // to a mutable state variable survive across 2 different contexts.
+        start = 0
+        for key in 0..<UInt32(8) {
+          let allocationSize = dictionaryCount[Int(key)]
+          guard allocationSize > 0 else {
+            continue
+          }
+          
+          let newPointer = allocationPointer() + start
+          start += allocationSize
+          
+          @inline(__always)
+          func createNewOrigin() -> SIMD3<Float> {
+            let intOffset = (key &>> SIMD3(0, 1, 2)) & 1
+            let floatOffset = SIMD3<Float>(intOffset) * 2 - 1
+            return levelOrigin + floatOffset * levelSize / 2
+          }
+          let newBufferPointer = UnsafeBufferPointer(
+            start: newPointer,
+            count: allocationSize)
+          traverseGrid(
+            atomIDs: newBufferPointer,
+            levelOrigin: createNewOrigin(),
+            levelSize: levelSize / 2)
+        }
       }
     }
+    
+    let levelOrigin = SIMD3<Float>(repeating: levelSizes.octreeStart)
+    let initialArray = atoms.indices.map(UInt32.init)
+    initialArray.withUnsafeBufferPointer { bufferPointer in
+      traverseGrid(
+        atomIDs: bufferPointer,
+        levelOrigin: levelOrigin,
+        levelSize: levelSizes.octreeStart)
+    }
+    
+    return grid
+  }
+  
+  func mortonReordering() -> [UInt32] {
+    let grid = createGrid()
     
     var finalOutput = [UInt32](unsafeUninitializedCapacity: atoms.count) {
       $1 = atoms.count
@@ -330,7 +336,7 @@ extension GridSorter {
     
     func createMaxCellAtomCount() -> Int {
       var output = 0
-      for cell in gridCells {
+      for cell in grid.cells {
         let atomCount = cell.range.count
         if atomCount > output {
           output = atomCount
@@ -349,8 +355,8 @@ extension GridSorter {
       
       var output: [UInt32] = []
       
-      let cell = gridCells[taskID]
-      let initialArray = gridData[cell.range]
+      let cell = grid.cells[taskID]
+      let initialArray = grid.data[cell.range]
       initialArray.withUnsafeBufferPointer { bufferPointer in
         traverseTree(
           atomIDs: bufferPointer,
@@ -456,7 +462,7 @@ extension GridSorter {
     do {
       func createLargeCellCount() -> Int {
         var output = 0
-        for cell in gridCells {
+        for cell in grid.cells {
           let atomCount = cell.range.count
           if atomCount > 64 {
             output += 1
@@ -467,15 +473,18 @@ extension GridSorter {
       let largeGridCellCount = createLargeCellCount()
       
       if largeGridCellCount >= 3 {
-        let taskCount = gridCells.count
-        DispatchQueue.concurrentPerform(
-          iterations: taskCount,
-          execute: execute(taskID:))
-        //      DispatchQueue.concurrentPerform(iterations: taskCount) { z in
-        //        execute(taskID: z)
-        //      }
+        let taskCount = grid.cells.count
+//        DispatchQueue.concurrentPerform(
+//          iterations: taskCount,
+//          execute: execute(taskID:))
+        
+        // TODO: Check for a negative impact from extra function calls, when
+        // latticeScale=5
+        DispatchQueue.concurrentPerform(iterations: taskCount) { z in
+          execute(taskID: z)
+        }
       } else {
-        for z in gridCells.indices {
+        for z in grid.cells.indices {
           execute(taskID: z)
         }
       }

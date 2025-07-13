@@ -82,17 +82,17 @@ struct OctreeSorter {
       
       // Write to the dictionary.
       var dictionaryCount: SIMD8<Int> = .zero
-      for atomID32 in atomIDs {
+      for atomID in atomIDs {
         @inline(__always)
-        func createAtomPosition() -> SIMD3<Float> {
-          let atomID = Int(atomID32)
-          return atoms[atomID].position - self.origin
+        func createAtomOffset() -> SIMD3<Float> {
+          let atom = atoms[Int(atomID)]
+          return atom.position - self.origin
         }
         
         var index = SIMD3<UInt32>(repeating: 1)
         index.replace(
-          with: .init(repeating: 0),
-          where: createAtomPosition() .< levelOrigin)
+          with: SIMD3.zero,
+          where: createAtomOffset() .< levelOrigin)
         
         let key = (index &<< SIMD3(0, 1, 2)).wrappedSum()
         let previousCount = dictionaryCount[Int(key)]
@@ -100,7 +100,7 @@ struct OctreeSorter {
           by: Int(key) * atoms.count + previousCount)
         
         dictionaryCount[Int(key)] += 1
-        pointer.pointee = atomID32
+        pointer.pointee = atomID
       }
       
       withUnsafeTemporaryAllocation(
@@ -121,7 +121,9 @@ struct OctreeSorter {
           
           let oldPointer = dictionary + Int(key) * atoms.count
           let newPointer = allocationPointer() + start
-          newPointer.initialize(from: oldPointer, count: allocationSize)
+          newPointer.initialize(
+            from: oldPointer,
+            count: allocationSize)
           start += allocationSize
         }
         
@@ -142,9 +144,9 @@ struct OctreeSorter {
           let intOffset = (key &>> SIMD3(0, 1, 2)) & 1
           let floatOffset = SIMD3<Float>(intOffset) * 2 - 1
           let newOrigin = levelOrigin + floatOffset * levelSize / 2
-          
           let newBufferPointer = UnsafeBufferPointer(
-            start: newPointer, count: allocationSize)
+            start: newPointer,
+            count: allocationSize)
           traverse(
             atomIDs: newBufferPointer,
             levelOrigin: newOrigin,

@@ -88,7 +88,6 @@ struct OctreeSorter {
           let atom = atoms[Int(atomID)]
           return atom.position - self.origin
         }
-        
         var index = SIMD3<UInt32>(repeating: 1)
         index.replace(
           with: SIMD3.zero,
@@ -138,15 +137,18 @@ struct OctreeSorter {
             continue
           }
           
-          let intOffset = (key &>> SIMD3(0, 1, 2)) & 1
-          let floatOffset = SIMD3<Float>(intOffset) * 2 - 1
-          let newOrigin = levelOrigin + floatOffset * levelSize / 2
+          @inline(__always)
+          func createNewOrigin() -> SIMD3<Float> {
+            let intOffset = (key &>> SIMD3(0, 1, 2)) & 1
+            let floatOffset = SIMD3<Float>(intOffset) * 2 - 1
+            return levelOrigin + floatOffset * levelSize / 2
+          }
           let newBufferPointer = UnsafeBufferPointer(
             start: newPointer,
             count: allocationSize)
           traverse(
             atomIDs: newBufferPointer,
-            levelOrigin: newOrigin,
+            levelOrigin: createNewOrigin(),
             levelSize: levelSize / 2)
         }
       }

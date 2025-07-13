@@ -271,15 +271,18 @@ extension GridSorter {
             let newPointer = allocationPointer() + start
             start += allocationSize
             
-            let intOffset = (key &>> SIMD3(0, 1, 2)) & 1
-            let floatOffset = SIMD3<Float>(intOffset) * 2 - 1
-            let newOrigin = levelOrigin + floatOffset * levelSize / 2
+            @inline(__always)
+            func createNewOrigin() -> SIMD3<Float> {
+              let intOffset = (key &>> SIMD3(0, 1, 2)) & 1
+              let floatOffset = SIMD3<Float>(intOffset) * 2 - 1
+              return levelOrigin + floatOffset * levelSize / 2
+            }
             let newBufferPointer = UnsafeBufferPointer(
               start: newPointer,
               count: allocationSize)
             traverseGrid(
               atomIDs: newBufferPointer,
-              levelOrigin: newOrigin,
+              levelOrigin: createNewOrigin(),
               levelSize: levelSize / 2)
           }
         }
@@ -376,7 +379,9 @@ extension GridSorter {
             
             let oldPointer = dictionary + Int(key) * maxCellSize
             let newPointer = allocationPointer() + start
-            newPointer.initialize(from: oldPointer, count: allocationSize)
+            newPointer.initialize(
+              from: oldPointer,
+              count: allocationSize)
             start += allocationSize
           }
           
@@ -396,15 +401,18 @@ extension GridSorter {
               continue
             }
             
-            let intOffset = (key &>> SIMD3(0, 1, 2)) & 1
-            let floatOffset = SIMD3<Float>(intOffset) * 2 - 1
-            let newOrigin = levelOrigin + floatOffset * levelSize / 2
+            @inline(__always)
+            func createNewOrigin() -> SIMD3<Float> {
+              let intOffset = (key &>> SIMD3(0, 1, 2)) & 1
+              let floatOffset = SIMD3<Float>(intOffset) * 2 - 1
+              return levelOrigin + floatOffset * levelSize / 2
+            }
             let newBufferPointer = UnsafeBufferPointer(
               start: newPointer,
               count: allocationSize)
             traverseTree(
               atomIDs: newBufferPointer,
-              levelOrigin: newOrigin,
+              levelOrigin: createNewOrigin(),
               levelSize: levelSize / 2)
           }
         }

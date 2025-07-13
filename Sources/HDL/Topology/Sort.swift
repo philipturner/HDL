@@ -111,14 +111,8 @@ struct GridSorter {
 // The sort inside the library is not actually slower than OctreeSorter.
 // Use latticeScale=20 as the go-to test for quickly checking for a regression.
 
-
-
 // Why is one algorithm faster than the other? What's going on at the lowest
 // level, and is there more room for improvement?
-//
-// These benchmarks belong as permanent documentation to de-mystify the code.
-//
-// MARK: - Diamond
 //
 // Grid algorithm for reordering:
 //
@@ -137,26 +131,6 @@ struct GridSorter {
 //  129600 atoms |  8.8 ms
 //  435600 atoms | 30.2 ms
 // 1030400 atoms | 82.7 ms
-//
-// MARK: - Silicon
-//
-// Grid algorithm for reordering:
-//
-//               | Part 1    | Part 2, parallel | Part 2, serial
-// ------------- | --------- | ---------------- | --------------
-//   16400 atoms |
-//  129600 atoms |
-//  435600 atoms |
-// 1030400 atoms |
-//
-// Octree algorithm for reordering:
-//
-//               | Combined Pass
-// ------------- | -------------
-//   16400 atoms |
-//  129600 atoms |
-//  435600 atoms |
-// 1030400 atoms |
 
 extension GridSorter {
   func invertOrder(_ input: [UInt32]) -> [UInt32] {
@@ -175,8 +149,17 @@ extension GridSorter {
     var gridData: [UInt32] = []
     var gridCells: [(Range<Int>, SIMD3<Float>, Float)] = []
     
-    // TODO: Change the algorithm to make the level size a power of 2?
-    // Decipher why I didn't go with this design choice originally.
+    // TODO: Change the algorithm to make the level size a power of 2? And
+    // clip the lower corner to a good power of 2? The current algorithm
+    // provides too erratic of performance, and something similar to chaos or
+    // nondeterminism in the results. The root cause is that the origin can
+    // vary drastically, depending on where the user offsets the lattice. I
+    // designed an algorithm that's robust to this fact, and some of the tests
+    // now depend on its exact behavior. We must revise it during the current
+    // round of source-breaking API changes.
+    //
+    // Implement this fix once the entire 'Sort' file is refactored and easier
+    // to work with, without introducing new regressions.
     
     // Make an initial guess of 67% for the top-level binary divider.
     let volume = dimensions.x * dimensions.y * dimensions.z
@@ -320,15 +303,10 @@ extension GridSorter {
     var largeGridCellCount = 0
     for gridCell in gridCells {
       maxCellSize = max(maxCellSize, gridCell.0.count)
-      print(gridCell.0.count)
       if gridCell.0.count > 64 {
         largeGridCellCount += 1
       }
     }
-    print("average:", Int(Double(atoms.count) / Double(largeGridCellCount)))
-    print("octree start size:", octreeStartSize)
-    print("highest level size:", highestLevelSize)
-    print("threshold:", min(2.0, max(0.5, highestLevelSize * 0.51)))
     
     if largeGridCellCount >= 3 {
       DispatchQueue.concurrentPerform(

@@ -248,13 +248,13 @@ extension GridSorter {
           }
           
           var start = 0
-          for laneID in 0..<8 {
-            let allocationSize = dictionaryCount[laneID]
+          for key in 0..<UInt32(8) {
+            let allocationSize = dictionaryCount[Int(key)]
             guard allocationSize > 0 else {
               continue
             }
             
-            let oldPointer = dictionary.advanced(by: laneID * atoms.count)
+            let oldPointer = dictionary + Int(key) * atoms.count
             let newPointer = allocationPointer() + start
             newPointer.initialize(from: oldPointer, count: allocationSize)
             start += allocationSize
@@ -263,8 +263,8 @@ extension GridSorter {
           // TODO: Use a different variable, instead of letting a reference
           // to a mutable state variable survive across 2 different contexts.
           start = 0
-          for laneID in 0..<8 {
-            let allocationSize = dictionaryCount[laneID]
+          for key in 0..<UInt32(8) {
+            let allocationSize = dictionaryCount[Int(key)]
             guard allocationSize > 0 else {
               continue
             }
@@ -274,8 +274,7 @@ extension GridSorter {
             
             let newBufferPointer = UnsafeBufferPointer(
               start: newPointer, count: allocationSize)
-            let key32 = UInt32(laneID)
-            let intOffset = (key32 &>> SIMD3(0, 1, 2)) & 1
+            let intOffset = (key &>> SIMD3(0, 1, 2)) & 1
             let floatOffset = SIMD3<Float>(intOffset) * 2 - 1
             let newOrigin = levelOrigin + floatOffset * levelSize / 2
             traverseGrid(
@@ -372,13 +371,13 @@ extension GridSorter {
           }
           
           var start = 0
-          for laneID in 0..<8 {
-            let allocationSize = dictionaryCount[laneID]
+          for key in 0..<UInt32(8) {
+            let allocationSize = dictionaryCount[Int(key)]
             guard allocationSize > 0 else {
               continue
             }
             
-            let oldPointer = dictionary.advanced(by: laneID * maxCellSize)
+            let oldPointer = dictionary + Int(key) * maxCellSize
             let newPointer = allocationPointer() + start
             newPointer.initialize(from: oldPointer, count: allocationSize)
             start += allocationSize
@@ -387,8 +386,8 @@ extension GridSorter {
           // TODO: Use a different variable, instead of letting a reference
           // to a mutable state variable survive across 2 different contexts.
           start = 0
-          for laneID in 0..<8 {
-            let allocationSize = dictionaryCount[laneID]
+          for key in 0..<UInt32(8) {
+            let allocationSize = dictionaryCount[Int(key)]
             guard allocationSize > 0 else {
               continue
             }
@@ -402,8 +401,7 @@ extension GridSorter {
             
             let newBufferPointer = UnsafeBufferPointer(
               start: newPointer, count: allocationSize)
-            let key32 = UInt32(laneID)
-            let intOffset = (key32 &>> SIMD3(0, 1, 2)) & 1
+            let intOffset = (key &>> SIMD3(0, 1, 2)) & 1
             let floatOffset = SIMD3<Float>(intOffset) * 2 - 1
             let newOrigin = levelOrigin + floatOffset * levelSize / 2
             traverseTree(

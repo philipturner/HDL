@@ -41,7 +41,6 @@ struct OctreeSorter {
   }
   
   func mortonReordering() -> [UInt32] {
-//    let checkpoint0 = CACurrentMediaTime()
     var output: [UInt32] = []
     let dictionary: UnsafeMutablePointer<UInt32> =
       .allocate(capacity: 8 * atoms.count)
@@ -129,6 +128,7 @@ struct OctreeSorter {
       }
     }
     
+    // Make an initial guess of 67% for the top-level binary divider.
     let volume = dimensions.x * dimensions.y * dimensions.z
     let chunkVolume = volume / 27
     let highestLevelSize = 2 * pow(chunkVolume, 1.0 / 3)
@@ -171,17 +171,6 @@ struct OctreeSorter {
       let reorderedID32 = UInt32(truncatingIfNeeded: reorderedID)
       reordering[originalID] = reorderedID32
     }
-    
-//    let checkpoint2 = CACurrentMediaTime()
-//    do {
-//      let elapsedTime01 = checkpoint1 - checkpoint0
-//      let elapsedTime12 = checkpoint2 - checkpoint1
-//      print()
-//      print(atoms.count)
-//      print(Int(elapsedTime01 * 1e6), "µs")
-//      print(Int(elapsedTime12 * 1e6), "µs")
-//    }
-    
     return reordering
   }
 }

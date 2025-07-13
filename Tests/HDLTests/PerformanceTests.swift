@@ -31,7 +31,7 @@ final class PerformanceTests: XCTestCase {
   // ------ | ------ | ------ | ------ | -------- | ----------
   // 10     |  16400 |   2370 |   1555 |      905 | 1.5 -> 2.6
   
-  // With latest version of the codebase (2 years later) + Swift 5.8:
+  // With latest version of the code base (2 years later) + Swift 5.8:
   //
   // gold surface 2  |  74 ms
   // gold surface    |   9 ms
@@ -500,7 +500,7 @@ final class PerformanceTests: XCTestCase {
   
   func testSort() throws {
     // TODO: Revert to 10 and true after done refactoring
-    let latticeScale: Float = 40
+    let latticeScale: Float = 20
     let testParallel = Bool.random() ? false : false
     let lattice = Lattice<Hexagonal> { h, k, l in
       let h2k = h + 2 * k

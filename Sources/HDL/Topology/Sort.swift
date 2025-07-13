@@ -110,7 +110,7 @@ struct GridSorter {
 //
 // The sort inside the library is not actually slower than OctreeSorter.
 // Use latticeScale=20 as the go-to test for quickly checking for a regression.
-//
+
 // Grid algorithm for reordering:
 //
 //               | Part 1    | Part 2, parallel | Part 2, serial
@@ -121,6 +121,16 @@ struct GridSorter {
 // 1030400 atoms | 32.5 ms   |  9.2 ms          | 70.3 ms
 //
 // Octree algorithm for reordering:
+//
+//               | Combined Pass
+// ------------- | -------------
+//   16400 atoms |  0.9 ms
+//  129600 atoms |  8.8 ms
+//  435600 atoms | 30.2 ms
+// 1030400 atoms | 82.7 ms
+//
+// Why is one algorithm faster than the other? What's going on at the lowest
+// level, and is there more room for improvement?
 
 extension GridSorter {
   func invertOrder(_ input: [UInt32]) -> [UInt32] {
@@ -139,6 +149,7 @@ extension GridSorter {
     var gridData: [UInt32] = []
     var gridCells: [(Range<Int>, SIMD3<Float>, Float)] = []
     
+    // Make an initial guess of 67% for the top-level binary divider.
     let volume = dimensions.x * dimensions.y * dimensions.z
     let chunkVolume = volume / 27
     let highestLevelSize = 2 * pow(chunkVolume, 1.0 / 3)

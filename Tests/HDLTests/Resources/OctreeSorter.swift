@@ -112,7 +112,12 @@ struct OctreeSorter {
       withUnsafeTemporaryAllocation(
         of: UInt32.self,
         capacity: temporaryAllocationSize
-      ) { bufferPointer in
+      ) { allocationBuffer in
+        @inline(__always)
+        func allocationPointer() -> UnsafeMutablePointer<UInt32> {
+          allocationBuffer.baseAddress.unsafelyUnwrapped
+        }
+        
         var start = 0
         for laneID in 0..<8 {
           let allocationSize = dictionaryCount[laneID]
@@ -121,7 +126,7 @@ struct OctreeSorter {
           }
           
           let oldPointer = dictionary.advanced(by: laneID &* atoms.count)
-          let newPointer = bufferPointer.baseAddress.unsafelyUnwrapped + start
+          let newPointer = allocationPointer() + start
           newPointer.initialize(from: oldPointer, count: allocationSize)
           start &+= allocationSize
         }
@@ -133,7 +138,7 @@ struct OctreeSorter {
             continue
           }
           
-          let newPointer = bufferPointer.baseAddress.unsafelyUnwrapped + start
+          let newPointer = allocationPointer() + start
           start &+= allocationSize
           if allocationSize == 1 {
             output.append(newPointer.pointee)

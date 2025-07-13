@@ -202,9 +202,6 @@ extension GridSorter {
       // TODO: Refactor this to move it outside of the enclosing function,
       // isolating the mutable context it sees. Do all of this without causing
       // a performance regression.
-      //
-      // TODO: Observe the similarities between 'traverseGrid' and
-      // 'traverseTree'.
       func traverseGrid(
         atomIDs: UnsafeBufferPointer<UInt32>,
         levelOrigin: SIMD3<Float>,
@@ -241,6 +238,7 @@ extension GridSorter {
           pointer.pointee = atomID32
         }
         
+        // TODO: Change this to SIMD vector wrapped sum.
         var temporaryAllocationSize = 0
         for laneID in 0..<8 {
           let allocationSize = dictionaryCount[laneID]
@@ -250,7 +248,12 @@ extension GridSorter {
         withUnsafeTemporaryAllocation(
           of: UInt32.self,
           capacity: temporaryAllocationSize
-        ) { bufferPointer in
+        ) { allocationBuffer in
+          @inline(__always)
+          func allocationPointer() -> UnsafeMutablePointer<UInt32> {
+            allocationBuffer.baseAddress.unsafelyUnwrapped
+          }
+          
           var start = 0
           for laneID in 0..<8 {
             let allocationSize = dictionaryCount[laneID]
@@ -259,7 +262,7 @@ extension GridSorter {
             }
             
             let oldPointer = dictionary.advanced(by: laneID &* atoms.count)
-            let newPointer = bufferPointer.baseAddress.unsafelyUnwrapped + start
+            let newPointer = allocationPointer() + start
             newPointer.initialize(from: oldPointer, count: allocationSize)
             start &+= allocationSize
           }
@@ -273,7 +276,7 @@ extension GridSorter {
               continue
             }
             
-            let newPointer = bufferPointer.baseAddress.unsafelyUnwrapped + start
+            let newPointer = allocationPointer() + start
             start &+= allocationSize
             
             let newBufferPointer = UnsafeBufferPointer(
@@ -375,7 +378,12 @@ extension GridSorter {
         withUnsafeTemporaryAllocation(
           of: UInt32.self,
           capacity: temporaryAllocationSize
-        ) { bufferPointer in
+        ) { allocationBuffer in
+          @inline(__always)
+          func allocationPointer() -> UnsafeMutablePointer<UInt32> {
+            allocationBuffer.baseAddress.unsafelyUnwrapped
+          }
+          
           var start = 0
           for laneID in 0..<8 {
             let allocationSize = dictionaryCount[laneID]
@@ -384,7 +392,7 @@ extension GridSorter {
             }
             
             let oldPointer = dictionary.advanced(by: laneID &* maxCellSize)
-            let newPointer = bufferPointer.baseAddress.unsafelyUnwrapped + start
+            let newPointer = allocationPointer() + start
             newPointer.initialize(from: oldPointer, count: allocationSize)
             start &+= allocationSize
           }
@@ -398,7 +406,7 @@ extension GridSorter {
               continue
             }
             
-            let newPointer = bufferPointer.baseAddress.unsafelyUnwrapped + start
+            let newPointer = allocationPointer() + start
             start &+= allocationSize
             if allocationSize == 1 {
               output.append(newPointer.pointee)

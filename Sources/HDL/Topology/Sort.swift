@@ -232,7 +232,7 @@ extension GridSorter {
           let key = (index &<< SIMD3(0, 1, 2)).wrappedSum()
           let previousCount = dictionaryCount[Int(key)]
           dictionaryCount[Int(key)] += 1
-          dictionary[Int(key) * atoms.count + previousCount] = atomID
+          dictionary[Int(key) * atomIDs.count + previousCount] = atomID
         }
         
         withUnsafeTemporaryAllocation(
@@ -255,7 +255,7 @@ extension GridSorter {
             start += allocationSize
             
             newPointer.initialize(
-              from: dictionary + Int(key) * atoms.count,
+              from: dictionary + Int(key) * atomIDs.count,
               count: allocationSize)
           }
           
@@ -358,7 +358,7 @@ extension GridSorter {
           let key = (index &<< SIMD3(0, 1, 2)).wrappedSum()
           let previousCount = dictionaryCount[Int(key)]
           dictionaryCount[Int(key)] += 1
-          dictionary[Int(key) * maxCellSize + previousCount] = atomID
+          dictionary[Int(key) * atomIDs.count + previousCount] = atomID
         }
         
         withUnsafeTemporaryAllocation(
@@ -381,7 +381,7 @@ extension GridSorter {
             start += allocationSize
             
             newPointer.initialize(
-              from: dictionary + Int(key) * maxCellSize,
+              from: dictionary + Int(key) * atomIDs.count,
               count: allocationSize)
           }
           

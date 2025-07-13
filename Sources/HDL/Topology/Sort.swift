@@ -328,7 +328,9 @@ extension GridSorter {
     let grid = createGrid()
     
     nonisolated(unsafe)
-    var finalOutput = [UInt32](unsafeUninitializedCapacity: atoms.count) {
+    var finalOutput = [UInt32](
+      unsafeUninitializedCapacity: atoms.count
+    ) {
       $1 = atoms.count
     }
     
@@ -458,34 +460,25 @@ extension GridSorter {
       }
     }
     
-    do {
-      func createLargeCellCount() -> Int {
-        var output = 0
-        for cell in grid.cells {
-          let atomCount = cell.range.count
-          if atomCount > 64 {
-            output += 1
-          }
+    func createLargeCellCount() -> Int {
+      var output = 0
+      for cell in grid.cells {
+        let atomCount = cell.range.count
+        if atomCount > 64 {
+          output += 1
         }
-        return output
       }
-      let largeGridCellCount = createLargeCellCount()
-      
-      if largeGridCellCount >= 3 {
-        let taskCount = grid.cells.count
-//        DispatchQueue.concurrentPerform(
-//          iterations: taskCount,
-//          execute: execute(taskID:))
-        
-        // TODO: Check for a negative impact from extra function calls, when
-        // latticeScale=5
-        DispatchQueue.concurrentPerform(iterations: taskCount) { z in
-          execute(taskID: z)
-        }
-      } else {
-        for z in grid.cells.indices {
-          execute(taskID: z)
-        }
+      return output
+    }
+    
+    let taskCount = grid.cells.count
+    if createLargeCellCount() < 3 {
+      for z in 0..<taskCount {
+        execute(taskID: z)
+      }
+    } else {
+      DispatchQueue.concurrentPerform(iterations: taskCount) { z in
+        execute(taskID: z)
       }
     }
     

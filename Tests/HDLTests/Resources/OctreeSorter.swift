@@ -96,11 +96,8 @@ struct OctreeSorter {
         
         let key = (index &<< SIMD3(0, 1, 2)).wrappedSum()
         let previousCount = dictionaryCount[Int(key)]
-        let pointer = dictionary.advanced(
-          by: Int(key) * atoms.count + previousCount)
-        
         dictionaryCount[Int(key)] += 1
-        pointer.pointee = atomID
+        dictionary[Int(key) * atoms.count + previousCount] = atomID
       }
       
       withUnsafeTemporaryAllocation(

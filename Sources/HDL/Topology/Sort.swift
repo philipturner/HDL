@@ -251,12 +251,12 @@ extension GridSorter {
               continue
             }
             
-            let oldPointer = dictionary + Int(key) * atoms.count
             let newPointer = allocationPointer() + start
-            newPointer.initialize(
-              from: oldPointer,
-              count: allocationSize)
             start += allocationSize
+            
+            newPointer.initialize(
+              from: dictionary + Int(key) * atoms.count,
+              count: allocationSize)
           }
           
           // TODO: Use a different variable, instead of letting a reference
@@ -377,12 +377,12 @@ extension GridSorter {
               continue
             }
             
-            let oldPointer = dictionary + Int(key) * maxCellSize
             let newPointer = allocationPointer() + start
-            newPointer.initialize(
-              from: oldPointer,
-              count: allocationSize)
             start += allocationSize
+            
+            newPointer.initialize(
+              from: dictionary + Int(key) * maxCellSize,
+              count: allocationSize)
           }
           
           // TODO: Use a different variable, instead of letting a reference
@@ -396,8 +396,9 @@ extension GridSorter {
             
             let newPointer = allocationPointer() + start
             start += allocationSize
+            
             if allocationSize == 1 {
-              output.append(newPointer.pointee)
+              output.append(newPointer[0])
               continue
             }
             

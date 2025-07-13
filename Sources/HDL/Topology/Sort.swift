@@ -221,9 +221,6 @@ extension GridSorter {
       .allocate(capacity: 8 * atoms.count)
     defer { dictionary.deallocate() }
     
-    // TODO: Refactor this to move it outside of the enclosing function,
-    // isolating the mutable context it sees. Do all of this without causing
-    // a performance regression.
     func traverseGrid(
       atomIDs: UnsafeBufferPointer<UInt32>,
       levelOrigin: SIMD3<Float>,
@@ -330,6 +327,7 @@ extension GridSorter {
   func mortonReordering() -> [UInt32] {
     let grid = createGrid()
     
+    nonisolated(unsafe)
     var finalOutput = [UInt32](unsafeUninitializedCapacity: atoms.count) {
       $1 = atoms.count
     }
@@ -346,8 +344,8 @@ extension GridSorter {
     }
     let maxCellAtomCount = createMaxCellAtomCount()
     
-    // TODO: Fix the multiple errors that spawn when marking this function
-    // as @Sendable.
+    // TODO: Isolate this function more from the variables it references.
+    @Sendable
     func execute(taskID: Int) {
       let dictionary: UnsafeMutablePointer<UInt32> =
         .allocate(capacity: 8 * maxCellAtomCount)
@@ -370,6 +368,7 @@ extension GridSorter {
         finalOutput[finalI] = output[outputI]
       }
       
+      // TODO: Isolate this function more from the variables it references.
       func traverseTree(
         atomIDs: UnsafeBufferPointer<UInt32>,
         levelOrigin: SIMD3<Float>,

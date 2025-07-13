@@ -14,7 +14,7 @@ private func fmt(_ start: Double, _ end: Double) -> String {
 }
 
 final class PerformanceTests: XCTestCase {
-  static let printPerformanceSummary = false
+  static let printPerformanceSummary = true
   
   // Expected performance on original benchmarked computer (M1 Max):
   //
@@ -499,8 +499,9 @@ final class PerformanceTests: XCTestCase {
   }
   
   func testSort() throws {
-    let latticeScale: Float = 10
-    let testParallel = Bool.random() ? true : true
+    // TODO: Revert to 10 and true after done refactoring
+    let latticeScale: Float = 20
+    let testParallel = Bool.random() ? false : false
     let lattice = Lattice<Hexagonal> { h, k, l in
       let h2k = h + 2 * k
       Bounds { latticeScale * (2 * h + h2k + l) }

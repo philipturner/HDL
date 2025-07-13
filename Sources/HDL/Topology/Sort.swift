@@ -73,9 +73,45 @@ struct GridSorter {
 
 // MARK: - Morton Reordering
 
-// TODO: Begin the refactoring by identifying the appropriate performance
-// tests, to detect performance regressions after each change. Understand
-// how the test calculates performance statistics.
+// Performance tests:
+//
+// --filter testFlatSheetScaling
+//
+//   - sort: 0.063 µs/atom
+//   - sort: 0.056 µs/atom
+//   - sort: 0.062 µs/atom
+//
+// --filter testSort
+//
+//   atoms: 16400
+//   dataset    | octree |  grid
+//   ---------- | ------ | ------
+//   pre-sorted |    996 |    740
+//   lattice    |    984 |    725
+//   shuffled   |   1147 |    788
+//   reversed   |   1000 |    728
+//
+//   atoms: 54900
+//   dataset    | octree |  grid
+//   ---------- | ------ | ------
+//   pre-sorted |   3328 |   2388
+//   lattice    |   3341 |   2300
+//   shuffled   |   3924 |   2591
+//   reversed   |   3546 |   2302
+//
+//   atoms: 129600
+//   dataset    | octree |  grid
+//   ---------- | ------ | ------
+//   pre-sorted |   8497 |   5623
+//   lattice    |   8720 |   5854
+//   shuffled   |  10229 |   6309
+//   reversed   |   8905 |   5656
+//
+// The sort inside the library is not actually slower than OctreeSorter.
+// Use latticeScale=20 as the go-to test for quickly checking for a regression.
+
+// TODO: Start by profiling the latency of the two regions of the algorithm,
+// and the effect of parallelization.
 
 extension GridSorter {
   func invertOrder(_ input: [UInt32]) -> [UInt32] {

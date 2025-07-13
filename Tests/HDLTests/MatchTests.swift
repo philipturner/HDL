@@ -7,7 +7,7 @@ import Numerics
 // file for better organization.
 
 final class MatchTests: XCTestCase {
-  static let printPerformanceSummary = false
+  static let printPerformanceSummary = true
   
   // We need to run performance tests of Topology.match, to ensure the
   // acceleration algorithm is working properly. One could imagine subtle bugs

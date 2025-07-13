@@ -215,8 +215,8 @@ extension GridSorter {
           return
         }
         
+        // Write to the dictionary.
         var dictionaryCount: SIMD8<Int> = .zero
-        
         for atomID32 in atomIDs {
           @inline(__always)
           func createAtomPosition() -> SIMD3<Float> {
@@ -238,16 +238,9 @@ extension GridSorter {
           pointer.pointee = atomID32
         }
         
-        // TODO: Change this to SIMD vector wrapped sum.
-        var temporaryAllocationSize = 0
-        for laneID in 0..<8 {
-          let allocationSize = dictionaryCount[laneID]
-          temporaryAllocationSize += allocationSize
-        }
-        
         withUnsafeTemporaryAllocation(
           of: UInt32.self,
-          capacity: temporaryAllocationSize
+          capacity: dictionaryCount.wrappedSum()
         ) { allocationBuffer in
           @inline(__always)
           func allocationPointer() -> UnsafeMutablePointer<UInt32> {
@@ -346,8 +339,8 @@ extension GridSorter {
           return
         }
         
+        // Write to the dictionary.
         var dictionaryCount: SIMD8<Int> = .zero
-        
         for atomID32 in atomIDs {
           @inline(__always)
           func createAtomPosition() -> SIMD3<Float> {
@@ -369,15 +362,9 @@ extension GridSorter {
           pointer.pointee = atomID32
         }
         
-        var temporaryAllocationSize = 0
-        for laneID in 0..<8 {
-          let allocationSize = dictionaryCount[laneID]
-          temporaryAllocationSize += allocationSize
-        }
-        
         withUnsafeTemporaryAllocation(
           of: UInt32.self,
-          capacity: temporaryAllocationSize
+          capacity: dictionaryCount.wrappedSum()
         ) { allocationBuffer in
           @inline(__always)
           func allocationPointer() -> UnsafeMutablePointer<UInt32> {

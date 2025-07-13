@@ -175,6 +175,9 @@ extension GridSorter {
     var gridData: [UInt32] = []
     var gridCells: [(Range<Int>, SIMD3<Float>, Float)] = []
     
+    // TODO: Change the algorithm to make the level size a power of 2?
+    // Decipher why I didn't go with this design choice originally.
+    
     // Make an initial guess of 67% for the top-level binary divider.
     let volume = dimensions.x * dimensions.y * dimensions.z
     let chunkVolume = volume / 27

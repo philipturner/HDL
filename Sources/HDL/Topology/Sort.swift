@@ -333,8 +333,7 @@ extension GridSorter {
     }
     
     @Sendable
-    func execute(taskID: Int) {
-      let cell = grid.cells[taskID]
+    func execute(cell: GridCell) {
       var localOutput: [UInt32] = []
       
       let dictionary: UnsafeMutablePointer<UInt32> =
@@ -457,11 +456,13 @@ extension GridSorter {
     let taskCount = grid.cells.count
     if createLargeCellCount() < 3 {
       for z in 0..<taskCount {
-        execute(taskID: z)
+        let cell = grid.cells[z]
+        execute(cell: cell)
       }
     } else {
       DispatchQueue.concurrentPerform(iterations: taskCount) { z in
-        execute(taskID: z)
+        let cell = grid.cells[z]
+        execute(cell: cell)
       }
     }
     

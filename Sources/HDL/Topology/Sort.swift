@@ -86,6 +86,12 @@ private struct LevelSizes {
   }
 }
 
+private struct GridCell {
+  var range: Range<Int>
+  var origin: SIMD3<Float>
+  var size: Float
+}
+
 struct GridSorter {
   var atoms: [Atom] = []
   
@@ -191,7 +197,7 @@ extension GridSorter {
   
   func mortonReordering() -> [UInt32] {
     var gridData: [UInt32] = []
-    var gridCells: [(Range<Int>, SIMD3<Float>, Float)] = []
+    var gridCells: [GridCell] = []
     let levelSizes = LevelSizes(dimensions: dimensions)
     
     do {
@@ -211,7 +217,12 @@ extension GridSorter {
           let rangeStart = gridData.count
           gridData += atomIDs
           let rangeEnd = gridData.count
-          gridCells.append((rangeStart..<rangeEnd, levelOrigin, levelSize))
+          
+          let cell = GridCell(
+            range: rangeStart..<rangeEnd,
+            origin: levelOrigin,
+            size: levelSize)
+          gridCells.append(cell)
           return
         }
         
@@ -304,27 +315,25 @@ extension GridSorter {
     
     var maxCellSize = 0
     var largeGridCellCount = 0
-    for gridCell in gridCells {
-      maxCellSize = max(maxCellSize, gridCell.0.count)
-      if gridCell.0.count > 64 {
+    for cell in gridCells {
+      maxCellSize = max(maxCellSize, cell.range.count)
+      if cell.range.count > 64 {
         largeGridCellCount += 1
       }
     }
     
     if largeGridCellCount >= 3 {
       DispatchQueue.concurrentPerform(
-        iterations: gridCells.count, execute: executeIteration(_:))
+        iterations: gridCells.count, execute: executeIteration(taskID:))
     } else {
       for z in gridCells.indices {
-        executeIteration(z)
+        executeIteration(taskID: z)
       }
     }
     
     // TODO: Fix the multiple errors that spawn when marking this function
     // as @Sendable.
-    func executeIteration(_ z: Int) {
-      let gridCell = gridCells[z]
-      
+    func executeIteration(taskID: Int) {
       let dictionary: UnsafeMutablePointer<UInt32> =
         .allocate(capacity: 8 * maxCellSize)
       defer { dictionary.deallocate() }
@@ -419,20 +428,21 @@ extension GridSorter {
         }
       }
       
-      let levelSize = gridCell.2
-      let levelOrigin = gridCell.1
-      let initialArray = gridData[gridCell.0]
-      initialArray.withUnsafeBufferPointer { bufferPointer in
-        traverseTree(
-          atomIDs: bufferPointer,
-          levelOrigin: levelOrigin,
-          levelSize: levelSize)
-      }
-      
-      let finalStartI = gridCell.0.startIndex
-      for outputI in output.indices {
-        let finalI = finalStartI + outputI
-        finalOutput[finalI] = output[outputI]
+      do {
+        let cell = gridCells[taskID]
+        let initialArray = gridData[cell.range]
+        initialArray.withUnsafeBufferPointer { bufferPointer in
+          traverseTree(
+            atomIDs: bufferPointer,
+            levelOrigin: cell.origin,
+            levelSize: cell.size)
+        }
+        
+        let finalStartI = cell.range.startIndex
+        for outputI in output.indices {
+          let finalI = finalStartI + outputI
+          finalOutput[finalI] = output[outputI]
+        }
       }
     }
     

@@ -51,12 +51,6 @@ struct GridSorter {
   init(atoms: [Atom]) {
     self.atoms = atoms
     
-    // TODO: Revisit the bin sizes, measure whether they're optimal for
-    // sparser crystals like silicon carbide and silicon. Is there a net
-    // slowdown for these crystals?
-    //
-    // Is a grid cell inherently holding 22 or 176 atoms for diamond? Profile
-    // this before continuing the code cleanup.
     if atoms.count == 0 {
       origin = .zero
       dimensions = .init(repeating: 0.5)
@@ -117,6 +111,15 @@ struct GridSorter {
 // The sort inside the library is not actually slower than OctreeSorter.
 // Use latticeScale=20 as the go-to test for quickly checking for a regression.
 
+
+
+// Why is one algorithm faster than the other? What's going on at the lowest
+// level, and is there more room for improvement?
+//
+// These benchmarks belong as permanent documentation to de-mystify the code.
+//
+// MARK: - Diamond
+//
 // Grid algorithm for reordering:
 //
 //               | Part 1    | Part 2, parallel | Part 2, serial
@@ -135,8 +138,25 @@ struct GridSorter {
 //  435600 atoms | 30.2 ms
 // 1030400 atoms | 82.7 ms
 //
-// Why is one algorithm faster than the other? What's going on at the lowest
-// level, and is there more room for improvement?
+// MARK: - Silicon
+//
+// Grid algorithm for reordering:
+//
+//               | Part 1    | Part 2, parallel | Part 2, serial
+// ------------- | --------- | ---------------- | --------------
+//   16400 atoms |
+//  129600 atoms |
+//  435600 atoms |
+// 1030400 atoms |
+//
+// Octree algorithm for reordering:
+//
+//               | Combined Pass
+// ------------- | -------------
+//   16400 atoms |
+//  129600 atoms |
+//  435600 atoms |
+// 1030400 atoms |
 
 extension GridSorter {
   func invertOrder(_ input: [UInt32]) -> [UInt32] {
@@ -184,7 +204,10 @@ extension GridSorter {
         .allocate(capacity: 8 * atoms.count)
       defer { dictionary.deallocate() }
       
+      // Very important: deciding the granularity with which to parallelize the
+      // grid. 0.5 looks way too small for sparser lattices like SiC and Si.
       let threshold = min(2.0, max(0.5, highestLevelSize * 0.51))
+      print(threshold)
       
       // TODO: Refactor this to move it outside of the enclosing function,
       // isolating the mutable context it sees. Do all of this without causing

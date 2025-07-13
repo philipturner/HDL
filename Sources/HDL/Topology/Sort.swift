@@ -328,56 +328,26 @@ extension GridSorter {
     let grid = createGrid()
     
     nonisolated(unsafe)
-    var finalOutput = [UInt32](
-      unsafeUninitializedCapacity: atoms.count
-    ) {
+    var globalOutput = [UInt32](unsafeUninitializedCapacity: atoms.count) {
       $1 = atoms.count
     }
     
-    func createMaxCellAtomCount() -> Int {
-      var output = 0
-      for cell in grid.cells {
-        let atomCount = cell.range.count
-        if atomCount > output {
-          output = atomCount
-        }
-      }
-      return output
-    }
-    let maxCellAtomCount = createMaxCellAtomCount()
-    
-    // TODO: Isolate this function more from the variables it references.
     @Sendable
     func execute(taskID: Int) {
+      let cell = grid.cells[taskID]
+      var localOutput: [UInt32] = []
+      
       let dictionary: UnsafeMutablePointer<UInt32> =
-        .allocate(capacity: 8 * maxCellAtomCount)
+        .allocate(capacity: 8 * cell.range.count)
       defer { dictionary.deallocate() }
       
-      var output: [UInt32] = []
-      
-      let cell = grid.cells[taskID]
-      let initialArray = grid.data[cell.range]
-      initialArray.withUnsafeBufferPointer { bufferPointer in
-        traverseTree(
-          atomIDs: bufferPointer,
-          levelOrigin: cell.origin,
-          levelSize: cell.size)
-      }
-      
-      let finalStartI = cell.range.startIndex
-      for outputI in output.indices {
-        let finalI = finalStartI + outputI
-        finalOutput[finalI] = output[outputI]
-      }
-      
-      // TODO: Isolate this function more from the variables it references.
       func traverseTree(
         atomIDs: UnsafeBufferPointer<UInt32>,
         levelOrigin: SIMD3<Float>,
         levelSize: Float
       ) {
         if levelSize < 1 / 32 {
-          output += atomIDs
+          localOutput += atomIDs
           return
         }
         
@@ -438,7 +408,7 @@ extension GridSorter {
             start += allocationSize
             
             if allocationSize == 1 {
-              output.append(newPointer[0])
+              localOutput.append(newPointer[0])
               continue
             }
             
@@ -457,6 +427,19 @@ extension GridSorter {
               levelSize: levelSize / 2)
           }
         }
+      }
+      
+      let initialArray = grid.data[cell.range]
+      initialArray.withUnsafeBufferPointer { bufferPointer in
+        traverseTree(
+          atomIDs: bufferPointer,
+          levelOrigin: cell.origin,
+          levelSize: cell.size)
+      }
+      
+      for localID in localOutput.indices {
+        let globalID = cell.range.startIndex + localID
+        globalOutput[globalID] = localOutput[localID]
       }
     }
     
@@ -482,6 +465,6 @@ extension GridSorter {
       }
     }
     
-    return finalOutput
+    return globalOutput
   }
 }

@@ -119,10 +119,10 @@ struct OctreeSorter {
             continue
           }
           
-          let oldPointer = dictionary.advanced(by: laneID &* atoms.count)
+          let oldPointer = dictionary.advanced(by: laneID * atoms.count)
           let newPointer = allocationPointer() + start
           newPointer.initialize(from: oldPointer, count: allocationSize)
-          start &+= allocationSize
+          start += allocationSize
         }
         
         start = 0
@@ -133,13 +133,13 @@ struct OctreeSorter {
           }
           
           let newPointer = allocationPointer() + start
-          start &+= allocationSize
+          start += allocationSize
           if allocationSize == 1 {
             output.append(newPointer.pointee)
             continue
           }
           
-          let key32 = UInt32(truncatingIfNeeded: laneID)
+          let key32 = UInt32(laneID)
           let intOffset = (key32 &>> SIMD3(0, 1, 2)) & 1
           let floatOffset = SIMD3<Float>(intOffset) * 2 - 1
           let newOrigin = levelOrigin + floatOffset * levelSize / 2
@@ -156,7 +156,7 @@ struct OctreeSorter {
     
     let levelSizes = LevelSizes(dimensions: dimensions)
     let levelOrigin = SIMD3<Float>(repeating: levelSizes.octreeStart)
-    let initialArray = atoms.indices.map(UInt32.init(truncatingIfNeeded:))
+    let initialArray = atoms.indices.map(UInt32.init)
     initialArray.withUnsafeBufferPointer { bufferPointer in
       traverse(
         atomIDs: bufferPointer,
@@ -170,8 +170,8 @@ struct OctreeSorter {
     var reordering = [UInt32](repeating: .max, count: atoms.count)
     for reorderedID in output.indices {
       let originalID32 = output[reorderedID]
-      let originalID = Int(truncatingIfNeeded: originalID32)
-      let reorderedID32 = UInt32(truncatingIfNeeded: reorderedID)
+      let originalID = Int(originalID32)
+      let reorderedID32 = UInt32(reorderedID)
       reordering[originalID] = reorderedID32
     }
     return reordering

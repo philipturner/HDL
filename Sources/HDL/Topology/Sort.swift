@@ -15,14 +15,24 @@ extension Topology {
   public mutating func sort() -> [UInt32] {
     // TODO: Speed up the bottleneck at this line.
     //
+    // Before the fix:
+    //
     //   16400 atoms | 35% of time,  0.3 ms
     //  129600 atoms | 36% of time,  2.3 ms
     //  435600 atoms | 31% of time,  7.6 ms
     // 1030400 atoms | 27% of time, 18.1 ms
-//    let checkpoint0 = CACurrentMediaTime()
+    //
+    // After the fix:
+    //
+    //   16400 atoms | 25% of time,  0.2 ms
+    //  129600 atoms | 25% of time,  1.3 ms
+    //  435600 atoms | 20% of time,  4.3 ms
+    // 1030400 atoms | 17% of time, 10.1 ms
+    let checkpoint0 = CACurrentMediaTime()
     let grid = GridSorter(atoms: atoms)
-//    let checkpoint1 = CACurrentMediaTime()
+    let checkpoint1 = CACurrentMediaTime()
     let reordering = grid.mortonReordering()
+    let checkpoint2 = CACurrentMediaTime()
     let previousAtoms = atoms
     
     for i in reordering.indices {
@@ -45,6 +55,17 @@ extension Topology {
       } else {
         return $0.y < $1.y
       }
+    }
+    let checkpoint3 = CACurrentMediaTime()
+    do {
+      let elapsedTime01 = checkpoint1 - checkpoint0
+      let elapsedTime12 = checkpoint2 - checkpoint1
+      let elapsedTime23 = checkpoint3 - checkpoint2
+      print()
+      print(atoms.count)
+      print(Int(elapsedTime01 * 1e6), "µs")
+      print(Int(elapsedTime12 * 1e6), "µs")
+      print(Int(elapsedTime23 * 1e6), "µs")
     }
     return inverted
   }
@@ -86,35 +107,35 @@ struct GridSorter {
 //
 // --filter testFlatSheetScaling
 //
-//   - sort: 0.063 µs/atom
 //   - sort: 0.056 µs/atom
-//   - sort: 0.062 µs/atom
+//   - sort: 0.047 µs/atom
+//   - sort: 0.055 µs/atom
 //
 // --filter testSort
 //
 //   atoms: 16400
 //   dataset    | octree |  grid
 //   ---------- | ------ | ------
-//   pre-sorted |    996 |    740
-//   lattice    |    984 |    725
-//   shuffled   |   1147 |    788
-//   reversed   |   1000 |    728
+//   pre-sorted |    924 |    617
+//   lattice    |    904 |    592
+//   shuffled   |   1046 |    646
+//   reversed   |    901 |    595
 //
 //   atoms: 54900
 //   dataset    | octree |  grid
 //   ---------- | ------ | ------
-//   pre-sorted |   3328 |   2388
-//   lattice    |   3341 |   2300
-//   shuffled   |   3924 |   2591
-//   reversed   |   3546 |   2302
+//   pre-sorted |   3112 |   1874
+//   lattice    |   3022 |   1972
+//   shuffled   |   3669 |   2162
+//   reversed   |   3179 |   1925
 //
 //   atoms: 129600
 //   dataset    | octree |  grid
 //   ---------- | ------ | ------
-//   pre-sorted |   8497 |   5623
-//   lattice    |   8720 |   5854
-//   shuffled   |  10229 |   6309
-//   reversed   |   8905 |   5656
+//   pre-sorted |   7929 |   4573
+//   lattice    |   8033 |   4626
+//   shuffled   |   9862 |   5254
+//   reversed   |   8147 |   4752
 //
 // The sort inside the library is not actually slower than OctreeSorter.
 // Use latticeScale=20 as the go-to test for quickly checking for a regression.

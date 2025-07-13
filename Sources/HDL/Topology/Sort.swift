@@ -340,32 +340,6 @@ extension GridSorter {
     }
     let maxCellAtomCount = createMaxCellAtomCount()
     
-    func createLargeCellCount() -> Int {
-      var output = 0
-      for cell in gridCells {
-        let atomCount = cell.range.count
-        if atomCount > 64 {
-          output += 1
-        }
-      }
-      return output
-    }
-    let largeGridCellCount = createLargeCellCount()
-    
-    if largeGridCellCount >= 3 {
-      let taskCount = gridCells.count
-      DispatchQueue.concurrentPerform(
-        iterations: taskCount,
-        execute: execute(taskID:))
-//      DispatchQueue.concurrentPerform(iterations: taskCount) { z in
-//        execute(taskID: z)
-//      }
-    } else {
-      for z in gridCells.indices {
-        execute(taskID: z)
-      }
-    }
-    
     // TODO: Fix the multiple errors that spawn when marking this function
     // as @Sendable.
     func execute(taskID: Int) {
@@ -374,6 +348,21 @@ extension GridSorter {
       defer { dictionary.deallocate() }
       
       var output: [UInt32] = []
+      
+      let cell = gridCells[taskID]
+      let initialArray = gridData[cell.range]
+      initialArray.withUnsafeBufferPointer { bufferPointer in
+        traverseTree(
+          atomIDs: bufferPointer,
+          levelOrigin: cell.origin,
+          levelSize: cell.size)
+      }
+      
+      let finalStartI = cell.range.startIndex
+      for outputI in output.indices {
+        let finalI = finalStartI + outputI
+        finalOutput[finalI] = output[outputI]
+      }
       
       func traverseTree(
         atomIDs: UnsafeBufferPointer<UInt32>,
@@ -462,21 +451,32 @@ extension GridSorter {
           }
         }
       }
-      
-      do {
-        let cell = gridCells[taskID]
-        let initialArray = gridData[cell.range]
-        initialArray.withUnsafeBufferPointer { bufferPointer in
-          traverseTree(
-            atomIDs: bufferPointer,
-            levelOrigin: cell.origin,
-            levelSize: cell.size)
+    }
+    
+    do {
+      func createLargeCellCount() -> Int {
+        var output = 0
+        for cell in gridCells {
+          let atomCount = cell.range.count
+          if atomCount > 64 {
+            output += 1
+          }
         }
-        
-        let finalStartI = cell.range.startIndex
-        for outputI in output.indices {
-          let finalI = finalStartI + outputI
-          finalOutput[finalI] = output[outputI]
+        return output
+      }
+      let largeGridCellCount = createLargeCellCount()
+      
+      if largeGridCellCount >= 3 {
+        let taskCount = gridCells.count
+        DispatchQueue.concurrentPerform(
+          iterations: taskCount,
+          execute: execute(taskID:))
+        //      DispatchQueue.concurrentPerform(iterations: taskCount) { z in
+        //        execute(taskID: z)
+        //      }
+      } else {
+        for z in gridCells.indices {
+          execute(taskID: z)
         }
       }
     }

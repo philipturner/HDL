@@ -270,37 +270,34 @@ extension GridSorter {
           allocationBuffer.baseAddress.unsafelyUnwrapped
         }
         
-        // TODO: Issue with 'start'
-        //
-        // Use a different variable, instead of letting a reference to a
-        // mutable state variable survive across 2 different contexts.
-        
         // Transfer the scratch pad to the temporary allocation.
-        var start = 0
-        for key in 0..<UInt32(8) {
-          let childNodeCount = childNodeCounts[Int(key)]
-          guard childNodeCount > 0 else {
-            continue
+        do {
+          var cursor = 0
+          for key in 0..<UInt32(8) {
+            let childNodeCount = childNodeCounts[Int(key)]
+            guard childNodeCount > 0 else {
+              continue
+            }
+            
+            let newPointer = allocationPointer() + cursor
+            cursor += childNodeCount
+            
+            newPointer.initialize(
+              from: scratchPad + Int(key) * atomIDs.count,
+              count: childNodeCount)
           }
-          
-          let newPointer = allocationPointer() + start
-          start += childNodeCount
-          
-          newPointer.initialize(
-            from: scratchPad + Int(key) * atomIDs.count,
-            count: childNodeCount)
         }
         
         // Invoke the traversal function recursively.
-        start = 0
+        var cursor = 0
         for key in 0..<UInt32(8) {
           let childNodeCount = childNodeCounts[Int(key)]
           guard childNodeCount > 0 else {
             continue
           }
           
-          let newPointer = allocationPointer() + start
-          start += childNodeCount
+          let newPointer = allocationPointer() + cursor
+          cursor += childNodeCount
           
           @inline(__always)
           func createNewOrigin() -> SIMD3<Float> {
@@ -389,37 +386,34 @@ extension GridSorter {
             allocationBuffer.baseAddress.unsafelyUnwrapped
           }
           
-          // TODO: Issue with 'start'
-          //
-          // Use a different variable, instead of letting a reference to a
-          // mutable state variable survive across 2 different contexts.
-          
           // Transfer the scratch pad to the temporary allocation.
-          var start = 0
-          for key in 0..<UInt32(8) {
-            let childNodeCount = childNodeCounts[Int(key)]
-            guard childNodeCount > 0 else {
-              continue
+          do {
+            var cursor = 0
+            for key in 0..<UInt32(8) {
+              let childNodeCount = childNodeCounts[Int(key)]
+              guard childNodeCount > 0 else {
+                continue
+              }
+              
+              let newPointer = allocationPointer() + cursor
+              cursor += childNodeCount
+              
+              newPointer.initialize(
+                from: scratchPad + Int(key) * atomIDs.count,
+                count: childNodeCount)
             }
-            
-            let newPointer = allocationPointer() + start
-            start += childNodeCount
-            
-            newPointer.initialize(
-              from: scratchPad + Int(key) * atomIDs.count,
-              count: childNodeCount)
           }
           
           // Invoke the traversal function recursively.
-          start = 0
+          var cursor = 0
           for key in 0..<UInt32(8) {
             let childNodeCount = childNodeCounts[Int(key)]
             guard childNodeCount > 0 else {
               continue
             }
             
-            let newPointer = allocationPointer() + start
-            start += childNodeCount
+            let newPointer = allocationPointer() + cursor
+            cursor += childNodeCount
             
             if childNodeCount == 1 {
               localOutput.append(newPointer[0])

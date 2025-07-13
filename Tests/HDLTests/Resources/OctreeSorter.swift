@@ -112,31 +112,33 @@ struct OctreeSorter {
         }
         
         // Transfer the scratch pad to the temporary allocation.
-        var start = 0
-        for key in 0..<UInt32(8) {
-          let childNodeCount = childNodeCounts[Int(key)]
-          guard childNodeCount > 0 else {
-            continue
+        do {
+          var cursor = 0
+          for key in 0..<UInt32(8) {
+            let childNodeCount = childNodeCounts[Int(key)]
+            guard childNodeCount > 0 else {
+              continue
+            }
+            
+            let newPointer = allocationPointer() + cursor
+            cursor += childNodeCount
+            
+            newPointer.initialize(
+              from: scratchPad + Int(key) * atomIDs.count,
+              count: childNodeCount)
           }
-          
-          let newPointer = allocationPointer() + start
-          start += childNodeCount
-          
-          newPointer.initialize(
-            from: scratchPad + Int(key) * atomIDs.count,
-            count: childNodeCount)
         }
         
         // Invoke the traversal function recursively.
-        start = 0
+        var cursor = 0
         for key in 0..<UInt32(8) {
           let childNodeCount = childNodeCounts[Int(key)]
           guard childNodeCount > 0 else {
             continue
           }
           
-          let newPointer = allocationPointer() + start
-          start += childNodeCount
+          let newPointer = allocationPointer() + cursor
+          cursor += childNodeCount
           
           if childNodeCount == 1 {
             output.append(newPointer[0])

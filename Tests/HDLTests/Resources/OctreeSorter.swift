@@ -59,15 +59,18 @@ struct OctreeSorter {
       var dictionaryCount: SIMD8<Int> = .zero
       
       for atomID32 in atomIDs {
-        let atomID = Int(truncatingIfNeeded: atomID32)
-        let atomPosition = atoms[atomID].position - self.origin
+        @inline(__always)
+        func createAtomPosition() -> SIMD3<Float> {
+          let atomID = Int(atomID32)
+          return atoms[atomID].position - self.origin
+        }
+        
         var index = SIMD3<UInt32>(repeating: 1)
         index.replace(
           with: .init(repeating: 0),
-          where: atomPosition .< levelOrigin)
+          where: createAtomPosition() .< levelOrigin)
         
-        let key = Int(
-          truncatingIfNeeded: (index &<< SIMD3(0, 1, 2)).wrappedSum())
+        let key = Int((index &<< SIMD3(0, 1, 2)).wrappedSum())
         let previousCount = dictionaryCount[key]
         let pointer = dictionary.advanced(
           by: key * atoms.count + previousCount)

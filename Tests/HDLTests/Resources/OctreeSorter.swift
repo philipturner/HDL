@@ -67,11 +67,10 @@ struct OctreeSorter {
   func mortonReordering() -> [UInt32] {
     var output: [UInt32] = []
     
-    // Scratchpad memory for filling the temporary allocation.
-    // TODO: Rename this to 'scratchPad'
-    let dictionary: UnsafeMutablePointer<UInt32> =
+    // Create the scratch pad.
+    let scratchPad: UnsafeMutablePointer<UInt32> =
       .allocate(capacity: 8 * atoms.count)
-    defer { dictionary.deallocate() }
+    defer { scratchPad.deallocate() }
     
     func traverse(
       atomIDs: UnsafeBufferPointer<UInt32>,
@@ -83,8 +82,8 @@ struct OctreeSorter {
         return
       }
       
-      // Write to the dictionary.
-      var dictionaryCount: SIMD8<Int> = .zero
+      // Use the scratch pad.
+      var childNodeCounts: SIMD8<Int> = .zero
       for atomID in atomIDs {
         @inline(__always)
         func createAtomOffset() -> SIMD3<Float> {
@@ -97,46 +96,49 @@ struct OctreeSorter {
           where: createAtomOffset() .< levelOrigin)
         
         let key = (index &<< SIMD3(0, 1, 2)).wrappedSum()
-        let previousCount = dictionaryCount[Int(key)]
-        dictionaryCount[Int(key)] += 1
-        dictionary[Int(key) * atomIDs.count + previousCount] = atomID
+        let previousCount = childNodeCounts[Int(key)]
+        childNodeCounts[Int(key)] += 1
+        scratchPad[Int(key) * atomIDs.count + previousCount] = atomID
       }
       
+      // Create the temporary allocation.
       withUnsafeTemporaryAllocation(
         of: UInt32.self,
-        capacity: dictionaryCount.wrappedSum()
+        capacity: childNodeCounts.wrappedSum()
       ) { allocationBuffer in
         @inline(__always)
         func allocationPointer() -> UnsafeMutablePointer<UInt32> {
           allocationBuffer.baseAddress.unsafelyUnwrapped
         }
         
+        // Transfer the scratch pad to the temporary allocation.
         var start = 0
         for key in 0..<UInt32(8) {
-          let allocationSize = dictionaryCount[Int(key)]
-          guard allocationSize > 0 else {
+          let childNodeCount = childNodeCounts[Int(key)]
+          guard childNodeCount > 0 else {
             continue
           }
           
           let newPointer = allocationPointer() + start
-          start += allocationSize
+          start += childNodeCount
           
           newPointer.initialize(
-            from: dictionary + Int(key) * atomIDs.count,
-            count: allocationSize)
+            from: scratchPad + Int(key) * atomIDs.count,
+            count: childNodeCount)
         }
         
+        // Invoke the traversal function recursively.
         start = 0
         for key in 0..<UInt32(8) {
-          let allocationSize = dictionaryCount[Int(key)]
-          guard allocationSize > 0 else {
+          let childNodeCount = childNodeCounts[Int(key)]
+          guard childNodeCount > 0 else {
             continue
           }
           
           let newPointer = allocationPointer() + start
-          start += allocationSize
+          start += childNodeCount
           
-          if allocationSize == 1 {
+          if childNodeCount == 1 {
             output.append(newPointer[0])
             continue
           }
@@ -149,7 +151,7 @@ struct OctreeSorter {
           }
           let newBufferPointer = UnsafeBufferPointer(
             start: newPointer,
-            count: allocationSize)
+            count: childNodeCount)
           traverse(
             atomIDs: newBufferPointer,
             levelOrigin: createNewOrigin(),

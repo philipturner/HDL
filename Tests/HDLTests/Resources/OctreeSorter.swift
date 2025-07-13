@@ -8,6 +8,9 @@
 import Foundation
 import HDL
 
+// TODO: Remove this temporary import
+import QuartzCore
+
 struct OctreeSorter {
   var atoms: [Atom] = []
   
@@ -38,6 +41,7 @@ struct OctreeSorter {
   }
   
   func mortonReordering() -> [UInt32] {
+//    let checkpoint0 = CACurrentMediaTime()
     var output: [UInt32] = []
     let dictionary: UnsafeMutablePointer<UInt32> =
       .allocate(capacity: 8 * atoms.count)
@@ -115,7 +119,12 @@ struct OctreeSorter {
           let floatOffset = SIMD3<Float>(intOffset) * 2 - 1
           let newOrigin = levelOrigin + floatOffset * levelSize / 2
           
-          traverse(atomIDs: .init(start: newPointer, count: allocationSize), levelOrigin: newOrigin, levelSize: levelSize / 2)
+          let newBufferPointer = UnsafeBufferPointer(
+            start: newPointer, count: allocationSize)
+          traverse(
+            atomIDs: newBufferPointer,
+            levelOrigin: newOrigin,
+            levelSize: levelSize / 2)
         }
       }
     }
@@ -162,6 +171,17 @@ struct OctreeSorter {
       let reorderedID32 = UInt32(truncatingIfNeeded: reorderedID)
       reordering[originalID] = reorderedID32
     }
+    
+//    let checkpoint2 = CACurrentMediaTime()
+//    do {
+//      let elapsedTime01 = checkpoint1 - checkpoint0
+//      let elapsedTime12 = checkpoint2 - checkpoint1
+//      print()
+//      print(atoms.count)
+//      print(Int(elapsedTime01 * 1e6), "µs")
+//      print(Int(elapsedTime12 * 1e6), "µs")
+//    }
+    
     return reordering
   }
 }

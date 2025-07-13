@@ -13,26 +13,8 @@ import QuartzCore
 extension Topology {
   @discardableResult
   public mutating func sort() -> [UInt32] {
-    // TODO: Speed up the bottleneck at this line.
-    //
-    // Before the fix:
-    //
-    //   16400 atoms | 35% of time,  0.3 ms
-    //  129600 atoms | 36% of time,  2.3 ms
-    //  435600 atoms | 31% of time,  7.6 ms
-    // 1030400 atoms | 27% of time, 18.1 ms
-    //
-    // After the fix:
-    //
-    //   16400 atoms | 25% of time,  0.2 ms
-    //  129600 atoms | 25% of time,  1.3 ms
-    //  435600 atoms | 20% of time,  4.3 ms
-    // 1030400 atoms | 17% of time, 10.1 ms
-    let checkpoint0 = CACurrentMediaTime()
     let grid = GridSorter(atoms: atoms)
-    let checkpoint1 = CACurrentMediaTime()
     let reordering = grid.mortonReordering()
-    let checkpoint2 = CACurrentMediaTime()
     let previousAtoms = atoms
     
     for i in reordering.indices {
@@ -55,17 +37,6 @@ extension Topology {
       } else {
         return $0.y < $1.y
       }
-    }
-    let checkpoint3 = CACurrentMediaTime()
-    do {
-      let elapsedTime01 = checkpoint1 - checkpoint0
-      let elapsedTime12 = checkpoint2 - checkpoint1
-      let elapsedTime23 = checkpoint3 - checkpoint2
-      print()
-      print(atoms.count)
-      print(Int(elapsedTime01 * 1e6), "µs")
-      print(Int(elapsedTime12 * 1e6), "µs")
-      print(Int(elapsedTime23 * 1e6), "µs")
     }
     return inverted
   }
@@ -139,9 +110,17 @@ struct GridSorter {
 //
 // The sort inside the library is not actually slower than OctreeSorter.
 // Use latticeScale=20 as the go-to test for quickly checking for a regression.
-
-// TODO: Start by profiling the latency of the two regions of the algorithm,
-// and the effect of parallelization.
+//
+// Grid algorithm for reordering:
+//
+//               | Part 1    | Part 2, parallel | Part 2, serial
+// ------------- | --------- | ---------------- | --------------
+//   16400 atoms |  0.1 ms   |  0.3 ms          |  0.9 ms
+//  129600 atoms |  2.2 ms   |  1.2 ms          |  7.9 ms
+//  435600 atoms | 11.3 ms   |  3.2 ms          | 23.4 ms
+// 1030400 atoms | 32.5 ms   |  9.2 ms          | 70.3 ms
+//
+// Octree algorithm for reordering:
 
 extension GridSorter {
   func invertOrder(_ input: [UInt32]) -> [UInt32] {
@@ -157,7 +136,6 @@ extension GridSorter {
   }
   
   func mortonReordering() -> [UInt32] {
-//    let checkpoint0 = CACurrentMediaTime()
     var gridData: [UInt32] = []
     var gridCells: [(Range<Int>, SIMD3<Float>, Float)] = []
     
@@ -301,7 +279,6 @@ extension GridSorter {
         largeGridCellCount += 1
       }
     }
-//    let checkpoint1 = CACurrentMediaTime()
     
     if largeGridCellCount >= 3 {
       DispatchQueue.concurrentPerform(
@@ -422,16 +399,6 @@ extension GridSorter {
         finalOutput[finalI] = output[outputI]
       }
     }
-//    let checkpoint2 = CACurrentMediaTime()
-//    
-//    do {
-//      let elapsedTime01 = checkpoint1 - checkpoint0
-//      let elapsedTime12 = checkpoint2 - checkpoint1
-//      print()
-//      print(atoms.count)
-//      print(Int(elapsedTime01 * 1e6), "µs")
-//      print(Int(elapsedTime12 * 1e6), "µs")
-//    }
     
     return finalOutput
   }

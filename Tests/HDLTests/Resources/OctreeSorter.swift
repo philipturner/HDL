@@ -94,12 +94,12 @@ struct OctreeSorter {
           with: .init(repeating: 0),
           where: createAtomPosition() .< levelOrigin)
         
-        let key = Int((index &<< SIMD3(0, 1, 2)).wrappedSum())
-        let previousCount = dictionaryCount[key]
+        let key = (index &<< SIMD3(0, 1, 2)).wrappedSum()
+        let previousCount = dictionaryCount[Int(key)]
         let pointer = dictionary.advanced(
-          by: key * atoms.count + previousCount)
+          by: Int(key) * atoms.count + previousCount)
         
-        dictionaryCount[key] += 1
+        dictionaryCount[Int(key)] += 1
         pointer.pointee = atomID32
       }
       

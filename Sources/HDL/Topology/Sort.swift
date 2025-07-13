@@ -7,11 +7,25 @@
 
 import Dispatch
 
+// TODO: Remove this temporary import
+import QuartzCore
+
 extension Topology {
   @discardableResult
   public mutating func sort() -> [UInt32] {
+    let checkpoint0 = CACurrentMediaTime()
+    
+    // TODO: Speed up the bottleneck at this line.
+    //
+    //   16400 atoms | 35% of time
+    //  129600 atoms | 36% of time
+    //  435600 atoms | 31% of time
+    // 1030400 atoms | 27% of time
     let grid = GridSorter(atoms: atoms)
+    
+    let checkpoint1 = CACurrentMediaTime()
     let reordering = grid.mortonReordering()
+    let checkpoint2 = CACurrentMediaTime()
     let previousAtoms = atoms
     
     for i in reordering.indices {
@@ -34,6 +48,17 @@ extension Topology {
       } else {
         return $0.y < $1.y
       }
+    }
+    let checkpoint3 = CACurrentMediaTime()
+    do {
+      let elapsedTime01 = checkpoint1 - checkpoint0
+      let elapsedTime12 = checkpoint2 - checkpoint1
+      let elapsedTime23 = checkpoint3 - checkpoint2
+      print()
+      print(atoms.count)
+      print(Int(elapsedTime01 * 1e6), "µs")
+      print(Int(elapsedTime12 * 1e6), "µs")
+      print(Int(elapsedTime23 * 1e6), "µs")
     }
     return inverted
   }
@@ -127,6 +152,8 @@ extension GridSorter {
   }
   
   func mortonReordering() -> [UInt32] {
+    
+    
     var gridData: [UInt32] = []
     var gridCells: [(Range<Int>, SIMD3<Float>, Float)] = []
     

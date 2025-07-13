@@ -176,6 +176,9 @@ struct OctreeSorter {
       fatalError("This should never happen.")
     }
     
+    // Note: Do not include this part when benchmarking performance of the
+    // octree sorter. It unfairly biases performance in favor of the grid
+    // sorter.
     var reordering = [UInt32](repeating: .max, count: atoms.count)
     for reorderedID in output.indices {
       let originalID32 = output[reorderedID]

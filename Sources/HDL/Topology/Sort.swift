@@ -10,8 +10,9 @@ import Dispatch
 extension Topology {
   @discardableResult
   public mutating func sort() -> [UInt32] {
-    let grid = GridSorter(atoms: atoms)
-    let reordering = grid.mortonReordering()
+    let gridSorter = GridSorter(atoms: atoms)
+    let grid = gridSorter.createGrid()
+    let reordering = gridSorter.mortonReordering(grid: grid)
     let previousAtoms = atoms
     
     for i in reordering.indices {
@@ -91,6 +92,10 @@ struct GridSorter {
 //   - Before doing this, thoroughly de-mystify the latency as a function of
 //     lattice size, and have specific benchmarks (in milliseconds) to refer
 //     to.
+//     - Try doing the optimization, seeing whether there's an instant
+//       noticeable improvement, then commenting out the optimization and
+//       investigating more thoroughly. This minimizes the risk of wasted
+//       time, if the optimization is ineffective.
 //
 // Choice: defer changes to the underlying algorithm until we have a working
 // renderer on Windows. Instead, include an attempt to improve workload
@@ -129,17 +134,6 @@ private struct LevelSizes {
     // grid. 0.5 looks way too small for sparser lattices like SiC and Si.
     self.threshold = min(2.0, max(0.5, highest * 0.51))
   }
-}
-
-private struct GridCell {
-  var range: Range<Int>
-  var origin: SIMD3<Float>
-  var size: Float
-}
-
-private struct Grid {
-  var data: [UInt32] = []
-  var cells: [GridCell] = []
 }
 
 // Performance tests:
@@ -201,6 +195,17 @@ private struct Grid {
 // 1030400 atoms | 82.7 ms
 
 extension GridSorter {
+  struct Cell {
+    var range: Range<Int>
+    var origin: SIMD3<Float>
+    var size: Float
+  }
+  
+  struct Grid {
+    var data: [UInt32] = []
+    var cells: [Cell] = []
+  }
+  
   static func invertOrder(_ input: [UInt32]) -> [UInt32] {
     return [UInt32](unsafeUninitializedCapacity: input.count) {
       $1 = input.count
@@ -213,7 +218,7 @@ extension GridSorter {
     }
   }
   
-  private func createGrid() -> Grid {
+  func createGrid() -> Grid {
     let levelSizes = LevelSizes(dimensions: dimensions)
     var grid = Grid()
     
@@ -232,7 +237,7 @@ extension GridSorter {
         grid.data += atomIDs
         let rangeEnd = grid.data.count
         
-        let cell = GridCell(
+        let cell = Cell(
           range: rangeStart..<rangeEnd,
           origin: levelOrigin,
           size: levelSize)
@@ -325,20 +330,21 @@ extension GridSorter {
         levelOrigin: levelOrigin,
         levelSize: levelSizes.octreeStart)
     }
+    guard grid.data.count == atoms.count else {
+      fatalError("This should never happen.")
+    }
     
     return grid
   }
   
-  func mortonReordering() -> [UInt32] {
-    let grid = createGrid()
-    
+  func mortonReordering(grid: Grid) -> [UInt32] {
     nonisolated(unsafe)
     var globalOutput = [UInt32](unsafeUninitializedCapacity: atoms.count) {
       $1 = atoms.count
     }
     
     @Sendable
-    func execute(cell: GridCell) {
+    func execute(cell: Cell) {
       var localOutput: [UInt32] = []
       
       // Create the scratch pad.
@@ -444,6 +450,9 @@ extension GridSorter {
           atomIDs: bufferPointer,
           levelOrigin: cell.origin,
           levelSize: cell.size)
+      }
+      guard localOutput.count == cell.range.count else {
+        fatalError("This should never happen.")
       }
       
       for localID in localOutput.indices {

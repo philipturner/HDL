@@ -31,8 +31,9 @@ extension Topology {
           UInt32(truncatingIfNeeded: $0)
         }
       } else {
-        let grid = GridSorter(atoms: atoms)
-        return grid.mortonReordering()
+        let gridSorter = GridSorter(atoms: atoms)
+        let grid = gridSorter.createGrid()
+        return gridSorter.mortonReordering(grid: grid)
       }
     }
     

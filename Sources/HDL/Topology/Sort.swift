@@ -70,14 +70,12 @@ struct GridSorter {
         minimum.replace(with: position, where: position .< minimum)
         maximum.replace(with: position, where: position .> maximum)
       }
-      for atom in atoms {
-        let position = atom.position
-        minimum.replace(with: position, where: position .< minimum)
-      }
       
       origin = minimum
       dimensions = maximum - minimum
-      dimensions.replace(with: .init(repeating: 0.5), where: dimensions .< 0.5)
+      dimensions.replace(
+        with: SIMD3(repeating: 0.5),
+        where: dimensions .< 0.5)
     }
   }
 }

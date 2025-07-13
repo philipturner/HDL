@@ -202,9 +202,9 @@ extension GridSorter {
         var dictionaryCount: SIMD8<Int> = .zero
         
         for atomID32 in atomIDs {
-          var index: SIMD3<UInt32> = .init(repeating: 1)
           let atomID = Int(truncatingIfNeeded: atomID32)
           let atomPosition = atoms[atomID].position - self.origin
+          var index = SIMD3<UInt32>(repeating: 1)
           index.replace(
             with: .init(repeating: 0),
             where: atomPosition .< levelOrigin)
@@ -213,9 +213,9 @@ extension GridSorter {
             truncatingIfNeeded: (index &<< SIMD3(0, 1, 2)).wrappedSum())
           let previousCount = dictionaryCount[key]
           let pointer = dictionary.advanced(
-            by: key &* atoms.count &+ previousCount)
+            by: key * atoms.count + previousCount)
           
-          dictionaryCount[key] &+= 1
+          dictionaryCount[key] += 1
           pointer.pointee = atomID32
         }
         
@@ -324,9 +324,9 @@ extension GridSorter {
         var dictionaryCount: SIMD8<Int> = .zero
         
         for atomID32 in atomIDs {
-          var index: SIMD3<UInt32> = .init(repeating: 1)
           let atomID = Int(truncatingIfNeeded: atomID32)
           let atomPosition = atoms[atomID].position - self.origin
+          var index = SIMD3<UInt32>(repeating: 1)
           index.replace(
             with: .init(repeating: 0),
             where: atomPosition .< levelOrigin)
@@ -335,9 +335,9 @@ extension GridSorter {
             truncatingIfNeeded: (index &<< SIMD3(0, 1, 2)).wrappedSum())
           let previousCount = dictionaryCount[key]
           let pointer = dictionary.advanced(
-            by: key &* maxCellSize &+ previousCount)
+            by: key * maxCellSize + previousCount)
           
-          dictionaryCount[key] &+= 1
+          dictionaryCount[key] += 1
           pointer.pointee = atomID32
         }
         

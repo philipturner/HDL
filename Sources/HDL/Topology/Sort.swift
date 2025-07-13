@@ -313,29 +313,44 @@ extension GridSorter {
       $1 = atoms.count
     }
     
-    var maxCellSize = 0
+    func createMaxCellAtomCount() -> Int {
+      var output = 0
+      for cell in gridCells {
+        let atomCount = cell.range.count
+        if atomCount > output {
+          output = atomCount
+        }
+      }
+      return output
+    }
+    let maxCellAtomCount = createMaxCellAtomCount()
+    
     var largeGridCellCount = 0
     for cell in gridCells {
-      maxCellSize = max(maxCellSize, cell.range.count)
       if cell.range.count > 64 {
         largeGridCellCount += 1
       }
     }
     
     if largeGridCellCount >= 3 {
+      let taskCount = gridCells.count
       DispatchQueue.concurrentPerform(
-        iterations: gridCells.count, execute: executeIteration(taskID:))
+        iterations: taskCount,
+        execute: execute(taskID:))
+//      DispatchQueue.concurrentPerform(iterations: taskCount) { z in
+//        execute(taskID: z)
+//      }
     } else {
       for z in gridCells.indices {
-        executeIteration(taskID: z)
+        execute(taskID: z)
       }
     }
     
     // TODO: Fix the multiple errors that spawn when marking this function
     // as @Sendable.
-    func executeIteration(taskID: Int) {
+    func execute(taskID: Int) {
       let dictionary: UnsafeMutablePointer<UInt32> =
-        .allocate(capacity: 8 * maxCellSize)
+        .allocate(capacity: 8 * maxCellAtomCount)
       defer { dictionary.deallocate() }
       
       var output: [UInt32] = []

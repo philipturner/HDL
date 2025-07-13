@@ -51,6 +51,12 @@ struct GridSorter {
   init(atoms: [Atom]) {
     self.atoms = atoms
     
+    // TODO: Revisit the bin sizes, measure whether they're optimal for
+    // sparser crystals like silicon carbide and silicon. Is there a net
+    // slowdown for these crystals?
+    //
+    // Is a grid cell inherently holding 22 or 176 atoms for diamond? Profile
+    // this before continuing the code cleanup.
     if atoms.count == 0 {
       origin = .zero
       dimensions = .init(repeating: 0.5)
@@ -225,7 +231,7 @@ extension GridSorter {
         var temporaryAllocationSize = 0
         for laneID in 0..<8 {
           let allocationSize = dictionaryCount[laneID]
-          temporaryAllocationSize &+= allocationSize
+          temporaryAllocationSize += allocationSize
         }
         
         withUnsafeTemporaryAllocation(
@@ -350,7 +356,7 @@ extension GridSorter {
         var temporaryAllocationSize = 0
         for laneID in 0..<8 {
           let allocationSize = dictionaryCount[laneID]
-          temporaryAllocationSize &+= allocationSize
+          temporaryAllocationSize += allocationSize
         }
         
         withUnsafeTemporaryAllocation(

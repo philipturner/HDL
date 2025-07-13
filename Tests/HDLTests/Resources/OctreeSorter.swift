@@ -82,7 +82,7 @@ struct OctreeSorter {
       var temporaryAllocationSize = 0
       for laneID in 0..<8 {
         let allocationSize = dictionaryCount[laneID]
-        temporaryAllocationSize &+= allocationSize
+        temporaryAllocationSize += allocationSize
       }
       
       withUnsafeTemporaryAllocation(

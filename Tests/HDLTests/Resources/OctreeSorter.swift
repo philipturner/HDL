@@ -8,8 +8,32 @@
 import Foundation
 import HDL
 
-// TODO: Remove this temporary import
-import QuartzCore
+private struct LevelSizes {
+  var highest: Float
+  var octreeStart: Float
+  
+  init(dimensions: SIMD3<Float>) {
+    let volume = dimensions.x * dimensions.y * dimensions.z
+    let chunkVolume = volume / 27
+    self.highest = 2 * pow(chunkVolume, 1.0 / 3)
+    self.octreeStart = highest
+    
+    var iterationCount = 0
+    while true {
+      iterationCount += 1
+      if iterationCount > 100 {
+        fatalError("Too many iterations.")
+      }
+      
+      let targetDimension = dimensions.max() * 0.51
+      if octreeStart < targetDimension {
+        octreeStart *= 2
+      } else {
+        break
+      }
+    }
+  }
+}
 
 struct OctreeSorter {
   var atoms: [Atom] = []
@@ -131,37 +155,14 @@ struct OctreeSorter {
       }
     }
     
-    // Make an initial guess of 67% for the top-level binary divider.
-    let volume = dimensions.x * dimensions.y * dimensions.z
-    let chunkVolume = volume / 27
-    let highestLevelSize = 2 * pow(chunkVolume, 1.0 / 3)
-    var octreeStartSize = highestLevelSize
-    
-    // If the grid has dimensions that vary wildly, 'highestLevelSize' does not
-    // provide an accurate center. Increase it by powers of 2 until it at least
-    // reaches 51% of each dimension.
-    var iterationCount = 0
-    while true {
-      iterationCount += 1
-      if iterationCount > 100 {
-        fatalError("Too many iterations.")
-      }
-      
-      let targetDimension = dimensions.max() * 0.51
-      if octreeStartSize < targetDimension {
-        octreeStartSize *= 2
-      } else {
-        break
-      }
-    }
-    
-    let levelOrigin = SIMD3<Float>(repeating: octreeStartSize)
+    let levelSizes = LevelSizes(dimensions: dimensions)
+    let levelOrigin = SIMD3<Float>(repeating: levelSizes.octreeStart)
     let initialArray = atoms.indices.map(UInt32.init(truncatingIfNeeded:))
     initialArray.withUnsafeBufferPointer { bufferPointer in
       traverse(
         atomIDs: bufferPointer,
         levelOrigin: levelOrigin,
-        levelSize: octreeStartSize)
+        levelSize: levelSizes.octreeStart)
     }
     guard output.count == atoms.count else {
       fatalError("This should never happen.")

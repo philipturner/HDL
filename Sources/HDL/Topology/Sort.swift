@@ -7,9 +7,6 @@
 
 import Dispatch
 
-// TODO: Remove this temporary import
-import QuartzCore
-
 extension Topology {
   @discardableResult
   public mutating func sort() -> [UInt32] {
@@ -39,6 +36,53 @@ extension Topology {
       }
     }
     return inverted
+  }
+}
+
+// TODO: Change the algorithm to make the level size a power of 2? And
+// clip the lower corner to a good power of 2? The current algorithm
+// provides too erratic of performance, and something similar to chaos or
+// nondeterminism in the results. The root cause is that the origin can
+// vary drastically, depending on where the user offsets the lattice. I
+// designed an algorithm that's robust to this fact, and some of the tests
+// now depend on its exact behavior. We must revise it during the current
+// round of source-breaking API changes.
+//
+// Implement this fix once the entire 'Sort' file is refactored and easier
+// to work with, without introducing new regressions.
+private struct LevelSizes {
+  var highest: Float
+  var octreeStart: Float
+  var threshold: Float
+  
+  init(dimensions: SIMD3<Float>) {
+    // Make an initial guess of 67% for the top-level binary divider.
+    let volume = dimensions.x * dimensions.y * dimensions.z
+    let chunkVolume = volume / 27
+    self.highest = 2 * pow(chunkVolume, 1.0 / 3)
+    self.octreeStart = highest
+    
+    // If the grid has dimensions that vary wildly, 'highestLevelSize' does not
+    // provide an accurate center. Increase it by powers of 2 until it at least
+    // reaches 51% of each dimension.
+    var iterationCount = 0
+    while true {
+      iterationCount += 1
+      if iterationCount > 100 {
+        fatalError("Too many iterations.")
+      }
+      
+      let targetDimension = dimensions.max() * 0.51
+      if octreeStart < targetDimension {
+        octreeStart *= 2
+      } else {
+        break
+      }
+    }
+    
+    // Very important: deciding the granularity with which to parallelize the
+    // grid. 0.5 looks way too small for sparser lattices like SiC and Si.
+    self.threshold = min(2.0, max(0.5, highest * 0.51))
   }
 }
 
@@ -148,51 +192,12 @@ extension GridSorter {
   func mortonReordering() -> [UInt32] {
     var gridData: [UInt32] = []
     var gridCells: [(Range<Int>, SIMD3<Float>, Float)] = []
-    
-    // TODO: Change the algorithm to make the level size a power of 2? And
-    // clip the lower corner to a good power of 2? The current algorithm
-    // provides too erratic of performance, and something similar to chaos or
-    // nondeterminism in the results. The root cause is that the origin can
-    // vary drastically, depending on where the user offsets the lattice. I
-    // designed an algorithm that's robust to this fact, and some of the tests
-    // now depend on its exact behavior. We must revise it during the current
-    // round of source-breaking API changes.
-    //
-    // Implement this fix once the entire 'Sort' file is refactored and easier
-    // to work with, without introducing new regressions.
-    
-    // Make an initial guess of 67% for the top-level binary divider.
-    let volume = dimensions.x * dimensions.y * dimensions.z
-    let chunkVolume = volume / 27
-    let highestLevelSize = 2 * pow(chunkVolume, 1.0 / 3)
-    var octreeStartSize = highestLevelSize
-    
-    // If the grid has dimensions that vary wildly, 'highestLevelSize' does not
-    // provide an accurate center. Increase it by powers of 2 until it at least
-    // reaches 51% of each dimension.
-    var iterationCount = 0
-    while true {
-      iterationCount += 1
-      if iterationCount > 100 {
-        fatalError("Too many iterations.")
-      }
-      
-      let targetDimension = dimensions.max() * 0.51
-      if octreeStartSize < targetDimension {
-        octreeStartSize *= 2
-      } else {
-        break
-      }
-    }
+    let levelSizes = LevelSizes(dimensions: dimensions)
     
     do {
       let dictionary: UnsafeMutablePointer<UInt32> =
         .allocate(capacity: 8 * atoms.count)
       defer { dictionary.deallocate() }
-      
-      // Very important: deciding the granularity with which to parallelize the
-      // grid. 0.5 looks way too small for sparser lattices like SiC and Si.
-      let threshold = min(2.0, max(0.5, highestLevelSize * 0.51))
       
       // TODO: Refactor this to move it outside of the enclosing function,
       // isolating the mutable context it sees. Do all of this without causing
@@ -205,7 +210,7 @@ extension GridSorter {
         levelOrigin: SIMD3<Float>,
         levelSize: Float
       ) {
-        if levelSize < threshold {
+        if levelSize < levelSizes.threshold {
           let rangeStart = gridData.count
           gridData += atomIDs
           let rangeEnd = gridData.count
@@ -285,13 +290,13 @@ extension GridSorter {
         }
       }
       
-      let levelOrigin = SIMD3<Float>(repeating: octreeStartSize)
+      let levelOrigin = SIMD3<Float>(repeating: levelSizes.octreeStart)
       let initialArray = atoms.indices.map(UInt32.init(truncatingIfNeeded:))
       initialArray.withUnsafeBufferPointer { bufferPointer in
         traverseGrid(
           atomIDs: bufferPointer,
           levelOrigin: levelOrigin,
-          levelSize: octreeStartSize)
+          levelSize: levelSizes.octreeStart)
       }
     }
     

@@ -160,6 +160,7 @@ struct OctreeSorter {
       }
     }
     
+    // Invoke the traversal function the first time.
     let levelSizes = LevelSizes(dimensions: dimensions)
     let levelOrigin = SIMD3<Float>(repeating: levelSizes.octreeStart)
     let initialArray = atoms.indices.map(UInt32.init)

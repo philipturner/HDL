@@ -66,6 +66,8 @@ struct OctreeSorter {
   
   func mortonReordering() -> [UInt32] {
     var output: [UInt32] = []
+    
+    // Scratchpad memory for filling the temporary allocation.
     let dictionary: UnsafeMutablePointer<UInt32> =
       .allocate(capacity: 8 * atoms.count)
     defer { dictionary.deallocate() }

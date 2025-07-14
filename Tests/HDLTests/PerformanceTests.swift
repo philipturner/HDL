@@ -1,6 +1,7 @@
 import XCTest
 @testable import HDL
 import Numerics
+import QuartzCore
 
 private func fmt(_ start: Double, _ end: Double) -> String {
   let seconds = end - start
@@ -901,6 +902,7 @@ struct OctreeSorter {
       origin = .zero
       dimensions = .init(repeating: 0.5)
     } else {
+      let checkpoint0 = CACurrentMediaTime()
       var minimum = SIMD3<Float>(repeating: .greatestFiniteMagnitude)
       var maximum = -minimum
       for atom in atoms {
@@ -908,6 +910,8 @@ struct OctreeSorter {
         minimum.replace(with: position, where: position .< minimum)
         maximum.replace(with: position, where: position .> maximum)
       }
+      let checkpoint1 = CACurrentMediaTime()
+      print("OctreeSorter.init:", checkpoint1 - checkpoint0)
       
       origin = minimum
       dimensions = maximum - minimum

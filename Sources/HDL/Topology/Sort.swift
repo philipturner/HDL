@@ -6,6 +6,7 @@
 //
 
 import Dispatch
+import QuartzCore
 
 extension Topology {
   @discardableResult
@@ -54,13 +55,17 @@ struct GridSorter {
       origin = .zero
       dimensions = .init(repeating: 0.5)
     } else {
+      let checkpoint0 = CACurrentMediaTime()
       var minimum = SIMD3<Float>(repeating: .greatestFiniteMagnitude)
       var maximum = -minimum
       for atom in atoms {
+//        let position = unsafeBitCast(atom, to: SIMD3<Float>.self)
         let position = atom.position
         minimum.replace(with: position, where: position .< minimum)
         maximum.replace(with: position, where: position .> maximum)
       }
+      let checkpoint1 = CACurrentMediaTime()
+      print("GridSorter.init:", checkpoint1 - checkpoint0)
       
       origin = minimum
       dimensions = maximum - minimum

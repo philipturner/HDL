@@ -111,6 +111,15 @@ struct GridSorter {
 // - Benchmark small, sparse, and highly anisotropic shapes. Prove that the new
 //   algorithm serves these better/equal to the old one. The new renderer isn't
 //   needed to implement these tests.
+// - Three new, distinct performance tests for sorting:
+//   - small, between 100 and 10000 atoms
+//   - sparse + highly anisotropic L shape
+//   - 1 micron offset from the world origin
+//
+// molecular-renderer is able to efficiently parallelize the radix sort when
+// constructing an octree. HDL cannot exploit the restriction of atom positions
+// to a ~(256 nm)^3, origin-centered world volume. There are fundamental
+// differences between how the two codes must achieve a similar task.
 //
 // # Overview
 //
@@ -151,9 +160,35 @@ struct GridSorter {
 // (e.g. task size 64) must use it to remain competitive. This fact leaked into
 // the decision for a variable grid threshold size.
 //
+// # Physical justification for lowest level of the octree
+//
+// The center of the current node is (node size / 2, ...). Child nodes are
+// placed at (node size / 4, ...) and (node size * 3 / 4, ...). This explains
+// the confusion in what "level size" means.
+//
+// Child offset | Level size | Node size | Node volume |
+// ------------ | ---------- | --------- | ----------- |
+//   1 / 128 nm |  1 / 64 nm | 1 / 32 nm | 3.1e-5 nm^3 |
+//    1 / 64 nm |  1 / 32 nm | 1 / 16 nm | 2.4e-4 nm^3 |
+//       0.5 nm |     1.0 nm |    2.0 nm |      8 nm^3 |
+//       1.0 nm |     2.0 nm |    4.0 nm |     64 nm^3 |
+//
+// Atom | Radius | Volume | 1 / Atom Density |
+// ---- | ------ | ------ | ---------------- |
+//    H |  31 pm |
+//    C |  66 pm |
+//   Si | 111 pm |
+//   Au | 136 pm |
+//
+// For two atoms to occupy the same voxel at the lowest level, their bond
+// length must be ??? ???.
+//
 // # Division of O(nlogn) work between serial and parallel stages
 //
 // TODO: Continue this investigation
+//
+// Perhaps we should copy the algorithm from molecular-renderer that
+// parallelizes well, for
 private struct LevelSizes {
   var highest: Float
   var octreeStart: Float

@@ -100,6 +100,38 @@ struct GridSorter {
 // Choice: defer changes to the underlying algorithm until we have a working
 // renderer on Windows. Instead, include an attempt to improve workload
 // distribution in this PR.
+
+
+
+// Clarified plans for new algorithm:
+// - Fall back to OctreeSorter for small systems
+// - Larger systems tuned for assumed ~50-176 nm^3 atom density
+// - Assume (2 nm)^3 granularity of dense regions, in the case of very sparse
+//   structures. This is a good choice used in the renderer.
+// - Benchmark small, sparse, and highly anisotropic shapes. Prove that the new
+//   algorithm serves these better/equal to the old one. The new renderer isn't
+//   needed to implement these tests.
+//
+// Theoretical performance:
+//
+// Existing algorithm has a threshold at 1-2 nm. This level size is the offset
+// of a child node from the parent node. The offset is always half the child
+// node side length. So the algorithm terminates when nodes are 2-4 nm large.
+//
+// Deepest level of the octree terminates when level size is 1/64 to 1/32 nm.
+// This means the nodes are 1/32 to 1/16 nm large.
+//
+// Analyze the existing algorithm, accounting for the two extremes of level
+// size and atom density. Model the target use cases of latticeScale=5 to 40.
+// Note that performance should be good slightly outside this range as well.
+//
+// latticeScale | atom count | ~dimensions (C) | ~dimensions (Si)
+// ------------ | ---------- | --------------- | ----------------
+//            5 |       2100 | 2.3 nm
+//           10 |      16400 | 4.5 nm
+//           20 |     129600 | 9.0 nm
+//           30 |     435600 | 13.5 nm
+//           40 |    1030400 |
 private struct LevelSizes {
   var highest: Float
   var octreeStart: Float

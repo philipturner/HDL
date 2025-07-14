@@ -2,7 +2,7 @@ import XCTest
 import HDL
 
 final class ReconstructionTests: XCTestCase {
-  static let printPerformanceSummary = true
+  static let printPerformanceSummary = false
   
   func testUnitTest() throws {
     let lattice = Lattice<Cubic> { h, k, l in

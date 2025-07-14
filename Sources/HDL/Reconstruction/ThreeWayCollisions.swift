@@ -60,9 +60,7 @@ extension Compilation {
       }
       
       let position = siteMap.hydrogenSiteCenters[hydrogenSiteID]
-      let atom = Atom(
-        position: position,
-        atomicNumber: chosenAtomicNumber)
+      let atom = SIMD4(position, Float(chosenAtomicNumber))
       insertedAtoms.append(atom)
     }
     return insertedAtoms

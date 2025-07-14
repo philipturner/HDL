@@ -37,38 +37,33 @@ extension OctreeSorter {
         // Use the scratch pad.
         var childNodeCounts: SIMD8<Int> = .zero
         for atomID in atomIDs {
-          @inline(__always)
-          func createAtomOffset() -> SIMD3<Float> {
+          // Compiler may not inline a nested function, so use a do statement.
+          var atomOffset: SIMD3<Float>
+          do {
             // @_transparent attribute is ineffective.
             let atom = atoms[Int(atomID)]
             let position = unsafeBitCast(atom, to: SIMD3<Float>.self)
-            return position - self.origin
+            atomOffset = position - self.origin
           }
           
           var index = SIMD3<UInt32>(repeating: 1)
           index.replace(
             with: SIMD3.zero,
-            where: createAtomOffset() .< levelOrigin)
+            where: atomOffset .< levelOrigin)
           
           let key = (index &<< SIMD3(0, 1, 2)).wrappedSum()
           let previousCount = childNodeCounts[Int(key)]
           childNodeCounts[Int(key)] += 1
           scratchPad[Int(key) * atomIDs.count + previousCount] = atomID
         }
-//        let childNodeCounts = createChildNodeCounts(
-//          atomIDs: atomIDs,
-//          levelOrigin: levelOrigin,
-//          scratchPad: scratchPad)
         
         // Create the temporary allocation.
         withUnsafeTemporaryAllocation(
           of: UInt32.self,
           capacity: childNodeCounts.wrappedSum()
         ) { allocationBuffer in
-          @inline(__always)
-          func allocationPointer() -> UnsafeMutablePointer<UInt32> {
-            allocationBuffer.baseAddress.unsafelyUnwrapped
-          }
+          // Compiler may not inline a nested function, so use a variable.
+          let allocationPointer = allocationBuffer.baseAddress.unsafelyUnwrapped
           
           // Transfer the scratch pad to the temporary allocation.
           do {
@@ -79,7 +74,7 @@ extension OctreeSorter {
                 continue
               }
               
-              let newPointer = allocationPointer() + cursor
+              let newPointer = allocationPointer + cursor
               cursor += childNodeCount
               
               newPointer.initialize(
@@ -96,7 +91,7 @@ extension OctreeSorter {
               continue
             }
             
-            let newPointer = allocationPointer() + cursor
+            let newPointer = allocationPointer + cursor
             cursor += childNodeCount
             
             if childNodeCount == 1 {

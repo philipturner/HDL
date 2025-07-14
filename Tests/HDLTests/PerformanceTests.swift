@@ -582,11 +582,13 @@ final class PerformanceTests: XCTestCase {
       var resultOctree: [UInt32]
       do {
         let gridSorter = GridSorter(atoms: trial.atoms)
-        resultOctree = gridSorter.invertedMortonReordering()
+        let reordering = gridSorter.mortonReordering()
+        resultOctree = GridSorter.invertOrder(reordering)
       }
       if testParallel {
         let gridSorter = GridSorter(atoms: trial.atoms)
-        _ = gridSorter.invertedMortonReordering()
+        let reordering = gridSorter.mortonReordering()
+        _ = GridSorter.invertOrder(reordering)
       }
       let endOctree = Profiler.time()
       

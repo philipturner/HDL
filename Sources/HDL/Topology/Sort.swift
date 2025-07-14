@@ -70,6 +70,18 @@ struct GridSorter {
         where: dimensions .< 0.5)
     }
   }
+  
+  static func invertOrder(_ input: [UInt32]) -> [UInt32] {
+    return [UInt32](unsafeUninitializedCapacity: input.count) {
+      $1 = input.count
+      let baseAddress = $0.baseAddress.unsafelyUnwrapped
+      
+      for reorderedID in input.indices {
+        let originalID = Int(input[reorderedID])
+        baseAddress[originalID] = UInt32(reorderedID)
+      }
+    }
+  }
 }
 
 // TODO: Change the algorithm to make the level size a power of 2? And
@@ -312,6 +324,8 @@ struct LevelSizes {
 //  435600 atoms | 30.2 ms
 // 1030400 atoms | 82.7 ms
 
+// MARK: - Grid
+
 extension GridSorter {
   struct Cell {
     var range: Range<Int>
@@ -322,18 +336,6 @@ extension GridSorter {
   struct Grid {
     var data: [UInt32] = []
     var cells: [Cell] = []
-  }
-  
-  static func invertOrder(_ input: [UInt32]) -> [UInt32] {
-    return [UInt32](unsafeUninitializedCapacity: input.count) {
-      $1 = input.count
-      let baseAddress = $0.baseAddress.unsafelyUnwrapped
-      
-      for reorderedID in input.indices {
-        let originalID = Int(input[reorderedID])
-        baseAddress[originalID] = UInt32(reorderedID)
-      }
-    }
   }
   
   func createGrid() -> Grid {
@@ -456,7 +458,11 @@ extension GridSorter {
     
     return grid
   }
-  
+}
+
+// MARK: - Multi-Threaded Algorithm
+
+extension GridSorter {
   // Multi-threaded algorithm.
   func mortonReordering(grid: Grid) -> [UInt32] {
     nonisolated(unsafe)
@@ -610,9 +616,13 @@ extension GridSorter {
     
     return globalOutput
   }
-  
+}
+
+// MARK: - Single Threaded Algorithm
+
+extension GridSorter {
   // Single threaded algorithm without a grid.
-  func invertedMortonReordering() -> [UInt32] {
+  func mortonReordering() -> [UInt32] {
     var output: [UInt32] = []
     
     // Create the scratch pad.
@@ -726,20 +736,6 @@ extension GridSorter {
       fatalError("This should never happen.")
     }
     
-    // Note: Do not include this part when benchmarking performance of the
-    // octree sorter. It unfairly biases performance in favor of the grid
-    // sorter.
-    
-    // TODO: Clarify what is going on with what/where the reordering happens.
-    // This function doesn't have the same semantic meaning as morton
-    // reordering from the grid sort.
-    var reordering = [UInt32](repeating: .max, count: atoms.count)
-    for reorderedID in output.indices {
-      let originalID32 = output[reorderedID]
-      let originalID = Int(originalID32)
-      let reorderedID32 = UInt32(reorderedID)
-      reordering[originalID] = reorderedID32
-    }
-    return reordering
+    return output
   }
 }

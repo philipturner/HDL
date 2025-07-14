@@ -173,22 +173,26 @@ struct GridSorter {
 //       0.5 nm |     1.0 nm |    2.0 nm |      8 nm^3 |
 //       1.0 nm |     2.0 nm |    4.0 nm |     64 nm^3 |
 //
-// Atom | Radius | Volume | 1 / Atom Density |
-// ---- | ------ | ------ | ---------------- |
-//    H |  31 pm |
-//    C |  66 pm |
-//   Si | 111 pm |
-//   Au | 136 pm |
+// Atom | Radius | Volume      | 1 / Atom Density |
+// ---- | ------ | ----------- | ---------------- |
+//    H |  31 pm | 1.2e-4 nm^3 |                  |
+//    C |  66 pm | 1.2e-3 nm^3 |      5.7e-3 nm^3 |
+//   Si | 111 pm | 5.7e-3 nm^3 |      2.0e-2 nm^3 |
+//   Au | 136 pm | 1.1e-2 nm^3 |      1.7e-2 nm^3 |
 //
 // For two atoms to occupy the same voxel at the lowest level, their bond
-// length must be ??? ???.
+// length must be under 54 pm (1 / 32 nm) or 108 pm (1 / 16 nm). Since the
+// lowest level will be highly parallelized, we can afford an extra level for
+// security.
 //
 // # Division of O(nlogn) work between serial and parallel stages
 //
-// TODO: Continue this investigation
+// Schemes:
+// - current algorithm, low end:        2.0 nm + 1 / 32 nm
+// - current algorithm, high end:       4.0 nm + 1 / 16 nm
+// - possible choice for new algorithm: 4.0 nm + 1 / 32 nm
 //
-// Perhaps we should copy the algorithm from molecular-renderer that
-// parallelizes well, for
+// TODO: Continue this investigation
 private struct LevelSizes {
   var highest: Float
   var octreeStart: Float

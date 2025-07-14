@@ -63,6 +63,16 @@
 //  435600 atoms | 30.2 ms
 // 1030400 atoms | 82.7 ms
 
+// New, revised metric for checking for regressions:
+//
+//  atoms: 129600
+//  dataset    | octree |  grid
+//  ---------- | ------ | ------
+//  pre-sorted |   7784 |   3596
+//  lattice    |   7889 |   3699
+//  shuffled   |   9654 |   4510
+//  reversed   |   8054 |   3702
+
 struct OctreeSorter {
   var atoms: [Atom] = []
   

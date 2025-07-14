@@ -192,7 +192,7 @@ struct GridSorter {
 // - current algorithm, high end:       4.0 nm + 1 / 16 nm
 // - possible choice for new algorithm: 4.0 nm + 1 / 32 nm
 //
-// TODO: Continue this investigation
+// Analyzing latticeScale vs material vs size in a Google Sheet.
 private struct LevelSizes {
   var highest: Float
   var octreeStart: Float

@@ -207,10 +207,12 @@ final class TopologyTests: XCTestCase {
     XCTAssertNotEqual(copyReordering, topologyReordering)
     
     // Check that the atoms are exactly the same.
-    let octreeSorter = OctreeSorter(atoms: shuffledAtoms)
-    let octreeReordering = octreeSorter.mortonReordering()
-    for (lhs, rhs) in zip(topologyReordering, octreeReordering) {
-      XCTAssertEqual(lhs, rhs)
+    do {
+      let gridSorter = GridSorter(atoms: shuffledAtoms)
+      let octreeReordering = gridSorter.invertedMortonReordering()
+      for (lhs, rhs) in zip(topologyReordering, octreeReordering) {
+        XCTAssertEqual(lhs, rhs)
+      }
     }
     
     // Check that the correct bonds exist in some order.

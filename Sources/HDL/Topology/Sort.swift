@@ -217,7 +217,7 @@ struct GridSorter {
 // Might have to tweak the objectives for Phase IV, as the first phases are
 // checked off and more unknowns are resolved.
 
-private struct LevelSizes {
+struct LevelSizes {
   var highest: Float
   var octreeStart: Float
   var threshold: Float

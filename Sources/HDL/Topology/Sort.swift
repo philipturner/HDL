@@ -59,8 +59,8 @@ struct GridSorter {
       var minimum = SIMD3<Float>(repeating: .greatestFiniteMagnitude)
       var maximum = -minimum
       for atom in atoms {
-//        let position = unsafeBitCast(atom, to: SIMD3<Float>.self)
-        let position = atom.position
+        // @_transparent attribute is ineffective.
+        let position = unsafeBitCast(atom, to: SIMD3<Float>.self)
         minimum.replace(with: position, where: position .< minimum)
         maximum.replace(with: position, where: position .> maximum)
       }
@@ -372,8 +372,10 @@ extension GridSorter {
       for atomID in atomIDs {
         @inline(__always)
         func createAtomOffset() -> SIMD3<Float> {
+          // @_transparent attribute is ineffective.
           let atom = atoms[Int(atomID)]
-          return atom.position - self.origin
+          let position = unsafeBitCast(atom, to: SIMD3<Float>.self)
+          return position - self.origin
         }
         
         var index = SIMD3<UInt32>(repeating: 1)
@@ -490,8 +492,10 @@ extension GridSorter {
         for atomID in atomIDs {
           @inline(__always)
           func createAtomOffset() -> SIMD3<Float> {
+            // @_transparent attribute is ineffective.
             let atom = atoms[Int(atomID)]
-            return atom.position - self.origin
+            let position = unsafeBitCast(atom, to: SIMD3<Float>.self)
+            return position - self.origin
           }
           
           var index = SIMD3<UInt32>(repeating: 1)
@@ -665,8 +669,10 @@ extension GridSorter {
       for atomID in atomIDs {
         @inline(__always)
         func createAtomOffset() -> SIMD3<Float> {
+          // @_transparent attribute is ineffective.
           let atom = atoms[Int(atomID)]
-          return atom.position - self.origin
+          let position = unsafeBitCast(atom, to: SIMD3<Float>.self)
+          return position - self.origin
         }
         var index = SIMD3<UInt32>(repeating: 1)
         index.replace(

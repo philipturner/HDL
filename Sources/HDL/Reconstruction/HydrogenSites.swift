@@ -82,6 +82,7 @@ extension Compilation {
       let atom = atoms[i]
       let orbitalList = orbitalLists[i]
       for orbital in orbitalList {
+        // TODO: @_transparent attribute is ineffective.
         let position = atom.position + bondLength * orbital
         let encodedID = Float(bitPattern: UInt32(i))
         output.append(SIMD4(position, encodedID))

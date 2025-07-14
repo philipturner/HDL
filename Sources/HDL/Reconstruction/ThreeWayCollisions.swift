@@ -20,7 +20,7 @@ extension Compilation {
       var atomicNumbersDict: [UInt8: Int] = [:]
       for atomID in atomList {
         let atom = atoms[Int(atomID)]
-        let atomicNumber = atom.atomicNumber
+        let atomicNumber = UInt8(atom.w)
         if atomicNumbersDict[atomicNumber] == nil {
           atomicNumbersDict[atomicNumber] = 1
         } else {

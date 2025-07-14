@@ -6,7 +6,6 @@
 //
 
 import Dispatch
-import QuartzCore
 
 extension Topology {
   @discardableResult
@@ -55,7 +54,6 @@ struct GridSorter {
       origin = .zero
       dimensions = .init(repeating: 0.5)
     } else {
-      let checkpoint0 = CACurrentMediaTime()
       var minimum = SIMD3<Float>(repeating: .greatestFiniteMagnitude)
       var maximum = -minimum
       for atom in atoms {
@@ -64,8 +62,6 @@ struct GridSorter {
         minimum.replace(with: position, where: position .< minimum)
         maximum.replace(with: position, where: position .> maximum)
       }
-      let checkpoint1 = CACurrentMediaTime()
-      print("GridSorter.init:", checkpoint1 - checkpoint0)
       
       origin = minimum
       dimensions = maximum - minimum
@@ -614,36 +610,6 @@ extension GridSorter {
     
     return globalOutput
   }
-//}
-//
-//struct OctreeSorter {
-//  var atoms: [Atom] = []
-//  
-//  var origin: SIMD3<Float>
-//  var dimensions: SIMD3<Float>
-//  
-//  init(atoms: [Atom]) {
-//    self.atoms = atoms
-//    
-//    if atoms.count == 0 {
-//      origin = .zero
-//      dimensions = .init(repeating: 0.5)
-//    } else {
-//      var minimum = SIMD3<Float>(repeating: .greatestFiniteMagnitude)
-//      var maximum = -minimum
-//      for atom in atoms {
-//        let position = atom.position
-//        minimum.replace(with: position, where: position .< minimum)
-//        maximum.replace(with: position, where: position .> maximum)
-//      }
-//      
-//      origin = minimum
-//      dimensions = maximum - minimum
-//      dimensions.replace(
-//        with: SIMD3(repeating: 0.5),
-//        where: dimensions .< 0.5)
-//    }
-//  }
   
   // Single threaded algorithm without a grid.
   func invertedMortonReordering() -> [UInt32] {

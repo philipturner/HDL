@@ -7,6 +7,10 @@
 
 public typealias Atom = SIMD4<Float>
 
+// Note: Despite best efforts, the @_transparent attribute is ineffective.
+// Perform unsafe bit casts explicitly in performance-sensitive code, when
+// running under '-Xswiftc -Ounchecked'.
+
 extension Atom {
   @inlinable @inline(__always)
   public var position: SIMD3<Float> {

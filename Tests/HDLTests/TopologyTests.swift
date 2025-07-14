@@ -1,5 +1,5 @@
 import XCTest
-import HDL
+@testable import HDL
 import Numerics
 
 final class TopologyTests: XCTestCase {

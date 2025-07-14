@@ -1,5 +1,5 @@
 import XCTest
-import HDL
+@testable import HDL
 import Numerics
 
 private func fmt(_ start: Double, _ end: Double) -> String {
@@ -500,7 +500,7 @@ final class PerformanceTests: XCTestCase {
   
   func testSort() throws {
     // TODO: Revert to 10 and true after done refactoring
-    let latticeScale: Float = 5
+    let latticeScale: Float = 20
     let testParallel = Bool.random() ? false : false
     let lattice = Lattice<Hexagonal> { h, k, l in
       let h2k = h + 2 * k

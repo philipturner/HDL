@@ -202,15 +202,19 @@ struct GridSorter {
 //
 // Analyzing latticeScale vs material vs size in a Google Sheet.
 
-// TODO: Create an implementation plan to gradually phase in this test
-// - Start by merging OctreeSorter into the main code base. Expose it to the
-//   testing code with @testable (if possible, otherwise we're in trouble).
-// - Provide a means to selectively enable algorithmic changes.
-// - Test various optimizations on diamond and silicon, with very easy and
-//   crude latency data.
-// - Expand the test suite to the cases outlined farther above.
+// TODO: Implementation Plan
 //
-// TODO: Transform the bullet points into "Phases" once the spreadsheet is done.
+// Phase I:   Merge OctreeSorter into the main code base. Expose it to the
+//            test module with @testable.
+// Phase II:  Provide a means to easily switch between old and new algorithms.
+// Phase III: Test various optimizations with the existing 'testSort'. The
+//            latency data is very accessible, but crude and with low coverage.
+// Phase IV:  Expand the test suite to the cases outlined further above. This
+//            will provide a means for validating correctness in future, when
+//            it is possible to render.
+//
+// Might have to tweak the objectives for Phase IV, as the first phases are
+// checked off and more unknowns are resolved.
 
 private struct LevelSizes {
   var highest: Float

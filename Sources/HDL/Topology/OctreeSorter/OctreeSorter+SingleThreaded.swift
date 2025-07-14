@@ -50,7 +50,9 @@ extension OctreeSorter {
         of: UInt32.self,
         capacity: childNodeCounts.wrappedSum()
       ) { allocationBuffer in
-        let allocationPointer = allocationBuffer.baseAddress.unsafelyUnwrapped
+        func allocationPointer() -> UnsafeMutablePointer<UInt32> {
+          allocationBuffer.baseAddress.unsafelyUnwrapped
+        }
         
         // Transfer the scratch pad to the temporary allocation.
         do {
@@ -61,7 +63,7 @@ extension OctreeSorter {
               continue
             }
             
-            let newPointer = allocationPointer + cursor
+            let newPointer = allocationPointer() + cursor
             cursor += childNodeCount
             
             newPointer.initialize(
@@ -78,7 +80,7 @@ extension OctreeSorter {
             continue
           }
           
-          let newPointer = allocationPointer + cursor
+          let newPointer = allocationPointer() + cursor
           cursor += childNodeCount
           
           if childNodeCount == 1 {
@@ -86,7 +88,6 @@ extension OctreeSorter {
             continue
           }
           
-          @inline(never)
           func createNewOrigin() -> SIMD3<Float> {
             let intOffset = (key &>> SIMD3(0, 1, 2)) & 1
             let floatOffset = SIMD3<Float>(intOffset) * 2 - 1

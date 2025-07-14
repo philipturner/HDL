@@ -208,9 +208,9 @@ final class TopologyTests: XCTestCase {
     
     // Check that the atoms are exactly the same.
     do {
-      let gridSorter = GridSorter(atoms: shuffledAtoms)
-      let reordering = gridSorter.mortonReordering()
-      let invertedReordering = GridSorter.invertOrder(reordering)
+      let sorter = OctreeSorter(atoms: shuffledAtoms)
+      let reordering = sorter.mortonReordering()
+      let invertedReordering = OctreeSorter.invertOrder(reordering)
       for (lhs, rhs) in zip(topologyReordering, invertedReordering) {
         XCTAssertEqual(lhs, rhs)
       }

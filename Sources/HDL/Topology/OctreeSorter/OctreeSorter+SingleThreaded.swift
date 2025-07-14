@@ -94,7 +94,7 @@ extension OctreeSorter {
           func createNewOrigin() -> SIMD3<Float> {
             let intOffset = (key &>> SIMD3(0, 1, 2)) & 1
             let floatOffset = SIMD3<Float>(intOffset) * 2 - 1
-            return floatOffset * levelSize / 2
+            return levelOrigin + floatOffset * levelSize / 2
           }
           let newBufferPointer = UnsafeBufferPointer(
             start: newPointer,

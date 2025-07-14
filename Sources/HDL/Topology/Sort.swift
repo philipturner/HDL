@@ -201,6 +201,17 @@ struct GridSorter {
 // - possible choice for new algorithm: 4.0 nm + 1 / 32 nm
 //
 // Analyzing latticeScale vs material vs size in a Google Sheet.
+
+// TODO: Create an implementation plan to gradually phase in this test
+// - Start by merging OctreeSorter into the main code base. Expose it to the
+//   testing code with @testable (if possible, otherwise we're in trouble).
+// - Provide a means to selectively enable algorithmic changes.
+// - Test various optimizations on diamond and silicon, with very easy and
+//   crude latency data.
+// - Expand the test suite to the cases outlined farther above.
+//
+// TODO: Transform the bullet points into "Phases" once the spreadsheet is done.
+
 private struct LevelSizes {
   var highest: Float
   var octreeStart: Float

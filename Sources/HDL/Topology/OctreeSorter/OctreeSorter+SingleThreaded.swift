@@ -28,17 +28,16 @@ extension OctreeSorter {
       // Use the scratch pad.
       var childNodeCounts: SIMD8<Int> = .zero
       for atomID in atomIDs {
-        var atomOffset: SIMD3<Float>
-        do {
+        func createAtomOffset() -> SIMD3<Float> {
           let atom = atoms[Int(atomID)]
           let position = unsafeBitCast(atom, to: SIMD3<Float>.self)
-          atomOffset = position - self.origin
+          return position - self.origin
         }
         
         var index = SIMD3<UInt32>(repeating: 1)
         index.replace(
           with: SIMD3.zero,
-          where: atomOffset .< levelOrigin)
+          where: createAtomOffset() .< levelOrigin)
         
         let key = (index &<< SIMD3(0, 1, 2)).wrappedSum()
         let previousCount = childNodeCounts[Int(key)]
@@ -87,18 +86,18 @@ extension OctreeSorter {
             continue
           }
           
-          var newOrigin: SIMD3<Float>
-          do {
+          @inline(never)
+          func createNewOrigin() -> SIMD3<Float> {
             let intOffset = (key &>> SIMD3(0, 1, 2)) & 1
             let floatOffset = SIMD3<Float>(intOffset) * 2 - 1
-            newOrigin = levelOrigin + floatOffset * levelSize / 2
+            return levelOrigin + floatOffset * levelSize / 2
           }
           let newBufferPointer = UnsafeBufferPointer(
             start: newPointer,
             count: childNodeCount)
           traverse(
             atomIDs: newBufferPointer,
-            levelOrigin: newOrigin,
+            levelOrigin: createNewOrigin(),
             levelSize: levelSize / 2)
         }
       }

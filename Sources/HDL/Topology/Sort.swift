@@ -125,13 +125,18 @@ struct GridSorter {
 // size and atom density. Model the target use cases of latticeScale=5 to 40.
 // Note that performance should be good slightly outside this range as well.
 //
-// latticeScale | atom count | ~dimensions (C) | ~dimensions (Si)
-// ------------ | ---------- | --------------- | ----------------
-//            5 |       2100 | 2.3 nm
-//           10 |      16400 | 4.5 nm
-//           20 |     129600 | 9.0 nm
-//           30 |     435600 | 13.5 nm
-//           40 |    1030400 |
+// latticeScale | atom count | size (C) | size (Si) |
+// ------------ | ---------- | -------- | --------- |
+//            5 |       2100 |   2.3 nm |    3.5 nm |
+//           10 |      16400 |   4.5 nm |    6.9 nm |
+//           20 |     129600 |   9.0 nm |   13.7 nm |
+//           30 |     435600 |  13.5 nm |   20.6 nm |
+//           40 |    1030400 |  18.0 nm |   27.4 nm |
+//
+// atoms per cell | C     | Si    |
+// -------------- | ----- | ----- |
+//         2.0 nm |  1408 |   400 |
+//         4.0 nm | 11264 |  3200 |
 private struct LevelSizes {
   var highest: Float
   var octreeStart: Float

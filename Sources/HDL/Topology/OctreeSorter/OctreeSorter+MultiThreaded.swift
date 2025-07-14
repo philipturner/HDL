@@ -37,10 +37,8 @@ extension OctreeSorter {
         // Use the scratch pad.
         var childNodeCounts: SIMD8<Int> = .zero
         for atomID in atomIDs {
-          // Compiler may not inline a nested function, so use a do statement.
           var atomOffset: SIMD3<Float>
           do {
-            // @_transparent attribute is ineffective.
             let atom = atoms[Int(atomID)]
             let position = unsafeBitCast(atom, to: SIMD3<Float>.self)
             atomOffset = position - self.origin
@@ -62,7 +60,6 @@ extension OctreeSorter {
           of: UInt32.self,
           capacity: childNodeCounts.wrappedSum()
         ) { allocationBuffer in
-          // Compiler may not inline a nested function, so use a variable.
           let allocationPointer = allocationBuffer.baseAddress.unsafelyUnwrapped
           
           // Transfer the scratch pad to the temporary allocation.
@@ -99,7 +96,6 @@ extension OctreeSorter {
               continue
             }
             
-            // Compiler may not inline a nested function, so use a do statement.
             var newOrigin: SIMD3<Float>
             do {
               let intOffset = (key &>> SIMD3(0, 1, 2)) & 1

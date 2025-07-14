@@ -82,7 +82,6 @@ extension Compilation {
       let atom = atoms[i]
       let orbitalList = orbitalLists[i]
       for orbital in orbitalList {
-        // @_transparent attribute is ineffective.
         let atomPosition = unsafeBitCast(atom, to: SIMD3<Float>.self)
         let hydrogenPosition = atomPosition + bondLength * orbital
         let encodedID = Float(bitPattern: UInt32(i))

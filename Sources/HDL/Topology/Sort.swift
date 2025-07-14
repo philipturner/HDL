@@ -112,7 +112,7 @@ struct GridSorter {
 //   algorithm serves these better/equal to the old one. The new renderer isn't
 //   needed to implement these tests.
 //
-// Theoretical performance:
+// # Overview
 //
 // Existing algorithm has a threshold at 1-2 nm. This level size is the offset
 // of a child node from the parent node. The offset is always half the child
@@ -137,6 +137,23 @@ struct GridSorter {
 // -------------- | ----- | ----- |
 //         2.0 nm |  1408 |   400 |
 //         4.0 nm | 11264 |  3200 |
+//
+// The latency per atom might be very high. To achieve 20 µs task time with
+// 0.05 µs/atom, that evaluates to 400 atoms/task. If the data is misleading
+// because of multicore parallelism, that is instead 50 atoms/task. Most light,
+// O(n) algorithms use a conservative (large) task size of 5000 atoms.
+//
+// The vast majority of cells have a size close to the average of all cells in
+// the grid. So, in most cases, the presence of small outlier tasks does not
+// worsen the overhead of task distribution. I hypothesize that smaller task
+// size for Si + 2.0 nm is the principal issue. Multithreading is needed to
+// make the grid algorithm competitive with octree, so even very small grids
+// (e.g. task size 64) must use it to remain competitive. This fact leaked into
+// the decision for a variable grid threshold size.
+//
+// # Division of O(nlogn) work between serial and parallel stages
+//
+// TODO: Continue this investigation
 private struct LevelSizes {
   var highest: Float
   var octreeStart: Float

@@ -111,10 +111,18 @@ struct GridSorter {
 // - Benchmark small, sparse, and highly anisotropic shapes. Prove that the new
 //   algorithm serves these better/equal to the old one. The new renderer isn't
 //   needed to implement these tests.
-// - Three new, distinct performance tests for sorting:
-//   - small, between 100 and 10000 atoms
-//   - sparse + highly anisotropic L shape
-//   - 1 micron offset from the world origin
+//   - Three new, distinct performance tests for sorting:
+//     - small, between 100 and 10000 atoms
+//     - sparse + highly anisotropic L shape
+//     - 1 micron offset from the world origin
+//   - All tests should include hydrogen passivation, which changes the
+//     distribution of atom density.
+//   - Leave the old test as-is, and create new tests from scratch that make
+//     benchmarking easier. Include a fresh version of the test for large
+//     problem sizes.
+//     - Create a file, 'SortTests'.
+//     - Figure out how to expose internal APIs in the current compilation
+//       mode, for benchmarking. This can be a temporary feature.
 //
 // molecular-renderer is able to efficiently parallelize the radix sort when
 // constructing an octree. HDL cannot exploit the restriction of atom positions

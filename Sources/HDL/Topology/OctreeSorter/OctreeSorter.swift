@@ -114,4 +114,38 @@ struct OctreeSorter {
       }
     }
   }
+  
+  // TODO: Optimize by changing from SIMD8<Int> to SIMD8<UInt32>. Do this after
+  // the code has been de-duplicated without a regression.
+  @inline(__always)
+  @_transparent
+  func createChildNodeCounts(
+    atomIDs: UnsafeBufferPointer<UInt32>,
+    levelOrigin: SIMD3<Float>,
+    scratchPad: UnsafeMutablePointer<UInt32>
+  ) -> SIMD8<Int> {
+    var childNodeCounts: SIMD8<Int> = .zero
+    for atomID in atomIDs {
+      @inline(__always)
+      func createAtomOffset() -> SIMD3<Float> {
+        // @_transparent attribute is ineffective.
+        let atom = atoms[Int(atomID)]
+        let position = unsafeBitCast(atom, to: SIMD3<Float>.self)
+        return position - self.origin
+      }
+      
+      var index = SIMD3<UInt32>(repeating: 1)
+      index.replace(
+        with: SIMD3.zero,
+        where: createAtomOffset() .< levelOrigin)
+      
+      let key = (index &<< SIMD3(0, 1, 2)).wrappedSum()
+      let previousCount = childNodeCounts[Int(key)]
+      childNodeCounts[Int(key)] += 1
+      scratchPad[Int(key) * atomIDs.count + previousCount] = atomID
+    }
+    return childNodeCounts
+  }
 }
+
+

@@ -35,6 +35,7 @@ extension OctreeSorter {
           let position = unsafeBitCast(atom, to: SIMD3<Float>.self)
           return position - self.origin
         }
+        
         var index = SIMD3<UInt32>(repeating: 1)
         index.replace(
           with: SIMD3.zero,

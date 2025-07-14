@@ -65,6 +65,10 @@ extension OctreeSorter {
         childNodeCounts[Int(key)] += 1
         scratchPad[Int(key) * atomIDs.count + previousCount] = atomID
       }
+//      let childNodeCounts = createChildNodeCounts(
+//        atomIDs: atomIDs,
+//        levelOrigin: levelOrigin,
+//        scratchPad: scratchPad)
       
       // Create the temporary allocation.
       withUnsafeTemporaryAllocation(

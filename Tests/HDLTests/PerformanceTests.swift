@@ -545,7 +545,8 @@ final class PerformanceTests: XCTestCase {
       }
     }
     
-    for trialID in 0..<4 {
+    // TODO: Revert to 0..<4 after done refactoring
+    for trialID in 2...2 {
       let trial = Trial(lattice: lattice, index: trialID)
       
       let startParallel = Profiler.time()

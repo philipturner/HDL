@@ -5,6 +5,8 @@
 //  Created by Philip Turner on 7/14/25.
 //
 
+import QuartzCore
+
 extension OctreeSorter {
   struct Cell {
     var range: Range<Int>
@@ -18,6 +20,7 @@ extension OctreeSorter {
   }
   
   func createGrid() -> Grid {
+    let start = CACurrentMediaTime()
     let levelSizes = LevelSizes(dimensions: dimensions)
     var grid = Grid()
     
@@ -131,6 +134,8 @@ extension OctreeSorter {
       fatalError("This should never happen.")
     }
     
+    let end = CACurrentMediaTime()
+    debugProfile(start, end, "part 1")
     return grid
   }
 }

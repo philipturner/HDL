@@ -6,10 +6,12 @@
 //
 
 import Dispatch
+import QuartzCore
 
 extension OctreeSorter {
   // Multi-threaded algorithm.
   func mortonReordering(grid: Grid) -> [UInt32] {
+    let start = CACurrentMediaTime()
     nonisolated(unsafe)
     var globalOutput = [UInt32](unsafeUninitializedCapacity: atoms.count) {
       $1 = atoms.count
@@ -155,6 +157,8 @@ extension OctreeSorter {
       }
     }
     
+    let end = CACurrentMediaTime()
+    debugProfile(start, end, "part 2")
     return globalOutput
   }
 }

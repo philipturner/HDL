@@ -5,9 +5,12 @@
 //  Created by Philip Turner on 7/14/25.
 //
 
+import QuartzCore
+
 extension OctreeSorter {
   // Single threaded algorithm without a grid.
   func mortonReordering() -> [UInt32] {
+    let start = CACurrentMediaTime()
     var output: [UInt32] = []
     
     // Create the scratch pad.
@@ -118,6 +121,8 @@ extension OctreeSorter {
       fatalError("This should never happen.")
     }
     
+    let end = CACurrentMediaTime()
+    debugProfile(start, end, "octree")
     return output
   }
 }

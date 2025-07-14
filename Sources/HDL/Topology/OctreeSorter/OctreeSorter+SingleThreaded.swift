@@ -8,6 +8,8 @@
 extension OctreeSorter {
   // Single threaded algorithm without a grid.
   func mortonReordering() -> [UInt32] {
+    
+    
     var output: [UInt32] = []
     
     // Create the scratch pad.

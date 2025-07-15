@@ -37,12 +37,8 @@ final class PassivationTests: XCTestCase {
       orbital: SIMD3<Float>
     ) -> Atom {
       let atom = topology.atoms[Int(atomID)]
-      let atomElement = Element(rawValue: atom.atomicNumber)
-      guard let atomElement else {
-        fatalError("This should never happen.")
-      }
       
-      var bondLength = atomElement.covalentRadius
+      var bondLength = atom.element.covalentRadius
       bondLength += Element.hydrogen.covalentRadius
       
       let position = atom.position + bondLength * orbital

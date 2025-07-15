@@ -20,7 +20,7 @@ extension OctreeSorter {
   }
   
   func createGrid() -> Grid {
-    let start = CACurrentMediaTime()
+//    let start = CACurrentMediaTime()
     let levelSizes = LevelSizes(dimensions: dimensions)
     var grid = Grid()
     
@@ -134,16 +134,16 @@ extension OctreeSorter {
       fatalError("This should never happen.")
     }
     
-    let end = CACurrentMediaTime()
-    do {
-      guard let cell = grid.cells.first else {
-        fatalError("Ran one of the zero tests.")
-      }
-      let cellSize = 2 * cell.size
-      let formatted = String(format: "%.2f", cellSize)
-      print("cell size", formatted)
-    }
-    debugProfile(start, end, "part 1")
+//    let end = CACurrentMediaTime()
+//    do {
+//      guard let cell = grid.cells.first else {
+//        fatalError("Ran one of the zero tests.")
+//      }
+//      let cellSize = 2 * cell.size
+//      let formatted = String(format: "%.2f", cellSize)
+//      print("cell size", formatted)
+//    }
+//    debugProfile(start, end, "part 1")
     return grid
   }
 }

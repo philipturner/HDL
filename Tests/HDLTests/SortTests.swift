@@ -20,8 +20,22 @@ final class SortTests: XCTestCase {
     PassivationTests.passivate(topology: &topology)
     print(topology.atoms.count, terminator: ", ")
     
+    let sorter = OctreeSorter(atoms: topology.atoms)
+    print(sorter.dimensions.max(), terminator: ", ")
     
-    
+    func numVoxels(voxelSize: Float) -> Int {
+      var output: Int = 1
+      for laneID in 0..<3 {
+        var dimension = sorter.dimensions[laneID]
+        dimension /= voxelSize
+        dimension.round(.up)
+        output *= Int(exactly: dimension)!
+      }
+      return output
+    }
+    print(numVoxels(voxelSize: 2.0), terminator: ", ")
+    print(numVoxels(voxelSize: 4.0), terminator: ", ")
+    print(numVoxels(voxelSize: 8.0), terminator: ", ")
     print()
   }
 }

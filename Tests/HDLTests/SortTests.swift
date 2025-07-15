@@ -2,9 +2,8 @@ import XCTest
 @testable import HDL
 
 final class SortTests: XCTestCase {
-  // Temporary test for gathering data.
-  func testWorkspace() throws {
-    let latticeScale: Float = 60
+  func testCube() throws {
+    let latticeScale: Float = 5
     let materials: [MaterialType] = [
       .elemental(.carbon),
       .checkerboard(.silicon, .carbon),
@@ -13,7 +12,7 @@ final class SortTests: XCTestCase {
     
     // Iterate over the materials.
     for material in materials {
-      print(Int(latticeScale), terminator: ", ")
+      // print(Int(latticeScale), terminator: ", ")
       
       let lattice = Lattice<Cubic> { h, k, l in
         Bounds { latticeScale * (h + k + l) }
@@ -24,11 +23,11 @@ final class SortTests: XCTestCase {
       reconstruction.atoms = lattice.atoms
       reconstruction.material = material
       var topology = reconstruction.compile()
-//      PassivationTests.passivate(topology: &topology)
-      print(topology.atoms.count, terminator: ", ")
+      PassivationTests.passivate(topology: &topology)
+      // print(topology.atoms.count, terminator: ", ")
       
       let sorter = OctreeSorter(atoms: topology.atoms)
-      print(sorter.dimensions.max(), terminator: ", ")
+      // print(sorter.dimensions.max(), terminator: ", ")
       
       func numVoxels(voxelSize: Float) -> Int {
         var output: Int = 1
@@ -40,10 +39,15 @@ final class SortTests: XCTestCase {
         }
         return output
       }
-      print(numVoxels(voxelSize: 2.0), terminator: ", ")
-      print(numVoxels(voxelSize: 4.0), terminator: ", ")
-      print(numVoxels(voxelSize: 8.0), terminator: ", ")
-      print()
+      // print(numVoxels(voxelSize: 2.0), terminator: ", ")
+      // print(numVoxels(voxelSize: 4.0), terminator: ", ")
+      // print(numVoxels(voxelSize: 8.0), terminator: ", ")
+      // print()
     }
   }
+  
+  // Next test:
+  // - round the octree origin and dimensions to a multiple of 2 nm
+  // - populate a grid of 2 nm, 4 nm, 8 nm voxels with alignment to 2 nm
+  // - disallow very small lattice scales
 }

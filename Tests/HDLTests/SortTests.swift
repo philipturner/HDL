@@ -4,7 +4,7 @@ import XCTest
 final class SortTests: XCTestCase {
   // Temporary test for gathering data.
   func testWorkspace() throws {
-    let latticeScale: Float = 7
+    let latticeScale: Float = 60
     let materials: [MaterialType] = [
       .elemental(.carbon),
       .checkerboard(.silicon, .carbon),

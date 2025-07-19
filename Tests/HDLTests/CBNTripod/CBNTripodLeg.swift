@@ -6,7 +6,7 @@
 //
 
 import HDL
-import Numerics
+import QuaternionModule
 import XCTest
 
 struct CBNTripodLeg: CBNTripodComponent {

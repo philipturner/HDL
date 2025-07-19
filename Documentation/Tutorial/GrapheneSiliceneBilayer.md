@@ -22,7 +22,7 @@ following in `main.swift`. The code should compile without errors.
 ```swift
 import HDL
 
-func exportToXYZ(_ atoms: [Atom], comment: String = "") -> String {
+func export(_ atoms: [Atom], comment: String = "") -> String {
   var output: String = ""
   output += String(describing: atoms.count)
   output += "\n"
@@ -89,7 +89,7 @@ let carbonLattice = Lattice<Hexagonal> { h, k, l in
     Replace { .empty }
   }
 }
-print(exportToXYZ(carbonLattice.atoms, comment: "Step 1"))
+print(export(carbonLattice.atoms, comment: "Step 1"))
 ```
 
 Lonsdaleite and graphene are similar, with a hexagonal arrangement of
@@ -128,7 +128,7 @@ for atomID in carbons.indices {
   carbons[atomID].position.x *= grapheneHexagonScale
   carbons[atomID].position.y *= grapheneHexagonScale
 }
-print(exportToXYZ(carbons, comment: "Step 2"))
+print(export(carbons, comment: "Step 2"))
 ```
 
 ## Create Silicene Layer
@@ -151,7 +151,7 @@ let siliconLattice = Lattice<Hexagonal> { h, k, l in
     Replace { .empty }
   }
 }
-print(exportToXYZ(siliconLattice.atoms, comment: "Step 3"))
+print(export(siliconLattice.atoms, comment: "Step 3"))
 ```
 
 Change the silicene atoms to match the lattice spacings from the
@@ -185,7 +185,7 @@ for atomID in silicons.indices {
   silicons[atomID].position.x *= siliceneHexagonScale
   silicons[atomID].position.y *= siliceneHexagonScale
 }
-print(exportToXYZ(silicons, comment: "Step 4"))
+print(export(silicons, comment: "Step 4"))
 ```
 
 ## Create Bilayer
@@ -193,16 +193,25 @@ print(exportToXYZ(silicons, comment: "Step 4"))
 Finally, combine the graphene and silicon atoms into a bilayer. From the
 literature, the silicene layer is elevated 3.3 Å above the graphene
 layer. It is also twisted by 10.9°. Add the following dependency to your
-project. Then, add `import Numerics` to the top of the Swift file. This
-code statement imports a fork of the Swift Numerics library with
-cross-platform quaternions.
+project's package manifest. Then, add `import QuaternionModule` to the top of the Swift file.
 
 ```swift
 // Dependency
-.package(url: "https://github.com/philipturner/swift-numerics", branch: "Quaternions"),
+.package(
+  url: "https://github.com/philipturner/swift-numerics", 
+  branch: "Quaternions"),
 
-// Import statement
-import Numerics
+// Example of adding the dependency to a package.
+let package = Package(
+  name: ...,
+  products: ...,
+  dependencies: [
+    .package(
+      url: "https://github.com/philipturner/swift-numerics", 
+      branch: "Quaternions"),
+  ],
+  targets: ...
+)
 ```
 
 The final code section moves the silicon atoms into their position above
@@ -225,5 +234,5 @@ for atomID in silicons.indices {
   // Rotate the silicon atom by 10.9° about the origin.
   silicons[atomID].position = rotation.act(on: silicons[atomID].position)
 }
-print(exportToXYZ(carbons + silicons, comment: "Step 5"))
+print(export(carbons + silicons, comment: "Step 5"))
 ```

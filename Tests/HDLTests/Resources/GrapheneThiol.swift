@@ -6,7 +6,7 @@
 //
 
 import HDL
-import Numerics
+import QuaternionModule
 
 struct GrapheneThiol {
   var topology: Topology = .init()

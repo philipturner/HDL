@@ -11,6 +11,8 @@ extension OctreeSorter {
   struct Cell {
     var range: Range<Int>
     var origin: SIMD3<Float>
+    
+    // TODO: Remove 'size' from the cell. It's always 2.
     var size: Float
   }
   

@@ -77,6 +77,20 @@ final class PerformanceTests: XCTestCase {
   // orbitals: 0.6 ms
   // orbitals: 8.7 ms
   
+  // After removing inlining bottlenecks from Sort:
+  //
+  // match:  3.4 ms
+  // match:  1.9 ms
+  // match: 35.1 ms
+  //
+  // atoms: 16400
+  // dataset    | octree | serial | parallel
+  // ---------- | ------ | ------ | --------
+  // pre-sorted |   1864 |   1070 |    728
+  // lattice    |   1808 |   1073 |    719
+  // shuffled   |   2192 |   1234 |    676
+  // reversed   |   1899 |   1017 |    711
+  
 #if RELEASE
   func testGoldSurface() throws {
     let overallStart = Profiler.time()
@@ -500,8 +514,8 @@ final class PerformanceTests: XCTestCase {
   
   func testSort() throws {
     // TODO: Revert to 10 and true after done refactoring
-    let latticeScale: Float = 20
-    let testParallel = Bool.random() ? false : false
+    let latticeScale: Float = 10
+    let testParallel = Bool.random() ? true : true
     let lattice = Lattice<Hexagonal> { h, k, l in
       let h2k = h + 2 * k
       Bounds { latticeScale * (2 * h + h2k + l) }

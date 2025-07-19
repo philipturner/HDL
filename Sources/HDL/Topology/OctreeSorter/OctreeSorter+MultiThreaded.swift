@@ -32,11 +32,10 @@ extension OctreeSorter {
         levelSize: Float
       ) {
         // Return early.
-        let nodeSize = 2 * levelSize
-        if nodeSize == 1 / 32 {
+        if levelSize == 1 / 32 {
           localOutput += atomIDs
           return
-        } else if nodeSize < 1 / 32 {
+        } else if levelSize < 1 / 32 {
           fatalError("This should never happen.")
         }
         
@@ -106,7 +105,7 @@ extension OctreeSorter {
             func createNewOrigin() -> SIMD3<Float> {
               let intOffset = (key &>> SIMD3(0, 1, 2)) & 1
               let floatOffset = SIMD3<Float>(intOffset) * 2 - 1
-              return levelOrigin + floatOffset * levelSize / 2
+              return levelOrigin + floatOffset * levelSize / 4
             }
             let newBufferPointer = UnsafeBufferPointer(
               start: newPointer,
@@ -125,7 +124,7 @@ extension OctreeSorter {
         traverseTree(
           atomIDs: bufferPointer,
           levelOrigin: cell.origin,
-          levelSize: cell.size)
+          levelSize: 4)
       }
       guard localOutput.count == cell.range.count else {
         fatalError("This should never happen.")

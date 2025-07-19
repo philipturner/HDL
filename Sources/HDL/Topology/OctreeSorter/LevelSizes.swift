@@ -156,7 +156,6 @@ import func Foundation.pow
 struct LevelSizes {
   var highest: Float
   var octreeStart: Float
-  var threshold: Float
   
   init(dimensions: SIMD3<Float>) {
     // Make an initial guess of 67% for the top-level binary divider.
@@ -182,9 +181,5 @@ struct LevelSizes {
         break
       }
     }
-    
-    // Very important: deciding the granularity with which to parallelize the
-    // grid. 0.5 looks way too small for sparser lattices like SiC and Si.
-    self.threshold = min(2.0, max(0.5, highest * 0.51))
   }
 }

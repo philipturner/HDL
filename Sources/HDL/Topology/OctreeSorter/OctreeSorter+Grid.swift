@@ -34,7 +34,9 @@ extension OctreeSorter {
       levelOrigin: SIMD3<Float>,
       levelSize: Float
     ) {
-      if levelSize < levelSizes.threshold {
+      // Return early.
+      let nodeSize = 2 * levelSize
+      if nodeSize == 4 {
         let rangeStart = grid.data.count
         grid.data += atomIDs
         let rangeEnd = grid.data.count
@@ -45,6 +47,8 @@ extension OctreeSorter {
           size: levelSize)
         grid.cells.append(cell)
         return
+      } else if nodeSize < 4 {
+        fatalError("This should never happen.")
       }
       
       // Use the scratch pad.

@@ -23,9 +23,13 @@ extension OctreeSorter {
       levelOrigin: SIMD3<Float>,
       levelSize: Float
     ) {
-      if levelSize < 1 / 32 {
+      // Return early.
+      let nodeSize = 2 * levelSize
+      if nodeSize == 1 / 32 {
         output += atomIDs
         return
+      } else if nodeSize < 1 / 32 {
+        fatalError("This should never happen.")
       }
       
       // Use the scratch pad.

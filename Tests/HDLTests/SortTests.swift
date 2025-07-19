@@ -31,7 +31,31 @@ final class SortTests: XCTestCase {
   // reversed   |   1899 |   1017 |    711
   
   func testDiagonalOrder() throws {
+    let lattice = Lattice<Cubic> { h, k, l in
+      Bounds { 10 * (h + k + l) }
+      Material { .checkerboard(.silicon, .carbon) }
+    }
     
+    var diagonalAtoms: [SIMD4<Float>] = []
+    for atom in lattice.atoms {
+      guard (atom.x - atom.y).magnitude < 0.001,
+            (atom.y - atom.z).magnitude < 0.001 else {
+        continue
+      }
+      diagonalAtoms.append(atom)
+    }
+    XCTAssertEqual(diagonalAtoms.count, 21)
+    
+    for i in 1..<diagonalAtoms.count {
+      let previousAtom = diagonalAtoms[i - 1]
+      let currentAtom = diagonalAtoms[i]
+      
+      for laneID in 0..<3 {
+        let previousCoordinate = previousAtom[laneID]
+        let currentCoordinate = currentAtom[laneID]
+        XCTAssertLessThan(previousCoordinate, currentCoordinate)
+      }
+    }
   }
   
   func testSortPerformance() throws {

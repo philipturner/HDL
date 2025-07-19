@@ -137,35 +137,40 @@ final class PassivationTests: XCTestCase {
       
       var topology = Topology()
       topology.atoms = oldTopology.atoms.filter { $0[3] == 1 }
-      topology.sort() // TODO: remove this
       return topology.atoms
     }
     
     let expectedHydrogens = Self.expectedSortedHydrogens()
-    let hydrogens = createHydrogens()
-    XCTAssertEqual(expectedHydrogens.count, hydrogens.count)
+    let actualHydrogens = createHydrogens()
+    XCTAssertEqual(expectedHydrogens.count, actualHydrogens.count)
     
-    for hydrogenID in 0..<232 {
-      let expectedHydrogen = expectedHydrogens[hydrogenID]
-      let hydrogen = hydrogens[hydrogenID]
-      let delta = hydrogen.position - expectedHydrogen.position
-      XCTAssertLessThan(delta[0].magnitude, 0.001)
-      XCTAssertLessThan(delta[1].magnitude, 0.001)
-      XCTAssertLessThan(delta[2].magnitude, 0.001)
+    var expectedTopology = Topology()
+    expectedTopology.atoms = expectedHydrogens
+    let actualMatches = expectedTopology.match(
+      actualHydrogens, algorithm: .absoluteRadius(0.010))
+    
+    var expectedMarks = [Int](repeating: .zero, count: 232)
+    for actualID in 0..<232 {
+      let matchList = actualMatches[actualID]
+      XCTAssertEqual(matchList.count, 1)
+      
+      let expectedID = matchList.first!
+      expectedMarks[Int(expectedID)] += 1
+    }
+    
+    for expectedID in 0..<232 {
+      let mark = expectedMarks[expectedID]
+      XCTAssertEqual(mark, 1)
     }
   }
 #endif
   
   // A sorted list of hydrogens from one invocation of 'Reconstruction' on the
-  // common lattice. The exact results may vary from machine to machine.
+  // common lattice.
   //
   // 'Reconstruction' has since been revised to remove the built-in hydrogen
   // passivation feature, thus simplifying and generalizing the API. This
   // unit test was critical to correctly implementing the elision.
-  //
-  // TODO: Revise this test to account for the possible change in order from a
-  // new sorting algorithm. Passivation and Sort tests should cover distinct,
-  // decoupled pieces of code.
   private static func expectedSortedHydrogens() -> [SIMD4<Float>] {
     return [
       SIMD4<Float>(0.047, 0.047, 0.047, 1),

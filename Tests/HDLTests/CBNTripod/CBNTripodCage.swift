@@ -211,7 +211,8 @@ struct CBNTripodCage: CBNTripodComponent {
         insertedBonds.append(SIMD2(UInt32(i), UInt32(carbonID)))
         
         let ground = SIMD3<Float>(0, -1, 0)
-        let groundRotation = Quaternion<Float>(from: -orbital, to: ground)
+        let groundRotation = CBNTripodUtilities
+          .quaternion(from: -orbital, to: ground)
         let axis = groundRotation.axis
         let rotation = Quaternion(angle: 2 * .pi / 3, axis: axis)
         

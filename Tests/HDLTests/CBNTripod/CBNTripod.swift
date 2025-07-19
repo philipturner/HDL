@@ -129,7 +129,8 @@ extension CBNTripod {
       orbitalLeg /= (orbitalLeg * orbitalLeg).sum().squareRoot()
       
       // ~0.27-0.28° rotation for all 3 legs.
-      let rotation = Quaternion<Float>(from: orbitalLeg, to: orbitalCage)
+      let rotation = CBNTripodUtilities
+        .quaternion(from: orbitalLeg, to: orbitalCage)
       for i in topology.atoms.indices {
         if i == methylCarbonID {
           continue

@@ -378,7 +378,8 @@ extension CBNTripodLeg {
     if element == .carbon {
       let targetOrbital = SIMD3<Float>(
         -Float(3.0 / 4).squareRoot(), -Float(1.0 / 4).squareRoot(), 0)
-      let rotation = Quaternion(from: orbitals[0], to: targetOrbital)
+      let rotation = CBNTripodUtilities
+        .quaternion(from: orbitals[0], to: targetOrbital)
       orbitals = orbitals.map(rotation.act(on:))
     } else {
       // For some reason, the lone pair from the amine adopts an sp2-like
@@ -386,7 +387,8 @@ extension CBNTripodLeg {
       // from the predicted 109.5° angle.
       let targetOrbital = SIMD3<Float>(
         0, Float(1.0 / 4).squareRoot(), -Float(3.0 / 4).squareRoot())
-      let rotation = Quaternion(from: orbitals[2], to: targetOrbital)
+      let rotation = CBNTripodUtilities
+        .quaternion(from: orbitals[2], to: targetOrbital)
       orbitals = orbitals.map(rotation.act(on:))
     }
     

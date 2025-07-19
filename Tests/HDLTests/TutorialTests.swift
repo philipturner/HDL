@@ -1,5 +1,6 @@
-import XCTest
 import HDL
+import QuaternionModule
+import XCTest
 
 final class TutorialTests: XCTestCase {
   func testTutorial() throws {
@@ -7,7 +8,9 @@ final class TutorialTests: XCTestCase {
     let step2 = Step2(carbonLattice: step1.carbonLattice)
     let step3 = Step3()
     let step4 = Step4(siliconLattice: step3.siliconLattice)
-    // TODO: Add step 5 with quaternions
+    _ = Step5(
+      carbons: step2.carbons,
+      silicons: step4.silicons)
   }
 }
 
@@ -111,7 +114,7 @@ private struct Step4 {
       // lattice spacing.
       siliceneHexagonScale = siliceneConstant / lonsdaleiteConstant
     }
-
+    
     silicons = siliconLattice.atoms
     for atomID in silicons.indices {
       // Partially flatten the sp3 sheet, so the elevated atoms reach the
@@ -127,6 +130,39 @@ private struct Step4 {
     
     let output = XYZ.export(silicons, comment: "Step 4")
     XCTAssertEqual(output, XYZ.expectedStep4)
+  }
+}
+
+private struct Step5 {
+  var bilayer: [Atom]
+  
+  init(carbons: [Atom], silicons: [Atom]) {
+    var rotation: Quaternion<Float>
+    do {
+      // Convert the angle from degrees to radians.
+      let angle: Float = 10.9 * .pi / 180
+      
+      // Create a counterclockwise rotation around the Z axis.
+      rotation = Quaternion(angle: angle, axis: [0, 0, 1])
+    }
+    
+    var transformedSilicons: [Atom] = []
+    for atomID in silicons.indices {
+      var atom = silicons[atomID]
+      
+      // Elevate the silicon atom 3.3 Å in the Z direction.
+      atom.position.z += 3.3 / 10
+      
+      // Rotate the silicon atom 10.9° about the origin.
+      atom.position = rotation.act(on: atom.position)
+      
+      transformedSilicons.append(atom)
+    }
+    
+    bilayer = carbons + transformedSilicons
+    
+    let output = XYZ.export(bilayer, comment: "Step 5")
+    XCTAssertEqual(output, XYZ.expectedStep5)
   }
 }
 
@@ -219,7 +255,7 @@ private struct XYZ {
   C  5.044 11.650 0.000
   C  6.306 12.378 0.515
   C  3.783 12.378 0.515
-
+  
   """
   
   static let expectedStep2: String = """
@@ -279,7 +315,7 @@ private struct XYZ {
   C  4.900 11.316 0.000
   C  6.125 12.023 0.000
   C  3.675 12.023 0.000
-
+  
   """
   
   static let expectedStep3: String = """
@@ -313,7 +349,7 @@ private struct XYZ {
   Si 7.681 11.086 0.000
   Si 9.601 12.195 0.784
   Si 5.760 12.195 0.784
-
+  
   """
   
   static let expectedStep4: String = """
@@ -347,6 +383,94 @@ private struct XYZ {
   Si 7.500 10.825 0.000
   Si 9.375 11.908 0.620
   Si 5.625 11.908 0.620
-
+  
+  """
+  
+  static let expectedStep5: String = """
+  82
+  Step 5
+  C  6.125 0.707 0.000
+  C  4.900 1.415 0.000
+  C  3.675 0.707 0.000
+  C  1.225 0.707 0.000
+  C  2.450 1.415 0.000
+  C  2.450 2.829 0.000
+  C  1.225 3.536 0.000
+  C  0.000 2.829 0.000
+  C  0.000 1.415 0.000
+  C  8.575 0.707 0.000
+  C  9.800 1.415 0.000
+  C  9.800 2.829 0.000
+  C  8.575 3.536 0.000
+  C  7.350 2.829 0.000
+  C  7.350 1.415 0.000
+  C  4.900 2.829 0.000
+  C  6.125 3.536 0.000
+  C  6.125 4.951 0.000
+  C  4.900 5.658 0.000
+  C  3.675 4.951 0.000
+  C  3.675 3.536 0.000
+  C  1.225 4.951 0.000
+  C  2.450 5.658 0.000
+  C  2.450 7.073 0.000
+  C  1.225 7.780 0.000
+  C  0.000 7.073 0.000
+  C  0.000 5.658 0.000
+  C  8.575 4.951 0.000
+  C  9.800 5.658 0.000
+  C  9.800 7.073 0.000
+  C  8.575 7.780 0.000
+  C  7.350 7.073 0.000
+  C  7.350 5.658 0.000
+  C  4.900 7.073 0.000
+  C  6.125 7.780 0.000
+  C  6.125 9.194 0.000
+  C  4.900 9.902 0.000
+  C  3.675 9.194 0.000
+  C  3.675 7.780 0.000
+  C  1.225 9.194 0.000
+  C  2.450 9.902 0.000
+  C  2.450 11.316 0.000
+  C  1.225 12.023 0.000
+  C  0.000 11.316 0.000
+  C  0.000 9.902 0.000
+  C  8.575 9.194 0.000
+  C  9.800 9.902 0.000
+  C  9.800 11.316 0.000
+  C  8.575 12.023 0.000
+  C  7.350 11.316 0.000
+  C  7.350 9.902 0.000
+  C  4.900 11.316 0.000
+  C  6.125 12.023 0.000
+  C  3.675 12.023 0.000
+  Si 9.001 2.836 3.300
+  Si 6.955 3.544 3.920
+  Si 5.319 2.127 3.300
+  Si 1.636 1.418 3.300
+  Si 3.273 2.835 3.920
+  Si 2.864 4.961 3.300
+  Si 0.818 5.670 3.920
+  Si -0.819 4.252 3.300
+  Si -0.409 2.126 3.920
+  Si 10.228 6.379 3.300
+  Si 10.638 4.253 3.920
+  Si 6.546 5.670 3.300
+  Si 8.182 7.088 3.920
+  Si 7.773 9.214 3.300
+  Si 5.727 9.922 3.920
+  Si 4.091 8.505 3.300
+  Si 4.500 6.379 3.920
+  Si 0.408 7.796 3.300
+  Si 2.045 9.213 3.920
+  Si 1.635 11.339 3.300
+  Si -0.411 12.048 3.920
+  Si -2.047 10.630 3.300
+  Si -1.638 8.504 3.920
+  Si 9.000 12.757 3.300
+  Si 9.409 10.631 3.920
+  Si 5.318 12.048 3.300
+  Si 6.954 13.466 3.920
+  Si 3.272 12.757 3.920
+  
   """
 }

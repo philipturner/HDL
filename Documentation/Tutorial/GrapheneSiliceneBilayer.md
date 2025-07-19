@@ -201,12 +201,19 @@ do {
   rotation = Quaternion(angle: angle, axis: [0, 0, 1])
 }
 
+var transformedSilicons: [Atom] = []
 for atomID in silicons.indices {
+  var atom = silicons[atomID]
+  
   // Elevate the silicon atom 3.3 Å in the Z direction.
-  silicons[atomID].position.z += 3.3 / 10
+  atom.position.z += 3.3 / 10
   
   // Rotate the silicon atom 10.9° about the origin.
-  silicons[atomID].position = rotation.act(on: silicons[atomID].position)
+  atom.position = rotation.act(on: atom.position)
+  
+  transformedSilicons.append(atom)
 }
-print(export(carbons + silicons, comment: "Step 5"))
+
+let bilayer = carbons + transformedSilicons
+print(export(bilayer, comment: "Step 5"))
 ```

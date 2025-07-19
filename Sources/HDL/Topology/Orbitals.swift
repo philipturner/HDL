@@ -23,8 +23,17 @@ extension Topology {
     }
   }
   
+  // TODO: Revise dependent code to access the underlying storage directly,
+  // improving performance. This change can be postponed until the new Sort
+  // algorithm is finished, just like the cleanups to CubicGrid.
+  //
+  // Consider making similar optimizations to Topology.map. In fact, analyze
+  // the entire latency makeup of 'Reconstruction' to identify bottlenecks
+  // besides Topology.match. Perhaps use multithreading to speed up some of
+  // the worst parts. Now this is definitely out of scope for the current focus
+  // on Topology.sort.
   public struct OrbitalStorage: Collection, Equatable, Sendable {
-    @usableFromInline var storage: SIMD16<Float>
+    @usableFromInline var storage: SIMD8<Float>
     
     public typealias Index = Int
     
@@ -35,7 +44,7 @@ extension Topology {
     
     @_transparent
     public var endIndex: Int {
-      Int(storage[15])
+      Int(storage[7])
     }
     
     @_transparent
@@ -49,13 +58,9 @@ extension Topology {
         var vec4: SIMD4<Float>
         switch position {
         case 0:
-          vec4 = storage.lowHalf.lowHalf
+          vec4 = storage.lowHalf
         case 1:
-          vec4 = storage.lowHalf.highHalf
-        case 2:
-          vec4 = storage.highHalf.lowHalf
-        case 3:
-          vec4 = storage.highHalf.highHalf
+          vec4 = storage.highHalf
         default:
           fatalError("Invalid position: \(position)")
         }
@@ -89,9 +94,9 @@ extension Topology {
           hybridization: hybridization)
         
         var storage = OrbitalStorage(storage: .zero)
-        storage.storage.lowHalf.lowHalf = SIMD4(orbital1, 0)
-        storage.storage.lowHalf.highHalf = SIMD4(orbital2, 0)
-        storage.storage[15] = Float(orbitalCount)
+        storage.storage.lowHalf = SIMD4(orbital1, 0)
+        storage.storage.highHalf = SIMD4(orbital2, 0)
+        storage.storage[7] = Float(orbitalCount)
         storageBuffer[atomID] = storage
       }
     }

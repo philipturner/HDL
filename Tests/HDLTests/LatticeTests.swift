@@ -13,8 +13,6 @@ private func fmt(_ start: Double, _ end: Double) -> String {
   }
 }
 
-// TODO: Migrate the 'Sort' performance test to 'SortTests' and revise the
-// scope of this file to 'Lattice'.
 final class LatticeTests: XCTestCase {
   static let printPerformanceSummary = true
   
@@ -65,13 +63,15 @@ final class LatticeTests: XCTestCase {
   //
   // orbitals: 1.0 ms
   // orbitals: 0.6 ms
-  // orbitals: 8.7 ms
+  // orbitals: 8.4 ms
   
   // After removing inlining bottlenecks from Sort:
   //
   // match:  3.4 ms
   // match:  1.9 ms
   // match: 35.1 ms
+  
+  // TODO: Add results after improving Orbitals
   
 #if RELEASE
   func testGoldSurface() throws {

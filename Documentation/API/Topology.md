@@ -82,7 +82,7 @@ extension Topology {
     case sp3
   }
   
-  // Underlying storage is a fixed-width vector, maximum capacity is 4.
+  // Underlying storage is a fixed-width vector, maximum capacity is 2.
   struct OrbitalStorage: Collection {
     subscript(position: Int) -> SIMD3<Float>
   }

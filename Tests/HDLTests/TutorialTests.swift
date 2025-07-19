@@ -5,55 +5,10 @@ final class TutorialTests: XCTestCase {
   func testTutorial() throws {
     let step1 = Step1()
     let step2 = Step2(carbonLattice: step1.carbonLattice)
-    
-    // Code for step 3.
-    let siliconLattice = Lattice<Hexagonal> { h, k, l in
-      let h2k = h + 2 * k
-      Bounds { 3 * h + 2 * h2k + 1 * l }
-      Material { .elemental(.silicon) }
-      
-      Volume {
-        Origin { 0.25 * l }
-        Plane { l }
-        Replace { .empty }
-      }
-    }
-    XCTAssertEqual(
-      expectedStep3,
-      Self.exportToXYZ(siliconLattice.atoms, comment: "Step 3"))
-    
-    // Code for step 4.
-    var siliceneHexagonScale: Float
-    do {
-      // Convert silicene lattice constant from Å to nm.
-      let siliceneConstant: Float = 3.75 / 10
-      
-      // Retrieve the constant for 3D lonsdaleite-shaped silicon, in nm.
-      let lonsdaleiteConstant = Constant(.hexagon) { .elemental(.silicon) }
-      
-      // Create a number that maps from 3D lattice spacing to silicene
-      // lattice spacing.
-      siliceneHexagonScale = siliceneConstant / lonsdaleiteConstant
-    }
-    
-    var silicons: [Atom] = siliconLattice.atoms
-    for atomID in silicons.indices {
-      // Partially flatten the sp3 sheet, so the elevated atoms reach the
-      // buckling distance from the literature.
-      if silicons[atomID].position.z > 0 {
-        silicons[atomID].position.z = 0.62 / 10
-      }
-      
-      // Resize the hexagon side length, so it matches silicene.
-      silicons[atomID].position.x *= siliceneHexagonScale
-      silicons[atomID].position.y *= siliceneHexagonScale
-    }
-    XCTAssertEqual(
-      expectedStep4,
-      Self.exportToXYZ(silicons, comment: "Step 4"))
+    let step3 = Step3()
+    let step4 = Step4(siliconLattice: step3.siliconLattice)
+    // TODO: Add step 5 with quaternions
   }
-  
-  // TODO: Add step 5 with quaternions
 }
 
 // TODO: Double check that all the code here matches the Markdown document, by
@@ -121,6 +76,64 @@ private struct Step2 {
     XCTAssertEqual(output, XYZ.expectedStep2)
   }
 }
+
+private struct Step3 {
+  var siliconLattice: Lattice<Hexagonal>
+  
+  init() {
+    siliconLattice = Lattice<Hexagonal> { h, k, l in
+      let h2k = h + 2 * k
+      Bounds { 3 * h + 2 * h2k + 1 * l }
+      Material { .elemental(.silicon) }
+      
+      Volume {
+        Origin { 0.25 * l }
+        Plane { l }
+        Replace { .empty }
+      }
+    }
+    
+    let output = XYZ.export(siliconLattice.atoms, comment: "Step 3")
+    XCTAssertEqual(output, XYZ.expectedStep3)
+  }
+}
+
+private struct Step4 {
+  var silicons: [Atom]
+  
+  init(siliconLattice: Lattice<Hexagonal>) {
+    var siliceneHexagonScale: Float
+    do {
+      // Convert silicene lattice constant from Å to nm.
+      let siliceneConstant: Float = 3.75 / 10
+      
+      // Retrieve the constant for 3D lonsdaleite-shaped silicon, in nm.
+      let lonsdaleiteConstant = Constant(.hexagon) { .elemental(.silicon) }
+      
+      // Create a number that maps from 3D lattice spacing to silicene
+      // lattice spacing.
+      siliceneHexagonScale = siliceneConstant / lonsdaleiteConstant
+    }
+    
+    silicons = siliconLattice.atoms
+    for atomID in silicons.indices {
+      // Partially flatten the sp3 sheet, so the elevated atoms reach the
+      // buckling distance from the literature.
+      if silicons[atomID].position.z > 0 {
+        silicons[atomID].position.z = 0.62 / 10
+      }
+      
+      // Resize the hexagon side length, so it matches silicene.
+      silicons[atomID].position.x *= siliceneHexagonScale
+      silicons[atomID].position.y *= siliceneHexagonScale
+    }
+    
+    let output = XYZ.export(silicons, comment: "Step 4")
+    XCTAssertEqual(output, XYZ.expectedStep4)
+  }
+}
+
+// MARK: - Exporting Utility
 
 private struct XYZ {
   static func export(_ atoms: [Atom], comment: String = "") -> String {

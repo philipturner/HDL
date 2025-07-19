@@ -240,17 +240,8 @@ extension CBNTripod {
       var orbital = legPivot.position - cagePivot.position
       orbital /= (orbital * orbital).sum().squareRoot()
       
-      func cross(
-        _ x: SIMD3<Float>, _ y: SIMD3<Float>
-      ) -> SIMD3<Float> {
-        // Source: https://en.wikipedia.org/wiki/Cross_product#Computing
-        let s1 = x[1] * y[2] - x[2] * y[1]
-        let s2 = x[2] * y[0] - x[0] * y[2]
-        let s3 = x[0] * y[1] - x[1] * y[0]
-        return SIMD3(s1, s2, s3)
-      }
-      let swingPerp = cross(SIMD3<Float>(0, 1, 0), -orbital)
-      var swingAxis = cross(-orbital, swingPerp)
+      let swingPerp = CBNTripodUtilities.cross(SIMD3(0, 1, 0), -orbital)
+      var swingAxis = CBNTripodUtilities.cross(-orbital, swingPerp)
       swingAxis /= (swingAxis * swingAxis).sum().squareRoot()
       
       let slantRotation = Quaternion<Float>(

@@ -451,16 +451,7 @@ extension CBNTripodCage {
     let basisY = SIMD3<Float>(1, 1, 1) / Float(3).squareRoot()
     XCTAssertLessThan((basisX * basisY).sum().magnitude, 1e-3)
     
-    func cross(
-      _ x: SIMD3<Float>, _ y: SIMD3<Float>
-    ) -> SIMD3<Float> {
-      // Source: https://en.wikipedia.org/wiki/Cross_product#Computing
-      let s1 = x[1] * y[2] - x[2] * y[1]
-      let s2 = x[2] * y[0] - x[0] * y[2]
-      let s3 = x[0] * y[1] - x[1] * y[0]
-      return SIMD3(s1, s2, s3)
-    }
-    let basisZ = -cross(basisX, basisY)
+    let basisZ = -CBNTripodUtilities.cross(basisX, basisY)
     let basisZLength = (basisZ * basisZ).sum().squareRoot()
     XCTAssertLessThan((basisZLength - 1).magnitude, 1e-3)
     

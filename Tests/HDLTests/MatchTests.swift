@@ -871,3 +871,17 @@ private struct MatchSummary {
 //  1312 x   8515 |  573 |   2234 | 0.171
 //  3256 x  34165 | 2475 |  22248 | 0.235
 //  7192 x 113837 | 7870 | 163743 | 0.275
+//
+// H-C, 3256 x 34165,
+// - The "performance sweet spot"
+// - RMS atom count = 10547
+// - Sorting marginally harms performance
+//   - 2161 ms -> 2330 ms
+// - We still enable sorting here to keep a concrete threshold of 10000
+//
+// H-H, 13540 x 13540
+// - Above the sweet spot
+// - RMS atom count = 13540
+// - Sorting significantly improves performance
+//   - 2942 ms -> 1329 ms
+

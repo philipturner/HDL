@@ -153,6 +153,10 @@ import func Foundation.pow
 // Might have to tweak the objectives for Phase IV, as the first phases are
 // checked off and more unknowns are resolved.
 
+// TODO: Change this to just an instance member of 'OctreeSorter'. A side
+// effect is the need to merge the comments above with those for OctreeSorter.
+// This task can be delayed as long as desired; any functional changes can be
+// completed before this refactoring.
 struct LevelSizes {
   // TODO: Adjust all level sizes to be 2x larger, not just this one.
   var highestNode: Float

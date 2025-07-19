@@ -23,7 +23,6 @@ extension OctreeSorter {
   
   func createGrid() -> Grid {
 //    let start = CACurrentMediaTime()
-    let levelSizes = LevelSizes(dimensions: dimensions)
     var grid = Grid()
     
     // Create the scratch pad.
@@ -128,6 +127,7 @@ extension OctreeSorter {
     }
     
     // Invoke the traversal function the first time.
+    let levelSizes = LevelSizes(dimensions: dimensions)
     let levelOrigin = SIMD3<Float>(
       repeating: levelSizes.highestNode / 2)
     let initialArray = atoms.indices.map(UInt32.init)

@@ -31,13 +31,34 @@ final class SortTests: XCTestCase {
   // reversed   |   1899 |   1017 |    711
   
   func testDiagonalOrder() throws {
-    let lattice = Lattice<Cubic> { h, k, l in
-      Bounds { 10 * (h + k + l) }
-      Material { .checkerboard(.silicon, .carbon) }
+    func createLattice() -> Lattice<Cubic> {
+      Lattice<Cubic> { h, k, l in
+        Bounds { 10 * (h + k + l) }
+        Material { .checkerboard(.silicon, .carbon) }
+      }
+    }
+    func transform(lattice: Lattice<Cubic>) -> [Atom] {
+      var output: [Atom] = []
+      for atomID in lattice.atoms.indices {
+        var atom = lattice.atoms[atomID]
+        atom.position = -atom.position
+        output.append(atom)
+      }
+      return output
+    }
+    func sort(atoms: [Atom]) -> [Atom] {
+      var topology = Topology()
+      topology.atoms = atoms
+      topology.sort()
+      return topology.atoms
     }
     
+    let lattice = createLattice()
+    let transformedAtoms = transform(lattice: lattice)
+    let sortedAtoms = sort(atoms: transformedAtoms)
+    
     var diagonalAtoms: [SIMD4<Float>] = []
-    for atom in lattice.atoms {
+    for atom in sortedAtoms {
       guard (atom.x - atom.y).magnitude < 0.001,
             (atom.y - atom.z).magnitude < 0.001 else {
         continue

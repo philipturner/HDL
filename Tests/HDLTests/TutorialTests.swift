@@ -11,9 +11,6 @@ final class TutorialTests: XCTestCase {
   }
 }
 
-// TODO: Double check that all the code here matches the Markdown document, by
-// copying and pasting it.
-
 private struct Step1 {
   var carbonLattice: Lattice<Hexagonal>
   
@@ -114,7 +111,7 @@ private struct Step4 {
       // lattice spacing.
       siliceneHexagonScale = siliceneConstant / lonsdaleiteConstant
     }
-    
+
     silicons = siliconLattice.atoms
     for atomID in silicons.indices {
       // Partially flatten the sp3 sheet, so the elevated atoms reach the

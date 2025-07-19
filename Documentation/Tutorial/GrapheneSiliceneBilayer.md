@@ -102,7 +102,7 @@ do {
   grapheneHexagonScale *= grapheneConstant
 }
 
-var carbons: [Atom] = carbonLattice.atoms
+var carbons = carbonLattice.atoms
 for atomID in carbons.indices {
   // Flatten the sp3 sheet into an sp2 sheet.
   carbons[atomID].position.z = 0
@@ -149,7 +149,7 @@ do {
   siliceneHexagonScale = siliceneConstant / lonsdaleiteConstant
 }
 
-var silicons: [Atom] = siliconLattice.atoms
+var silicons = siliconLattice.atoms
 for atomID in silicons.indices {
   // Partially flatten the sp3 sheet, so the elevated atoms reach the
   // buckling distance from the literature.

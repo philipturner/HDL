@@ -1,23 +1,12 @@
 # Graphene-Silicene Bilayer
 
-This tutorial is an introduction to the domain-specific language for
-prototyping crystal geometries. It shows how the 3D geometry compiler can
-be used to create 2D shapes. Restriction to 3D shapes was one important design 
-choice for the compiler. By supporting only the minimal amount of needed
-functionality, the language is simpler and the compiler takes less effort to
-develop. If the user wishes to work with an unsupported crystal geometry, they
-can often generate it from a supported geometry. In this case, an unsupported 
-"planar" lattice is created from a "hexagonal" lattice.
+This tutorial is an introduction to the domain-specific language for prototyping crystal geometries. It shows how the 3D geometry compiler can be used to create 2D shapes. Restriction to 3D shapes was one important design choice for the compiler. By supporting only the minimal amount of needed functionality, the language is simpler and the compiler takes less effort to develop. If the user wishes to work with an unsupported crystal geometry, they can often generate it from a supported geometry. In this case, an unsupported "planar" lattice is created from a "hexagonal" lattice.
 
 Objective: reproduce the graphene-silicene bilayer from https://doi.org/10.1103/PhysRevB.88.245408
 
 ## Setup
 
-To use this tutorial, you need to download Swift and set up an IDE. The
-easiest method, especially on Windows, is through Visual Studio Code.
-Install the Swift extension for VS Code and create a new project.
-Add the external package https://github.com/philipturner/HDL and type the
-following in `main.swift`. The code should compile without errors.
+To use this tutorial, you need to download [Swift](https://www.swift.org) and set up an IDE. On Windows, use [Visual Studio Code](https://code.visualstudio.com/Download). Install the [Swift extension](https://www.swift.org/documentation/articles/getting-started-with-vscode-swift.html) for VS Code and create a new project. Add the external package https://github.com/philipturner/HDL and type the following in `main.swift`. The code should compile without errors.
 
 ```swift
 import HDL
@@ -52,25 +41,15 @@ func export(_ atoms: [Atom], comment: String = "") -> String {
 }
 ```
 
-At any time in the tutorial, you can visualize the atoms. The function
-`exportToXYZ` creates a simple XYZ representation of the geometry. It
-does not contain a bonding topology like PDB. Therefore, the file cannot
-be used with a molecular mechanics simulator.
+At any time in the tutorial, you can visualize the atoms. The function `export` creates a portable XYZ representation of the geometry. It can be viewed in a variety of visualization programs, such as PyMOL, Vesta, or SAMSON.
 
 ## Create Graphene Layer
 
-Start by creating a 3D sheet of hexagonal diamond. It spans 4 unit cells
-in the `h` direction and 3 unit cells in the `h + 2 * k` direction. The
-most important dimension is `l`, which controls the depth. Since graphene
-is atomically thin, we want the smallest possible value for `l`. This
-value is 1 unit cell.
+Start by creating a 3D sheet of hexagonal diamond. It spans 4 unit cells in the `h` direction and 3 unit cells in the `h + 2 * k` direction. The most important dimension is `l`, which controls the depth. Since graphene is atomically thin, we want the smallest possible value for `l`. This value is 1 unit cell.
 
 ![Diagram of unit vectors for a hexagonal lattice](./HexagonalLatticeVectors.png)
 
-The `Volume` chops off unused atoms to create a monolayer. To begin,
-emulate the act of moving from (0, 0, 0) to (0, 0, 0.25) in a CAD
-program. Then, place a plane whose normal vector equals `l`. Finally,
-cut the diamond sheet. This leaves a layer two atoms thick.
+The `Volume` chops off unused atoms to create a monolayer. To begin, emulate the act of moving from (0, 0, 0) to (0, 0, 0.25) in a CAD program. Then, place a plane whose normal vector equals `l`. Finally, cut the diamond sheet. This leaves a layer two atoms thick.
 
 ```swift
 let carbonLattice = Lattice<Hexagonal> { h, k, l in
@@ -92,13 +71,9 @@ let carbonLattice = Lattice<Hexagonal> { h, k, l in
 print(export(carbonLattice.atoms, comment: "Step 1"))
 ```
 
-Lonsdaleite and graphene are similar, with a hexagonal arrangement of
-atoms. However, the layout of atoms is not exactly the same. Graphene
-is 2D, while lonsdaleite is 3D. The size of the hexagons is also a little
-different.
+Lonsdaleite and graphene are similar, with a hexagonal arrangement of atoms. However, the layout of atoms is not exactly the same. Graphene is 2D, while lonsdaleite is 3D. The size of the hexagons is also a little different.
 
-In this code segment, you will combine a custom lattice constant from the
-literature with the default lattice constant used by the compiler.
+In this code segment, you will combine a custom lattice constant from the literature with the default lattice constant used by the compiler.
 
 ```swift
 var grapheneHexagonScale: Float
@@ -133,11 +108,7 @@ print(export(carbons, comment: "Step 2"))
 
 ## Create Silicene Layer
 
-We will repeat the previous steps for silicene. Silicon atoms are
-larger than carbon atoms, so the silicene unit cell is larger than the
-graphene unit cell. To keep the sheets roughly equal in size, use less
-unit cells for silicon. Notice how the `Bounds` for the code section
-below is different than the section for graphene.
+We will repeat the previous steps for silicene. Silicon atoms are larger than carbon atoms, so the silicene unit cell is larger than the graphene unit cell. To keep the sheets roughly equal in size, use less unit cells for silicon. Notice how the `Bounds` for the code section below is different than the section for graphene.
 
 ```swift
 let siliconLattice = Lattice<Hexagonal> { h, k, l in
@@ -154,10 +125,7 @@ let siliconLattice = Lattice<Hexagonal> { h, k, l in
 print(export(siliconLattice.atoms, comment: "Step 3"))
 ```
 
-Change the silicene atoms to match the lattice spacings from the
-literature. Unlike graphene, silicene atoms are arranged in a 3D manner.
-Every other silicon atom is elevated in the `l` direction. We will use
-the $\sqrt{3}/\sqrt{7}$ arrangement from the research paper.
+Change the silicene atoms to match the lattice spacings from the literature. Unlike graphene, silicene atoms are arranged in a 3D manner. Every other silicon atom is elevated in the `l` direction. We will use the $\sqrt{3}/\sqrt{7}$ arrangement from the research paper.
 
 ```swift
 var siliceneHexagonScale: Float
@@ -190,10 +158,7 @@ print(export(silicons, comment: "Step 4"))
 
 ## Create Bilayer
 
-Finally, combine the graphene and silicon atoms into a bilayer. From the
-literature, the silicene layer is elevated 3.3 Å above the graphene
-layer. It is also twisted by 10.9°. Add the following dependency to your
-project's package manifest. Then, add `import QuaternionModule` to the top of the Swift file.
+Add the following dependency to your project's package manifest. Then, add `import QuaternionModule` to the top of the Swift file.
 
 ```swift
 // Dependency
@@ -214,8 +179,7 @@ let package = Package(
 )
 ```
 
-The final code section moves the silicon atoms into their position above
-graphene. Then, it exports an XYZ file with both graphene and silicene.
+Finally, combine the graphene and silicon atoms into a bilayer. The silicene layer is elevated 3.3 Å above the graphene layer. It is also twisted by 10.9°.
 
 ```swift
 var rotation: Quaternion<Float>
@@ -228,10 +192,10 @@ do {
 }
 
 for atomID in silicons.indices {
-  // Elevate the silicon atom by 0.33 nm in the Z direction.
+  // Elevate the silicon atom 3.3 Å in the Z direction.
   silicons[atomID].position.z += 3.3 / 10
   
-  // Rotate the silicon atom by 10.9° about the origin.
+  // Rotate the silicon atom 10.9° about the origin.
   silicons[atomID].position = rotation.act(on: silicons[atomID].position)
 }
 print(export(carbons + silicons, comment: "Step 5"))

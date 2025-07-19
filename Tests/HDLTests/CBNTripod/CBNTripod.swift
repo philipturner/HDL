@@ -5,9 +5,7 @@
 //  Created by Philip Turner on 12/29/23.
 //
 
-import Foundation
 import HDL
-import Numerics
 import QuaternionModule
 import XCTest
 
@@ -241,9 +239,9 @@ extension CBNTripod {
       var orbital = legPivot.position - cagePivot.position
       orbital /= (orbital * orbital).sum().squareRoot()
       
-      func cross<T: Real & SIMDScalar>(
-        _ x: SIMD3<T>, _ y: SIMD3<T>
-      ) -> SIMD3<T> {
+      func cross(
+        _ x: SIMD3<Float>, _ y: SIMD3<Float>
+      ) -> SIMD3<Float> {
         // Source: https://en.wikipedia.org/wiki/Cross_product#Computing
         let s1 = x[1] * y[2] - x[2] * y[1]
         let s2 = x[2] * y[0] - x[0] * y[2]
@@ -315,7 +313,6 @@ extension CBNTripod {
         return (siliconDelta * desiredOrbital).sum()
       }
       
-//      print()
       var angleDegrees: Float = 0
       for resolution in [Float(10), 3, 1, 0.3, 0.1] {
         var trials: Int = 0
@@ -323,7 +320,6 @@ extension CBNTripod {
           let center = evaluateDotProduct(angleDegrees)
           let left = evaluateDotProduct(angleDegrees - resolution)
           let right = evaluateDotProduct(angleDegrees + resolution)
-//          print(resolution, "-", left, center, right, "-", angleDegrees)
           
           if left == center && center == right {
             break

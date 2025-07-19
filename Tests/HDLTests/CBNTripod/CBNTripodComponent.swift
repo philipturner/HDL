@@ -5,9 +5,7 @@
 //  Created by Philip Turner on 12/30/23.
 //
 
-import Foundation
 import HDL
-import Numerics
 import QuaternionModule
 
 protocol CBNTripodComponent {
@@ -51,7 +49,7 @@ extension Quaternion<Float> {
     let xyz = a
     let v1LengthSq = (start * start).sum()
     let v2LengthSq = (end * end).sum()
-    let w = sqrt(v1LengthSq + v2LengthSq) + (start * end).sum()
+    let w = (v1LengthSq + v2LengthSq).squareRoot() + (start * end).sum()
     self.init(real: w, imaginary: xyz)
     
     guard let normalized = self.normalized else {

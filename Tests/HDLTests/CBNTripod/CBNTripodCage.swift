@@ -6,7 +6,7 @@
 //
 
 import HDL
-import Numerics
+import QuaternionModule
 import XCTest
 
 struct CBNTripodCage: CBNTripodComponent {
@@ -450,9 +450,9 @@ extension CBNTripodCage {
     let basisY = SIMD3<Float>(1, 1, 1) / Float(3).squareRoot()
     XCTAssertLessThan((basisX * basisY).sum().magnitude, 1e-3)
     
-    func cross<T: Real & SIMDScalar>(
-      _ x: SIMD3<T>, _ y: SIMD3<T>
-    ) -> SIMD3<T> {
+    func cross(
+      _ x: SIMD3<Float>, _ y: SIMD3<Float>
+    ) -> SIMD3<Float> {
       // Source: https://en.wikipedia.org/wiki/Cross_product#Computing
       let s1 = x[1] * y[2] - x[2] * y[1]
       let s2 = x[2] * y[0] - x[0] * y[2]

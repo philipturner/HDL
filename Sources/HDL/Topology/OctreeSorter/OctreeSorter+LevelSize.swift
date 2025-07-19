@@ -153,45 +153,26 @@ import func Foundation.pow
 // Might have to tweak the objectives for Phase IV, as the first phases are
 // checked off and more unknowns are resolved.
 
-// TODO: Change this to just an instance member of 'OctreeSorter'. A side
-// effect is the need to merge the comments above with those for OctreeSorter.
-// This task can be delayed as long as desired; any functional changes can be
-// completed before this refactoring.
-struct LevelSizes {
-  // TODO: Adjust all level sizes to be 2x larger, not just this one.
-  var highestNode: Float
-  
-  init(dimensions: SIMD3<Float>) {
+// TODO: Adjust all level sizes to be 2x larger, in all function bodies.
+
+extension OctreeSorter {
+  var highestLevelSize: Float {
     func truncatedDimensions() -> SIMD3<Float> {
       SIMD3<Float>(SIMD3<Int>(dimensions))
     }
     guard all(dimensions .== truncatedDimensions()) else {
       fatalError("Dimensions must be integers.")
     }
-//    // Make an initial guess of 67% for the top-level binary divider.
-//    let volume = dimensions.x * dimensions.y * dimensions.z
-//    let chunkVolume = volume / 27
-//    let highest = 2 * pow(chunkVolume, 1.0 / 3)
-//    self.octreeStart = highest
-//    
-//    // If the grid has dimensions that vary wildly, 'highestLevelSize' does not
-//    // provide an accurate center. Increase it by powers of 2 until it at least
-//    // reaches 51% of each dimension.
-//    var iterationCount = 0
-//    while true {
-//      iterationCount += 1
-//      if iterationCount > 100 {
-//        fatalError("Too many iterations.")
-//      }
-//      
-//      let targetDimension = dimensions.max() * 0.51
-//      if octreeStart < targetDimension {
-//        octreeStart *= 2
-//      } else {
-//        break
-//      }
-//    }
     
-    highestNode = 4
+    var output: Float = 4
+    for _ in 0..<100 {
+      if output < dimensions.max() {
+        output = 2 * output
+      } else {
+        return output
+      }
+    }
+    
+    fatalError("Took too many iterations to find highest level size.")
   }
 }

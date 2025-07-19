@@ -1,6 +1,7 @@
 import XCTest
 import HDL
 
+// TODO: Rename this to something like "example structures".
 final class HDLTests: XCTestCase {
   func testAdamantane() throws {
     for element in [Element.carbon, Element.silicon] {

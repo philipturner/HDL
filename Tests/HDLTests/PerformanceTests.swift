@@ -13,6 +13,8 @@ private func fmt(_ start: Double, _ end: Double) -> String {
   }
 }
 
+// TODO: Migrate the 'Sort' performance test to 'SortTests' and revise the
+// scope of this file to 'Lattice'.
 final class PerformanceTests: XCTestCase {
   static let printPerformanceSummary = true
   

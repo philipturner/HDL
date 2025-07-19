@@ -6,7 +6,9 @@ Objective: reproduce the graphene-silicene bilayer from https://doi.org/10.1103/
 
 ## Setup
 
-To use this tutorial, you need to download [Swift](https://www.swift.org) and set up an IDE. On Windows, use [Visual Studio Code](https://code.visualstudio.com/Download). Install the [Swift extension](https://www.swift.org/documentation/articles/getting-started-with-vscode-swift.html) for VS Code and create a new project. Add the HDL package to the dependencies.
+<b>macOS:</b> Download [Xcode](https://developer.apple.com/xcode). Create a new command-line project with Swift as the primary language. Go to <b>File</b> > <b>Add Package Dependencies</b> and add a dependency with a link to this repo.
+
+<b>Windows:</b> Download [Swift](https://www.swift.org) and set up [Visual Studio Code](https://code.visualstudio.com/Download). Install the [Swift extension](https://www.swift.org/documentation/articles/getting-started-with-vscode-swift.html) for VS Code and create a new project. Add the HDL dependency to the package manifest, as shown below:
 
 ```
 TODO: Show an exemplary package manifest.

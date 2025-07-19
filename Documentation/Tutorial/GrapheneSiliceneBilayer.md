@@ -8,7 +8,7 @@ Objective: reproduce the graphene-silicene bilayer from https://doi.org/10.1103/
 
 <b>macOS:</b> Download [Xcode](https://developer.apple.com/xcode). Create a new command-line project with Swift as the primary language. Go to <b>File</b> > <b>Add Package Dependencies</b>. Add a dependency with a link to this repo.
 
-<b>Windows:</b> Download [Swift](https://www.swift.org), set up [Visual Studio Code](https://code.visualstudio.com/Download), and install the [Swift extension](https://www.swift.org/documentation/articles/getting-started-with-vscode-swift.html). Create a new package. Add the HDL dependency to the package manifest, as shown below:
+<b>Windows:</b> Download [Swift](https://www.swift.org), set up [Visual Studio Code](https://code.visualstudio.com/Download), and install the [Swift extension](https://www.swift.org/documentation/articles/getting-started-with-vscode-swift.html). Create a new package. Add the HDL dependency to the package manifest.
 
 ```
 TODO: Show an exemplary package manifest.
@@ -187,7 +187,7 @@ let package = Package(
 )
 ```
 
-Finally, combine the graphene and silicon atoms into a bilayer. The silicene layer is elevated 3.3 Å above the graphene layer. It is also twisted by 10.9°.
+Finally, combine the graphene and silicene layers into a bilayer. The silicene layer is elevated 3.3 Å above the graphene layer. It is also twisted by 10.9°.
 
 ```swift
 var rotation: Quaternion<Float>

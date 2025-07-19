@@ -199,8 +199,9 @@ private func addOrbitals(
     
     // Branch on whether the situation resembles a sidewall carbon.
     if hybridization == .sp3 && neighborIDs[7] == 2 {
-      var crossProduct: SIMD3<Float> = .zero
       let axis = deltas[1] - deltas[0]
+      
+      var crossProduct: SIMD3<Float> = .zero
       crossProduct.x = axis.y * normal.z - axis.z * normal.y
       crossProduct.y = axis.z * normal.x - axis.x * normal.z
       crossProduct.z = axis.x * normal.y - axis.y * normal.x
@@ -216,9 +217,10 @@ private func addOrbitals(
       // deterministic after calling 'sort()'.
       let normalWeight = -Float(1.0 / 3).squareRoot()
       let crossProductWeight = Float(2.0 / 3).squareRoot()
-      return (2,
-      normal * normalWeight - crossProduct * crossProductWeight,
-      normal * normalWeight + crossProduct * crossProductWeight)
+      return (
+        2,
+        normal * normalWeight - crossProduct * crossProductWeight,
+        normal * normalWeight + crossProduct * crossProductWeight)
     } else {
       // In the remaining cases, simply return something pointing opposite
       // to the average of the deltas.

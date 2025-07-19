@@ -128,13 +128,14 @@ extension OctreeSorter {
     }
     
     // Invoke the traversal function the first time.
-    let levelOrigin = SIMD3<Float>(repeating: levelSizes.octreeStart)
+    let levelOrigin = SIMD3<Float>(
+      repeating: levelSizes.highestNode / 2)
     let initialArray = atoms.indices.map(UInt32.init)
     initialArray.withUnsafeBufferPointer { bufferPointer in
       traverseGrid(
         atomIDs: bufferPointer,
         levelOrigin: levelOrigin,
-        levelSize: levelSizes.octreeStart)
+        levelSize: levelSizes.highestNode / 2)
     }
     guard grid.data.count == atoms.count else {
       fatalError("This should never happen.")

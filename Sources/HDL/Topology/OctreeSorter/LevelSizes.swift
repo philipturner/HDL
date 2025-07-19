@@ -154,11 +154,14 @@ import func Foundation.pow
 // checked off and more unknowns are resolved.
 
 struct LevelSizes {
-  var octreeStart: Float
+  // TODO: Adjust all level sizes to be 2x larger, not just this one.
+  var highestNode: Float
   
   init(dimensions: SIMD3<Float>) {
-    let truncatedDimensions = SIMD3<Float>(SIMD3<Int>(dimensions))
-    guard all(dimensions .== truncatedDimensions) else {
+    func truncatedDimensions() -> SIMD3<Float> {
+      SIMD3<Float>(SIMD3<Int>(dimensions))
+    }
+    guard all(dimensions .== truncatedDimensions()) else {
       fatalError("Dimensions must be integers.")
     }
 //    // Make an initial guess of 67% for the top-level binary divider.
@@ -185,6 +188,6 @@ struct LevelSizes {
 //      }
 //    }
     
-    octreeStart = 4 / 2
+    highestNode = 4
   }
 }

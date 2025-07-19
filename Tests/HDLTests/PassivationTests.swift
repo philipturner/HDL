@@ -137,7 +137,7 @@ final class PassivationTests: XCTestCase {
       
       var topology = Topology()
       topology.atoms = oldTopology.atoms.filter { $0[3] == 1 }
-      topology.sort()
+      topology.sort() // TODO: remove this
       return topology.atoms
     }
     
@@ -162,6 +162,10 @@ final class PassivationTests: XCTestCase {
   // 'Reconstruction' has since been revised to remove the built-in hydrogen
   // passivation feature, thus simplifying and generalizing the API. This
   // unit test was critical to correctly implementing the elision.
+  //
+  // TODO: Revise this test to account for the possible change in order from a
+  // new sorting algorithm. Passivation and Sort tests should cover distinct,
+  // decoupled pieces of code.
   private static func expectedSortedHydrogens() -> [SIMD4<Float>] {
     return [
       SIMD4<Float>(0.047, 0.047, 0.047, 1),

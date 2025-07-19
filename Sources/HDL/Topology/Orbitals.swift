@@ -79,7 +79,8 @@ extension Topology {
     let safeBonds = bonds
     nonisolated(unsafe)
     var storageBuffer = [OrbitalStorage](
-      repeating: .init(storage: .zero), count: atoms.count)
+      repeating: OrbitalStorage(storage: .zero),
+      count: atoms.count)
     
     @Sendable
     func execute(taskID: Int) {
@@ -116,6 +117,11 @@ extension Topology {
   }
 }
 
+private typealias OrbitalReturn = (
+  orbitalCount: Int,
+  orbital1: SIMD3<Float>,
+  orbital2: SIMD3<Float>)
+
 @inline(__always)
 private func addOrbitals(
   atoms: [Atom],
@@ -123,7 +129,7 @@ private func addOrbitals(
   bonds: [SIMD2<UInt32>],
   connectionsMap: [Topology.MapStorage],
   hybridization: Topology.OrbitalHybridization
-) -> (Int, SIMD3<Float>, SIMD3<Float>) {
+) -> OrbitalReturn {
   let atom = atoms[atomID]
   let atomicNumber = UInt8(atom.w)
   let valence: Int
@@ -218,18 +224,22 @@ private func addOrbitals(
       }
       crossProduct /= crossProductSquared.squareRoot()
       
-      // The order of the returned bonds is ambiguous, but it will be
-      // deterministic after calling 'sort()'.
+      // The order of the returned bonds is almost random, with no defined
+      // rules for precedence of cartesian direction. However, none of the
+      // tests fail when the order is reversed.
       let normalWeight = -Float(1.0 / 3).squareRoot()
       let crossProductWeight = Float(2.0 / 3).squareRoot()
-      return (
-        2,
-        normal * normalWeight - crossProduct * crossProductWeight,
-        normal * normalWeight + crossProduct * crossProductWeight)
+      return OrbitalReturn(
+        orbitalCount: 2,
+        orbital1: normal * normalWeight - crossProduct * crossProductWeight,
+        orbital2: normal * normalWeight + crossProduct * crossProductWeight)
     } else {
       // In the remaining cases, simply return something pointing opposite
       // to the average of the deltas.
-      return (1, -normal, .zero)
+      return OrbitalReturn(
+        orbitalCount: 1,
+        orbital1: -normal,
+        orbital2: .zero)
     }
   }
 }

@@ -71,7 +71,11 @@ final class LatticeTests: XCTestCase {
   // match:  1.9 ms
   // match: 35.1 ms
   
-  // TODO: Add results after improving Orbitals
+  // After changing OrbitalStorage capacity to 2:
+  //
+  // orbitals: 1.0 ms
+  // orbitals: 0.6 ms
+  // orbitals: 8.8 ms
   
 #if RELEASE
   func testGoldSurface() throws {

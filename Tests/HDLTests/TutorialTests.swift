@@ -2,68 +2,9 @@ import XCTest
 import HDL
 
 final class TutorialTests: XCTestCase {
-  struct Step1 {
-    var carbonLattice: Lattice<Hexagonal>
-    
-    init() {
-      carbonLattice = Lattice<Hexagonal> { h, k, l in
-        let h2k = h + 2 * k
-        Bounds { 4 * h + 3 * h2k + 1 * l }
-        Material { .elemental(.carbon) }
-        
-        Volume {
-          // Move the player position from the origin to (0, 0, 0.25).
-          Origin { 0.25 * l }
-          
-          // Create a plane pointing from the origin to positive 'l'.
-          Plane { l }
-          
-          // Remove all atoms on the positive side of the plane.
-          Replace { .empty }
-        }
-      }
-      
-      let output = XYZ.exportToXYZ(carbonLattice.atoms, comment: "Step 1")
-    }
-  }
-  
   func testTutorial() throws {
     let step1 = Step1()
-    XCTAssertEqual(
-      expectedStep1,
-      Self.exportToXYZ(step1.carbonLattice.atoms, comment: "Step 1"))
-    
-    // Code for step 2.
-    var grapheneHexagonScale: Float
-    do {
-      // Convert graphene lattice constant from Å to nm.
-      let grapheneConstant: Float = 2.45 / 10
-      
-      // Retrieve lonsdaleite lattice constant in nm.
-      let lonsdaleiteConstant = Constant(.hexagon) { .elemental(.carbon) }
-      
-      // Each hexagon's current side length is the value of
-      // 'lonsdaleiteConstant'. Dividing by this constant, changes the hexagon
-      // so its sides are all 1 nm.
-      grapheneHexagonScale = 1 / lonsdaleiteConstant
-      
-      // Multiply by the graphene constant. This second transformation stretches
-      // the hexagon, so its sides are all 0.245 nm.
-      grapheneHexagonScale *= grapheneConstant
-    }
-    
-    var carbons: [Atom] = step1.carbonLattice.atoms
-    for atomID in carbons.indices {
-      // Flatten the sp3 sheet into an sp2 sheet.
-      carbons[atomID].position.z = 0
-      
-      // Resize the hexagon side length, so it matches graphene.
-      carbons[atomID].position.x *= grapheneHexagonScale
-      carbons[atomID].position.y *= grapheneHexagonScale
-    }
-    XCTAssertEqual(
-      expectedStep2,
-      Self.exportToXYZ(carbons, comment: "Step 2"))
+    let step2 = Step2(carbonLattice: step1.carbonLattice)
     
     // Code for step 3.
     let siliconLattice = Lattice<Hexagonal> { h, k, l in
@@ -113,6 +54,72 @@ final class TutorialTests: XCTestCase {
   }
   
   // TODO: Add step 5 with quaternions
+}
+
+// TODO: Double check that all the code here matches the Markdown document, by
+// copying and pasting it.
+
+private struct Step1 {
+  var carbonLattice: Lattice<Hexagonal>
+  
+  init() {
+    carbonLattice = Lattice<Hexagonal> { h, k, l in
+      let h2k = h + 2 * k
+      Bounds { 4 * h + 3 * h2k + 1 * l }
+      Material { .elemental(.carbon) }
+      
+      Volume {
+        // Move the player position from the origin to (0, 0, 0.25).
+        Origin { 0.25 * l }
+        
+        // Create a plane pointing from the origin to positive 'l'.
+        Plane { l }
+        
+        // Remove all atoms on the positive side of the plane.
+        Replace { .empty }
+      }
+    }
+    
+    let output = XYZ.export(carbonLattice.atoms, comment: "Step 1")
+    XCTAssertEqual(output, XYZ.expectedStep1)
+  }
+}
+
+private struct Step2 {
+  var carbons: [Atom]
+  
+  init(carbonLattice: Lattice<Hexagonal>) {
+    var grapheneHexagonScale: Float
+    do {
+      // Convert graphene lattice constant from Å to nm.
+      let grapheneConstant: Float = 2.45 / 10
+      
+      // Retrieve lonsdaleite lattice constant in nm.
+      let lonsdaleiteConstant = Constant(.hexagon) { .elemental(.carbon) }
+      
+      // Each hexagon's current side length is the value of
+      // 'lonsdaleiteConstant'. Dividing by this constant, changes the hexagon
+      // so its sides are all 1 nm.
+      grapheneHexagonScale = 1 / lonsdaleiteConstant
+      
+      // Multiply by the graphene constant. This second transformation stretches
+      // the hexagon, so its sides are all 0.245 nm.
+      grapheneHexagonScale *= grapheneConstant
+    }
+    
+    carbons = carbonLattice.atoms
+    for atomID in carbons.indices {
+      // Flatten the sp3 sheet into an sp2 sheet.
+      carbons[atomID].position.z = 0
+      
+      // Resize the hexagon side length, so it matches graphene.
+      carbons[atomID].position.x *= grapheneHexagonScale
+      carbons[atomID].position.y *= grapheneHexagonScale
+    }
+    
+    let output = XYZ.export(carbons, comment: "Step 2")
+    XCTAssertEqual(output, XYZ.expectedStep2)
+  }
 }
 
 private struct XYZ {

@@ -95,7 +95,7 @@ struct OctreeSorter {
     
     if atoms.count == 0 {
       origin = .zero
-      dimensions = .init(repeating: 0.5)
+      dimensions = SIMD3(repeating: 1)
     } else {
       var minimum = SIMD3<Float>(repeating: .greatestFiniteMagnitude)
       var maximum = -minimum
@@ -105,12 +105,14 @@ struct OctreeSorter {
         minimum.replace(with: position, where: position .< minimum)
         maximum.replace(with: position, where: position .> maximum)
       }
+      minimum.round(.down)
+      maximum.round(.up)
       
       origin = minimum
       dimensions = maximum - minimum
       dimensions.replace(
-        with: SIMD3(repeating: 0.5),
-        where: dimensions .< 0.5)
+        with: SIMD3(repeating: 1),
+        where: dimensions .< 1)
     }
   }
   

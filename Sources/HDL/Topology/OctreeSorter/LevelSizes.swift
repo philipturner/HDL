@@ -154,14 +154,13 @@ import func Foundation.pow
 // checked off and more unknowns are resolved.
 
 struct LevelSizes {
-  var highest: Float
   var octreeStart: Float
   
   init(dimensions: SIMD3<Float>) {
     // Make an initial guess of 67% for the top-level binary divider.
     let volume = dimensions.x * dimensions.y * dimensions.z
     let chunkVolume = volume / 27
-    self.highest = 2 * pow(chunkVolume, 1.0 / 3)
+    let highest = 2 * pow(chunkVolume, 1.0 / 3)
     self.octreeStart = highest
     
     // If the grid has dimensions that vary wildly, 'highestLevelSize' does not

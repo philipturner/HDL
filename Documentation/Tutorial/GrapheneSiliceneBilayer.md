@@ -166,9 +166,9 @@ print(export(silicons, comment: "Step 4"))
 
 ## Create Bilayer
 
-> TODO: Migrate this instruction to the setup, once that part is improved.
-
 Add the following dependency to your project's package manifest. Then, add `import QuaternionModule` to the top of the Swift file.
+
+> TODO: Migrate this instruction to the setup, once that part is improved.
 
 ```swift
 // Dependency

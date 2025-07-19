@@ -2,7 +2,7 @@
 import XCTest
 
 final class SortTests: XCTestCase {
-  static let printPerformanceSummary = false
+  static let printPerformanceSummary = true
   
   // Expected performance on original benchmarked computer (M1 Max):
   //
@@ -81,8 +81,8 @@ final class SortTests: XCTestCase {
   
   func testSortPerformance() throws {
     // Revert to 10 and true after any refactorings
-    let latticeScale: Float = 10
-    let testParallel = Bool.random() ? true : true
+    let latticeScale: Float = 20
+    let testParallel = Bool.random() ? false : false
     let lattice = Lattice<Hexagonal> { h, k, l in
       let h2k = h + 2 * k
       Bounds { latticeScale * (2 * h + h2k + l) }
@@ -127,7 +127,7 @@ final class SortTests: XCTestCase {
     }
     
     // Revert to 0..<4 after any refactorings
-    for trialID in 0..<4 {
+    for trialID in 2...2 {
       let trial = Trial(lattice: lattice, index: trialID)
       
       let startParallel = Profiler.time()

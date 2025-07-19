@@ -136,23 +136,12 @@ extension OctreeSorter {
       }
     }
     
-    func createLargeCellCount() -> Int {
-      var output = 0
-      for cell in grid.cells {
-        let atomCount = cell.range.count
-        if atomCount > 64 {
-          output += 1
-        }
-      }
-      return output
-    }
-    
     let taskCount = grid.cells.count
-    if createLargeCellCount() < 3 {
-      for z in 0..<taskCount {
-        let cell = grid.cells[z]
-        execute(cell: cell)
-      }
+    if taskCount == 0 {
+      fatalError("This should never happen.")
+    } else if taskCount == 1 {
+      let cell = grid.cells[0]
+      execute(cell: cell)
     } else {
       DispatchQueue.concurrentPerform(iterations: taskCount) { z in
         let cell = grid.cells[z]

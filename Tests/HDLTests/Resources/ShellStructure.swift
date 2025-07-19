@@ -6,7 +6,7 @@
 //
 
 import HDL
-import Numerics
+import QuaternionModule
 import XCTest
 
 struct ShellStructure {
@@ -144,15 +144,18 @@ struct ShellStructure {
       func createOrbitals(_ index: Int) -> [Orbital] {
         let neighbors = atomsToAtomsMap[index]
         let selfAtom = topology.atoms[index]
+        
         var output: [Orbital] = []
         for neighborID in neighbors {
           let otherAtom = topology.atoms[Int(neighborID)]
           var delta = otherAtom.position - selfAtom.position
           delta /= (delta * delta).sum().squareRoot()
-          output.append(Orbital(
+          
+          let orbital = Orbital(
             neighborID: neighborID,
             neighborElement: otherAtom.atomicNumber,
-            delta: delta))
+            delta: delta)
+          output.append(orbital)
         }
         return output
       }

@@ -1,5 +1,5 @@
-import XCTest
 import HDL
+import XCTest
 
 final class PassivationTests: XCTestCase {
   static func commonLattice() -> Lattice<Cubic> {

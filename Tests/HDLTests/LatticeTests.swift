@@ -1,6 +1,6 @@
-import XCTest
 import HDL
-import Numerics
+import QuaternionModule
+import XCTest
 
 private func fmt(_ start: Double, _ end: Double) -> String {
   let seconds = end - start
@@ -14,7 +14,7 @@ private func fmt(_ start: Double, _ end: Double) -> String {
 }
 
 final class LatticeTests: XCTestCase {
-  static let printPerformanceSummary = true
+  static let printPerformanceSummary = false
   
   // Expected performance on original benchmarked computer (M1 Max):
   //

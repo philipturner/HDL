@@ -1,5 +1,5 @@
-import XCTest
 import HDL
+import XCTest
 
 // Unit test how various APIs respond when they receive arrays of zero length.
 

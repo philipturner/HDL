@@ -1,13 +1,12 @@
-import XCTest
 import HDL
-import Numerics
+import XCTest
 
 // This file contains a performance test for topology.match(), which differs
 // significantly from the other performance tests. It was moved into a separate
 // file for better organization.
 
 final class MatchTests: XCTestCase {
-  static let printPerformanceSummary = true
+  static let printPerformanceSummary = false
   
   // We need to run performance tests of Topology.match, to ensure the
   // acceleration algorithm is working properly. One could imagine subtle bugs
@@ -884,4 +883,3 @@ private struct MatchSummary {
 // - RMS atom count = 13540
 // - Sorting significantly improves performance
 //   - 2942 ms -> 1329 ms
-

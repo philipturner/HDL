@@ -1,6 +1,5 @@
-import XCTest
 @testable import HDL
-import Numerics
+import XCTest
 
 final class TopologyTests: XCTestCase {
   func testInsertRemove() throws {

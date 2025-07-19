@@ -1,8 +1,8 @@
-import XCTest
 @testable import HDL
+import XCTest
 
 final class SortTests: XCTestCase {
-  static let printPerformanceSummary = true
+  static let printPerformanceSummary = false
   
   // Expected performance on original benchmarked computer (M1 Max):
   //

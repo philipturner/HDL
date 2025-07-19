@@ -1,5 +1,5 @@
-import XCTest
 import HDL
+import XCTest
 
 final class StructureTests: XCTestCase {
   func testAdamantane() throws {

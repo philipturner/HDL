@@ -269,7 +269,7 @@ final class SortTests: XCTestCase {
   // - study the worst-case execution time of the refined algorithm
   func testWorkSplitting() throws {
     // All latencies and their sums will be 4 digits or less.
-    func format(_ latency: Float) -> String {
+    func format(latency: Float) -> String {
       let rounded = latency.rounded(.toNearestOrEven)
       var repr = String(Int(rounded))
       guard repr.count > 0,
@@ -292,15 +292,15 @@ final class SortTests: XCTestCase {
       childLatencies.append(latency)
     }
     print(
-      format(childLatencies[0]),
+      format(latency: childLatencies[0]),
       "  ",
-      format(childLatencies[1]),
+      format(latency: childLatencies[1]),
       "  ",
-      format(childLatencies[2]),
+      format(latency: childLatencies[2]),
       "  ",
-      format(childLatencies[3]))
+      format(latency: childLatencies[3]))
     
-    func combinationRepr(_ counter: SIMD8<UInt8>) -> String {
+    func combinationRepr(counter: SIMD8<UInt8>) -> String {
       var tasks = [[Float]](repeating: [], count: taskCount)
       for childID in 0..<childCount {
         let latency = childLatencies[childID]
@@ -316,7 +316,36 @@ final class SortTests: XCTestCase {
         }
       }
       
+      var outputLines: [String] = []
+      for lineID in 0..<maxChildCount {
+        var lineEntries: [String] = []
+        for taskID in 0..<taskCount {
+          var entry: String
+          if lineID < tasks[taskID].count {
+            let latency = tasks[taskID][lineID]
+            entry = format(latency: latency)
+          } else {
+            entry = "    "
+          }
+          lineEntries.append(entry)
+        }
+        
+        let line = lineEntries.joined(separator: "  ")
+        outputLines.append(line)
+      }
       
+      let output = outputLines.joined(separator: "\n")
+      return output
+    }
+    
+    func createTaskLatencies(counter: SIMD8<UInt8>) -> SIMD8<Float> {
+      var output: SIMD8<Float> = .zero
+      for childID in 0..<childCount {
+        let latency = childLatencies[childID]
+        let taskID = counter[childID]
+        output[Int(taskID)] += latency
+      }
+      return output
     }
     
     // combinations = tasks^children
@@ -325,11 +354,33 @@ final class SortTests: XCTestCase {
       combinationCount = combinationCount * taskCount
     }
     
+    // Declare variables for finding the best combination.
+    var bestCombinationID: Int = -1
+    var bestCombinationLatency: Float = .greatestFiniteMagnitude
+    
     // Iterate over all combinations.
     print()
     var counter: SIMD8<UInt8> = .zero
     for combinationID in 0..<combinationCount {
+      print("#\(combinationID)")
       print(counter)
+      let repr = combinationRepr(counter: counter)
+      print(repr)
+      
+      let taskLatencies = createTaskLatencies(counter: counter)
+      for taskID in 0..<taskCount {
+        let latency = taskLatencies[taskID]
+        let repr = format(latency: latency)
+        print(repr, terminator: "  ")
+      }
+      print()
+      print()
+      
+      let maxTaskLatency = taskLatencies.max()
+      if maxTaskLatency < bestCombinationLatency {
+        bestCombinationID = combinationID
+        bestCombinationLatency = maxTaskLatency
+      }
       
       for laneID in 0..<8 {
         counter[laneID] += 1
@@ -339,6 +390,14 @@ final class SortTests: XCTestCase {
           break
         }
       }
+    }
+    
+    // Display a summary of the results.
+    do {
+      print("best combination: #\(bestCombinationID)")
+      let repr = format(latency: bestCombinationLatency)
+      print("latency: \(repr)")
+      print()
     }
   }
 }

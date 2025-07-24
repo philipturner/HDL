@@ -285,6 +285,19 @@ final class SortTests: XCTestCase {
       "  ",
       format(latency: childLatencies[3]))
     
+    var testCase = TestCase()
+    testCase.taskCount = 3
+    testCase.childCount = 5
+    
+    // Partial migration of the child latencies initialization.
+    do {
+      var vectorLatencies: SIMD8<Float> = .zero
+      for childID in 0..<testCase.childCount {
+        vectorLatencies[childID] = childLatencies[childID]
+      }
+      testCase.childLatencies = vectorLatencies
+    }
+    
     func combinationRepr(counter: SIMD8<UInt8>) -> String {
       var tasks = [[Float]](repeating: [], count: taskCount)
       for childID in 0..<childCount {
@@ -323,16 +336,6 @@ final class SortTests: XCTestCase {
       return output
     }
     
-    func createTaskLatencies(counter: SIMD8<UInt8>) -> SIMD8<Float> {
-      var output: SIMD8<Float> = .zero
-      for childID in 0..<childCount {
-        let latency = childLatencies[childID]
-        let taskID = counter[childID]
-        output[Int(taskID)] += latency
-      }
-      return output
-    }
-    
     // combinations = tasks^children
     var combinationCount: Int = 1
     for _ in 0..<childCount {
@@ -351,7 +354,7 @@ final class SortTests: XCTestCase {
       let repr = combinationRepr(counter: counter)
       print(repr)
       
-      let taskLatencies = createTaskLatencies(counter: counter)
+      let taskLatencies = testCase.taskLatencies(assignments: counter)
       for taskID in 0..<taskCount {
         let latency = taskLatencies[taskID]
         let repr = format(latency: latency)
@@ -403,7 +406,20 @@ private func format(latency: Float) -> String {
 struct TestCase {
   var taskCount: Int = .zero
   var childCount: Int = .zero
-  var childLatencies: [Float] = []
+  var childLatencies: SIMD8<Float> = .zero
+  
+  // Input: which task each child is assigned to.
+  func taskLatencies(
+    assignments: SIMD8<UInt8>
+  ) -> SIMD8<Float> {
+    var output: SIMD8<Float> = .zero
+    for childID in 0..<childCount {
+      let latency = childLatencies[childID]
+      let taskID = assignments[childID]
+      output[Int(taskID)] += latency
+    }
+    return output
+  }
 }
 
 // A line of sorted combinations to display.

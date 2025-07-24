@@ -466,3 +466,12 @@ private func runFullTest(testCase: TestCase) {
     pairs: combinationPairs)
   display(combinationLines: combinationLines)
 }
+
+private func runRestrictedTest(testCase: TestCase) {
+  // Sort the children by key and value, locating the top 'taskCount' children.
+  // Split the range of children into two lists:
+  // - Fixed child IDs
+  // - Variable child IDs
+  // Provide a mapping from childID to assigned tasks, which is only valid for
+  // fixed children.
+}

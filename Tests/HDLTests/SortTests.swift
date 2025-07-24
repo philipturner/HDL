@@ -268,125 +268,21 @@ final class SortTests: XCTestCase {
   // - study the effects of restricting the combinatorial space
   // - study the worst-case execution time of the refined algorithm
   func testWorkSplitting() throws {
-    let taskCount: Int = 3
-    let childCount: Int = 5
-    
-    var childLatencies: [Float] = []
-    for _ in 0..<childCount {
-      let latency = Float.random(in: 0..<1000)
-      childLatencies.append(latency)
-    }
-    print(
-      format(latency: childLatencies[0]),
-      "  ",
-      format(latency: childLatencies[1]),
-      "  ",
-      format(latency: childLatencies[2]),
-      "  ",
-      format(latency: childLatencies[3]))
-    
     var testCase = TestCase()
     testCase.taskCount = 3
     testCase.childCount = 5
     
-    // Partial migration of the child latencies initialization.
-    do {
-      var vectorLatencies: SIMD8<Float> = .zero
-      for childID in 0..<testCase.childCount {
-        vectorLatencies[childID] = childLatencies[childID]
-      }
-      testCase.childLatencies = vectorLatencies
+    // Set the child latencies to random values.
+    for childID in 0..<testCase.childCount {
+      let latency = Float.random(in: 0..<1000)
+      testCase.childLatencies[childID] = latency
     }
     
-    func combinationRepr(counter: SIMD8<UInt8>) -> String {
-      var tasks = [[Float]](repeating: [], count: taskCount)
-      for childID in 0..<childCount {
-        let latency = childLatencies[childID]
-        let taskID = counter[childID]
-        tasks[Int(taskID)].append(latency)
-      }
-      
-      var maxChildCount: Int = .zero
-      for task in tasks {
-        let childCount = task.count
-        if childCount > maxChildCount {
-          maxChildCount = childCount
-        }
-      }
-      
-      var outputLines: [String] = []
-      for lineID in 0..<maxChildCount {
-        var lineEntries: [String] = []
-        for taskID in 0..<taskCount {
-          var entry: String
-          if lineID < tasks[taskID].count {
-            let latency = tasks[taskID][lineID]
-            entry = format(latency: latency)
-          } else {
-            entry = "    "
-          }
-          lineEntries.append(entry)
-        }
-        
-        let line = lineEntries.joined(separator: "  ")
-        outputLines.append(line)
-      }
-      
-      let output = outputLines.joined(separator: "\n")
-      return output
-    }
-    
-    // combinations = tasks^children
-    var combinationCount: Int = 1
-    for _ in 0..<childCount {
-      combinationCount = combinationCount * taskCount
-    }
-    
-    // Declare variables for finding the best combination.
-    var combinationPairs: [SIMD2<Float>] = []
-    
-    // Iterate over all combinations.
-    print()
-    var counter: SIMD8<UInt8> = .zero
-    for combinationID in 0..<combinationCount {
-      print("#\(combinationID)")
-      print(counter)
-      let repr = combinationRepr(counter: counter)
-      print(repr)
-      
-      let taskLatencies = testCase.taskLatencies(assignments: counter)
-      for taskID in 0..<taskCount {
-        let latency = taskLatencies[taskID]
-        let repr = format(latency: latency)
-        print(repr, terminator: "  ")
-      }
-      print()
-      print()
-      
-      let maxTaskLatency = taskLatencies.max()
-      let pair = SIMD2(
-        Float(combinationID),
-        maxTaskLatency)
-      combinationPairs.append(pair)
-      
-      for laneID in 0..<8 {
-        counter[laneID] += 1
-        if counter[laneID] >= taskCount {
-          counter[laneID] = 0
-        } else {
-          break
-        }
-      }
-    }
-    combinationPairs.sort {
-      $0[1] < $1[1]
-    }
-    
-    let combinationLines = createCombinationLines(
-      pairs: combinationPairs)
-    display(combinationLines: combinationLines)
+    runFullTest(testCase: testCase)
   }
 }
+
+// MARK: - Utilities
 
 // All latencies and their sums will be 4 digits or less.
 private func format(latency: Float) -> String {
@@ -408,6 +304,15 @@ struct TestCase {
   var childCount: Int = .zero
   var childLatencies: SIMD8<Float> = .zero
   
+  // combinations = tasks^children
+  var combinationCount: Int {
+    var output: Int = 1
+    for _ in 0..<childCount {
+      output = output * taskCount
+    }
+    return output
+  }
+  
   // Input: which task each child is assigned to.
   func taskLatencies(
     assignments: SIMD8<UInt8>
@@ -418,6 +323,47 @@ struct TestCase {
       let taskID = assignments[childID]
       output[Int(taskID)] += latency
     }
+    return output
+  }
+  
+  // Input: which task each child is assigned to.
+  func combinationRepr(
+    assignments: SIMD8<UInt8>
+  ) -> String {
+    var tasks = [[Float]](repeating: [], count: taskCount)
+    for childID in 0..<childCount {
+      let latency = childLatencies[childID]
+      let taskID = assignments[childID]
+      tasks[Int(taskID)].append(latency)
+    }
+    
+    var maxChildCount: Int = .zero
+    for task in tasks {
+      let childCount = task.count
+      if childCount > maxChildCount {
+        maxChildCount = childCount
+      }
+    }
+    
+    var outputLines: [String] = []
+    for lineID in 0..<maxChildCount {
+      var lineEntries: [String] = []
+      for taskID in 0..<taskCount {
+        var entry: String
+        if lineID < tasks[taskID].count {
+          let latency = tasks[taskID][lineID]
+          entry = format(latency: latency)
+        } else {
+          entry = "    "
+        }
+        lineEntries.append(entry)
+      }
+      
+      let line = lineEntries.joined(separator: "  ")
+      outputLines.append(line)
+    }
+    
+    let output = outputLines.joined(separator: "\n")
     return output
   }
 }
@@ -473,6 +419,50 @@ private func display(combinationLines: [CombinationLine]) {
   }
 }
 
+// MARK: - Algorithm Variants
+
 private func runFullTest(testCase: TestCase) {
+  // Declare variables for finding the best combination.
+  var combinationPairs: [SIMD2<Float>] = []
   
+  // Iterate over all combinations.
+  print()
+  var counter: SIMD8<UInt8> = .zero
+  for combinationID in 0..<testCase.combinationCount {
+    print("#\(combinationID)")
+    print(counter)
+    let repr = testCase.combinationRepr(assignments: counter)
+    print(repr)
+    
+    let taskLatencies = testCase.taskLatencies(assignments: counter)
+    for taskID in 0..<testCase.taskCount {
+      let latency = taskLatencies[taskID]
+      let repr = format(latency: latency)
+      print(repr, terminator: "  ")
+    }
+    print()
+    print()
+    
+    let maxTaskLatency = taskLatencies.max()
+    let pair = SIMD2(
+      Float(combinationID),
+      maxTaskLatency)
+    combinationPairs.append(pair)
+    
+    for laneID in 0..<8 {
+      counter[laneID] += 1
+      if counter[laneID] >= testCase.taskCount {
+        counter[laneID] = 0
+      } else {
+        break
+      }
+    }
+  }
+  combinationPairs.sort {
+    $0[1] < $1[1]
+  }
+  
+  let combinationLines = createCombinationLines(
+    pairs: combinationPairs)
+  display(combinationLines: combinationLines)
 }

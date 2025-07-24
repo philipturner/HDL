@@ -279,6 +279,7 @@ final class SortTests: XCTestCase {
     }
     
     runFullTest(testCase: testCase)
+    runRestrictedTest(testCase: testCase)
   }
 }
 
@@ -303,15 +304,6 @@ struct TestCase {
   var taskCount: Int = .zero
   var childCount: Int = .zero
   var childLatencies: SIMD8<Float> = .zero
-  
-  // combinations = tasks^children
-  var combinationCount: Int {
-    var output: Int = 1
-    for _ in 0..<childCount {
-      output = output * taskCount
-    }
-    return output
-  }
   
   // Input: which task each child is assigned to.
   func taskLatencies(
@@ -422,42 +414,55 @@ private func display(combinationLines: [CombinationLine]) {
 // MARK: - Algorithm Variants
 
 private func runFullTest(testCase: TestCase) {
-  // Declare variables for finding the best combination.
-  var combinationPairs: [SIMD2<Float>] = []
-  
-  // Iterate over all combinations.
-  print()
-  var counter: SIMD8<UInt8> = .zero
-  for combinationID in 0..<testCase.combinationCount {
-    print("#\(combinationID)")
-    print(counter)
-    let repr = testCase.combinationRepr(assignments: counter)
-    print(repr)
-    
-    let taskLatencies = testCase.taskLatencies(assignments: counter)
-    for taskID in 0..<testCase.taskCount {
-      let latency = taskLatencies[taskID]
-      let repr = format(latency: latency)
-      print(repr, terminator: "  ")
+  // combinations = tasks^children
+  func createCombinationCount() -> Int {
+    var output: Int = 1
+    for _ in 0..<testCase.childCount {
+      output = output * testCase.taskCount
     }
-    print()
-    print()
+    return output
+  }
+  
+  func createCombinationPairs() -> [SIMD2<Float>] {
+    var output: [SIMD2<Float>] = []
     
-    let maxTaskLatency = taskLatencies.max()
-    let pair = SIMD2(
-      Float(combinationID),
-      maxTaskLatency)
-    combinationPairs.append(pair)
-    
-    for laneID in 0..<8 {
-      counter[laneID] += 1
-      if counter[laneID] >= testCase.taskCount {
-        counter[laneID] = 0
-      } else {
-        break
+    // Iterate over all combinations.
+    print()
+    var counter: SIMD8<UInt8> = .zero
+    for combinationID in 0..<createCombinationCount() {
+      print("#\(combinationID)")
+      print(counter)
+      let repr = testCase.combinationRepr(assignments: counter)
+      print(repr)
+      
+      let taskLatencies = testCase.taskLatencies(assignments: counter)
+      for taskID in 0..<testCase.taskCount {
+        let latency = taskLatencies[taskID]
+        let repr = format(latency: latency)
+        print(repr, terminator: "  ")
+      }
+      print()
+      print()
+      
+      let maxTaskLatency = taskLatencies.max()
+      let pair = SIMD2(
+        Float(combinationID),
+        maxTaskLatency)
+      output.append(pair)
+      
+      for laneID in 0..<8 {
+        counter[laneID] += 1
+        if counter[laneID] >= testCase.taskCount {
+          counter[laneID] = 0
+        } else {
+          break
+        }
       }
     }
+    return output
   }
+  
+  var combinationPairs = createCombinationPairs()
   combinationPairs.sort {
     $0[1] < $1[1]
   }
@@ -474,4 +479,49 @@ private func runRestrictedTest(testCase: TestCase) {
   // - Variable child IDs
   // Provide a mapping from childID to assigned tasks, which is only valid for
   // fixed children.
+  // Iterate over the combinations of variable children.
+  
+  func createChildPairs() -> [SIMD2<Float>] {
+    var output: [SIMD2<Float>] = []
+    for childID in 0..<testCase.childCount {
+      let latency = testCase.childLatencies[childID]
+      let pair = SIMD2(
+        Float(childID),
+        latency)
+      output.append(pair)
+    }
+    return output
+  }
+  
+  // Sort the children in ascending order, so we can just pop one off the list.
+  var sortedChildPairs = createChildPairs()
+  sortedChildPairs.sort {
+    $0[1] < $1[1]
+  }
+  do {
+    let combinationLines = createCombinationLines(
+      pairs: sortedChildPairs)
+    display(combinationLines: combinationLines)
+  }
+  
+  // Assign the fixed children to tasks.
+  var fixedChildAssignments = SIMD8<Int8>(repeating: -1)
+  guard testCase.childCount > testCase.taskCount else {
+    fatalError("Invalid conditions for the restricted algorithm.")
+  }
+  for taskID in 0..<testCase.taskCount {
+    let sortedChildID = testCase.childCount - 1 - taskID
+    let pair = sortedChildPairs[sortedChildID]
+    let childID = Int(pair[0])
+    fixedChildAssignments[childID] = Int8(taskID)
+  }
+  print(fixedChildAssignments)
+  print()
+  
+  sortedChildPairs.removeLast(testCase.taskCount)
+  do {
+    let combinationLines = createCombinationLines(
+      pairs: sortedChildPairs)
+    display(combinationLines: combinationLines)
+  }
 }

@@ -238,4 +238,33 @@ final class SortTests: XCTestCase {
     // 14     |  44688 |   6085 |   3789 |     2160 | 1.6 -> 2.8
     // 20     | 129600 |  19932 |  10811 |     6567 | 1.8 -> 3.0
   }
+  
+  // This test will prototype the work splitting algorithm, ensuring it
+  // executes in a reasonable amount of time.
+  //
+  // compute ideal task count
+  //   retrieve total atom count
+  //   retrieve levels remaining (7 @ 4 nm)
+  //   compute total latency from 7.5 ns/atom/level
+  //   ideal task count = round_to_nearest(total latency / 20 μs)
+  //   restrict ideal task count to 1 to 8
+  //
+  // early returns to disallow work splitting
+  //   level size is 1.0 nm or smaller
+  //   task count is 1
+  //
+  // child count = 1 to 8
+  // task count ≥ child count
+  //   every child
+  //   likely at highest level of tree
+  //   likely leaving breadcrumbs
+  // task count < child count
+  //   continue with algorithm
+  //
+  // find the optimal grouping of children in tasks, which minimizes the
+  // length of the longest task
+  // - create an algorithm to explicitly iterate over all possible combinations
+  // - study the characteristics with computationally tractable parameters
+  // - study the effects of restricting the combinatorial space
+  // - study the worst-case execution time of the refined algorithm
 }

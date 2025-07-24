@@ -283,8 +283,8 @@ final class SortTests: XCTestCase {
       return repr
     }
     
-    let taskCount: Int = 3
-    let childCount: Int = 5
+    let taskCount: Int = 2
+    let childCount: Int = 4
     
     var childLatencies: [Float] = []
     for _ in 0..<childCount {
@@ -300,6 +300,25 @@ final class SortTests: XCTestCase {
       "  ",
       format(childLatencies[3]))
     
+    func combinationRepr(_ counter: SIMD8<UInt8>) -> String {
+      var tasks = [[Float]](repeating: [], count: taskCount)
+      for childID in 0..<childCount {
+        let latency = childLatencies[childID]
+        let taskID = counter[childID]
+        tasks[Int(taskID)].append(latency)
+      }
+      
+      var maxChildCount: Int = .zero
+      for task in tasks {
+        let childCount = task.count
+        if childCount > maxChildCount {
+          maxChildCount = childCount
+        }
+      }
+      
+      
+    }
+    
     // combinations = tasks^children
     var combinationCount: Int = 1
     for _ in 0..<childCount {
@@ -311,8 +330,6 @@ final class SortTests: XCTestCase {
     var counter: SIMD8<UInt8> = .zero
     for combinationID in 0..<combinationCount {
       print(counter)
-      
-      
       
       for laneID in 0..<8 {
         counter[laneID] += 1

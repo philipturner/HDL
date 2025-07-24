@@ -267,4 +267,61 @@ final class SortTests: XCTestCase {
   // - study the characteristics with computationally tractable parameters
   // - study the effects of restricting the combinatorial space
   // - study the worst-case execution time of the refined algorithm
+  func testWorkSplitting() throws {
+    // All latencies and their sums will be 4 digits or less.
+    func format(_ latency: Float) -> String {
+      let rounded = latency.rounded(.toNearestOrEven)
+      var repr = String(Int(rounded))
+      guard repr.count > 0,
+            repr.count <= 4 else {
+        fatalError("Unexpected character count for latency.")
+      }
+      
+      while repr.count < 4 {
+        repr = " " + repr
+      }
+      return repr
+    }
+    
+    let taskCount: Int = 3
+    let childCount: Int = 5
+    
+    var childLatencies: [Float] = []
+    for _ in 0..<childCount {
+      let latency = Float.random(in: 0..<1000)
+      childLatencies.append(latency)
+    }
+    print(
+      format(childLatencies[0]),
+      "  ",
+      format(childLatencies[1]),
+      "  ",
+      format(childLatencies[2]),
+      "  ",
+      format(childLatencies[3]))
+    
+    // combinations = tasks^children
+    var combinationCount: Int = 1
+    for _ in 0..<childCount {
+      combinationCount = combinationCount * taskCount
+    }
+    
+    // Iterate over all combinations.
+    print()
+    var counter: SIMD8<UInt8> = .zero
+    for combinationID in 0..<combinationCount {
+      print(counter)
+      
+      
+      
+      for laneID in 0..<8 {
+        counter[laneID] += 1
+        if counter[laneID] >= taskCount {
+          counter[laneID] = 0
+        } else {
+          break
+        }
+      }
+    }
+  }
 }

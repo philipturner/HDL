@@ -268,23 +268,8 @@ final class SortTests: XCTestCase {
   // - study the effects of restricting the combinatorial space
   // - study the worst-case execution time of the refined algorithm
   func testWorkSplitting() throws {
-    // All latencies and their sums will be 4 digits or less.
-    func format(latency: Float) -> String {
-      let rounded = latency.rounded(.toNearestOrEven)
-      var repr = String(Int(rounded))
-      guard repr.count > 0,
-            repr.count <= 4 else {
-        fatalError("Unexpected character count for latency.")
-      }
-      
-      while repr.count < 4 {
-        repr = " " + repr
-      }
-      return repr
-    }
-    
-    let taskCount: Int = 2
-    let childCount: Int = 4
+    let taskCount: Int = 3
+    let childCount: Int = 5
     
     var childLatencies: [Float] = []
     for _ in 0..<childCount {
@@ -394,32 +379,31 @@ final class SortTests: XCTestCase {
       $0[1] < $1[1]
     }
     
-    // Display a summary of the results.
-    do {
-      let combinationLines = createCombinationLines(
-        pairs: combinationPairs)
-      
-      for line in combinationLines {
-        var entriesTaskID: [String] = []
-        var entriesLatency: [String] = []
-        for entry in line.entries {
-          let taskID = entry[0]
-          let reprTaskID = format(latency: taskID)
-          entriesTaskID.append(reprTaskID)
-          
-          let latency = entry[1]
-          let reprLatency = format(latency: latency)
-          entriesLatency.append(reprLatency)
-        }
-        
-        let lineTaskID = entriesTaskID.joined(separator: "  ")
-        let lineLatency = entriesLatency.joined(separator: "  ")
-        print(lineTaskID)
-        print(lineLatency)
-        print()
-      }
-    }
+    let combinationLines = createCombinationLines(
+      pairs: combinationPairs)
+    display(combinationLines: combinationLines)
   }
+}
+
+// All latencies and their sums will be 4 digits or less.
+private func format(latency: Float) -> String {
+  let rounded = latency.rounded(.toNearestOrEven)
+  var repr = String(Int(rounded))
+  guard repr.count > 0,
+        repr.count <= 4 else {
+    fatalError("Unexpected character count for latency.")
+  }
+  
+  while repr.count < 4 {
+    repr = " " + repr
+  }
+  return repr
+}
+
+struct TestCase {
+  var taskCount: Int = .zero
+  var childCount: Int = .zero
+  var childLatencies: [Float] = []
 }
 
 // A line of sorted combinations to display.
@@ -449,4 +433,30 @@ private func createCombinationLines(
     currentLine = []
   }
   return output
+}
+
+private func display(combinationLines: [CombinationLine]) {
+  for line in combinationLines {
+    var entriesTaskID: [String] = []
+    var entriesLatency: [String] = []
+    for entry in line.entries {
+      let taskID = entry[0]
+      let reprTaskID = format(latency: taskID)
+      entriesTaskID.append(reprTaskID)
+      
+      let latency = entry[1]
+      let reprLatency = format(latency: latency)
+      entriesLatency.append(reprLatency)
+    }
+    
+    let lineTaskID = entriesTaskID.joined(separator: "  ")
+    let lineLatency = entriesLatency.joined(separator: "  ")
+    print(lineTaskID)
+    print(lineLatency)
+    print()
+  }
+}
+
+private func runFullTest(testCase: TestCase) {
+  
 }

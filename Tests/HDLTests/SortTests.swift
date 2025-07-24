@@ -355,8 +355,7 @@ final class SortTests: XCTestCase {
     }
     
     // Declare variables for finding the best combination.
-    var bestCombinationID: Int = -1
-    var bestCombinationLatency: Float = .greatestFiniteMagnitude
+    var combinationPairs: [SIMD2<Float>] = []
     
     // Iterate over all combinations.
     print()
@@ -377,10 +376,10 @@ final class SortTests: XCTestCase {
       print()
       
       let maxTaskLatency = taskLatencies.max()
-      if maxTaskLatency < bestCombinationLatency {
-        bestCombinationID = combinationID
-        bestCombinationLatency = maxTaskLatency
-      }
+      let pair = SIMD2(
+        Float(combinationID),
+        maxTaskLatency)
+      combinationPairs.append(pair)
       
       for laneID in 0..<8 {
         counter[laneID] += 1
@@ -391,9 +390,14 @@ final class SortTests: XCTestCase {
         }
       }
     }
+    combinationPairs.sort {
+      $0[1] < $1[1]
+    }
     
     // Display a summary of the results.
     do {
+      
+      
       print("best combination: #\(bestCombinationID)")
       let repr = format(latency: bestCombinationLatency)
       print("latency: \(repr)")
@@ -401,3 +405,5 @@ final class SortTests: XCTestCase {
     }
   }
 }
+
+

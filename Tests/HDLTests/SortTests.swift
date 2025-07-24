@@ -396,14 +396,57 @@ final class SortTests: XCTestCase {
     
     // Display a summary of the results.
     do {
+      let combinationLines = createCombinationLines(
+        pairs: combinationPairs)
       
-      
-      print("best combination: #\(bestCombinationID)")
-      let repr = format(latency: bestCombinationLatency)
-      print("latency: \(repr)")
-      print()
+      for line in combinationLines {
+        var entriesTaskID: [String] = []
+        var entriesLatency: [String] = []
+        for entry in line.entries {
+          let taskID = entry[0]
+          let reprTaskID = format(latency: taskID)
+          entriesTaskID.append(reprTaskID)
+          
+          let latency = entry[1]
+          let reprLatency = format(latency: latency)
+          entriesLatency.append(reprLatency)
+        }
+        
+        let lineTaskID = entriesTaskID.joined(separator: "  ")
+        let lineLatency = entriesLatency.joined(separator: "  ")
+        print(lineTaskID)
+        print(lineLatency)
+        print()
+      }
     }
   }
 }
 
+// A line of sorted combinations to display.
+private struct CombinationLine {
+  var entries: [SIMD2<Float>] = []
+}
 
+private func createCombinationLines(
+  pairs: [SIMD2<Float>]
+) -> [CombinationLine] {
+  let maxEntriesPerLine: Int = 15
+  var output: [CombinationLine] = []
+  
+  var currentLine: [SIMD2<Float>] = []
+  for pair in pairs {
+    currentLine.append(pair)
+    if currentLine.count >= maxEntriesPerLine {
+      let combinationLine = CombinationLine(entries: currentLine)
+      output.append(combinationLine)
+      currentLine = []
+    }
+  }
+  
+  if currentLine.count > 0 {
+    let combinationLine = CombinationLine(entries: currentLine)
+    output.append(combinationLine)
+    currentLine = []
+  }
+  return output
+}

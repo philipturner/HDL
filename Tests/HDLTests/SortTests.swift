@@ -520,14 +520,6 @@ private func runRestrictedTest(testCase: TestCase) {
     pairs: sortedChildPairs)
   sortedChildPairs.removeLast(testCase.taskCount)
   
-  func createCombinationCount() -> Int {
-    var output: Int = 1
-    for _ in 0..<sortedChildPairs.count {
-      output = output * testCase.taskCount
-    }
-    return output
-  }
-  
   // Merge the fixed and variable children into an assignment like the
   // original 'fixed' algorithm.
   func combine(
@@ -540,20 +532,7 @@ private func runRestrictedTest(testCase: TestCase) {
       let childID = Int(pair[0])
       let taskID = variable[sortedChildID]
       guard combined[Int(childID)] == -1 else {
-        let errorMessage = """
-        Task was already assigned.
-        
-        logging failure
-        \(fixed)
-        \(variable)
-        \(combined)
-        
-        \(sortedChildPairs)
-        \(sortedChildID)
-        \(pair)
-        \(taskID)
-        """
-        fatalError(errorMessage)
+        fatalError("Task was already assigned.")
       }
       
       combined[Int(childID)] = Int8(taskID)
@@ -590,6 +569,14 @@ private func runRestrictedTest(testCase: TestCase) {
     return output
   }
   
+  func createCombinationCount() -> Int {
+    var output: Int = 1
+    for _ in 0..<sortedChildPairs.count {
+      output = output * testCase.taskCount
+    }
+    return output
+  }
+  
   func createCombinationPairs() -> [SIMD2<Float>] {
     var output: [SIMD2<Float>] = []
     
@@ -601,8 +588,17 @@ private func runRestrictedTest(testCase: TestCase) {
         fixed: fixedChildAssignments,
         variable: counter)
       print("#\(combinationID)")
-      print(counter)
+      print(combinedAssignments)
       print()
+      
+      for laneID in 0..<8 {
+        counter[laneID] += 1
+        if counter[laneID] >= testCase.taskCount {
+          counter[laneID] = 0
+        } else {
+          break
+        }
+      }
     }
     return output
   }

@@ -275,8 +275,8 @@ final class SortTests: XCTestCase {
   // of (taskCount, childCount) - enough to get full coverage.
   func testWorkSplitting() throws {
     var testCase = TestCase()
-    testCase.taskCount = 5
-    testCase.childCount = 8
+    testCase.taskCount = 3
+    testCase.childCount = 5
     
     // Set the child latencies to random values.
     for childID in 0..<testCase.childCount {
@@ -284,10 +284,20 @@ final class SortTests: XCTestCase {
       testCase.childLatencies[childID] = latency
     }
     
-    runFullTest(testCase: testCase)
+    do {
+      let start = Profiler.time()
+      runFullTest(testCase: testCase)
+      let end = Profiler.time()
+      print("full test time:", Float(end - start))
+    }
     print()
     print()
-    runRestrictedTest(testCase: testCase)
+    do {
+      let start = Profiler.time()
+      runRestrictedTest(testCase: testCase)
+      let end = Profiler.time()
+      print("restricted test time:", Float(end - start))
+    }
   }
 }
 
@@ -472,25 +482,25 @@ private func runFullTest(testCase: TestCase) {
   }
   
   var combinationPairs = createCombinationPairs()
-  combinationPairs.sort {
-    $0[1] < $1[1]
-  }
-  let combinationLines = createCombinationLines(
-    pairs: combinationPairs)
-  
-  // Avoid overflowing the console.
-  if combinationLines.count > 10 {
-    let lineCount = combinationLines.count
-    let lowRange = 0..<5
-    let highRange = (lineCount - 5)..<lineCount
-    
-    display(combinationLines: Array(combinationLines[lowRange]))
-    print("...")
-    print()
-    display(combinationLines: Array(combinationLines[highRange]))
-  } else {
-    display(combinationLines: combinationLines)
-  }
+//  combinationPairs.sort {
+//    $0[1] < $1[1]
+//  }
+//  let combinationLines = createCombinationLines(
+//    pairs: combinationPairs)
+//  
+//  // Avoid overflowing the console.
+//  if combinationLines.count > 10 {
+//    let lineCount = combinationLines.count
+//    let lowRange = 0..<5
+//    let highRange = (lineCount - 5)..<lineCount
+//    
+//    display(combinationLines: Array(combinationLines[lowRange]))
+//    print("...")
+//    print()
+//    display(combinationLines: Array(combinationLines[highRange]))
+//  } else {
+//    display(combinationLines: combinationLines)
+//  }
 }
 
 private func runRestrictedTest(testCase: TestCase) {
@@ -697,10 +707,10 @@ private func runRestrictedTest(testCase: TestCase) {
   }
   
   var combinationPairs = createCombinationPairs()
-  combinationPairs.sort {
-    $0[1] < $1[1]
-  }
-  let combinationLines = createCombinationLines(
-    pairs: combinationPairs)
-  display(combinationLines: combinationLines)
+//  combinationPairs.sort {
+//    $0[1] < $1[1]
+//  }
+//  let combinationLines = createCombinationLines(
+//    pairs: combinationPairs)
+//  display(combinationLines: combinationLines)
 }

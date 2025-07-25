@@ -532,6 +532,37 @@ private func runRestrictedTest(testCase: TestCase) {
     return output
   }
   
-  // Iterate over all combinations of variable children.
+  // Merge the fixed and variable children into an assignment like the
+  // original 'fixed' algorithm.
+  func combine(
+    fixed: SIMD8<Int8>,
+    variable: SIMD8<UInt8>
+  ) -> SIMD8<UInt8> {
+    var combined = fixed
+    for sortedChildID in sortedChildPairs.indices {
+      let pair = sortedChildPairs[sortedChildID]
+      let childID = Int(pair[0])
+      let taskID = variable[sortedChildID]
+      guard combined[Int(taskID)] == -1 else {
+        fatalError("Task was already assigned.")
+      }
+      
+      combined[Int(taskID)] = Int8(childID)
+    }
+    
+    // assert taskCount + sortedChildPairs = expected
+    // assert contiguous 'childCount' nonnegative entries, 8 - childCount neg.
+  }
   
+  func createCombinationPairs() -> [SIMD2<Float>] {
+    var output: [SIMD2<Float>] = []
+    
+    // Iterate over all combinations of variable children.
+    print()
+    var counter: SIMD8<UInt8> = .zero
+    for combinationID in 0..<createCombinationCount() {
+      
+    }
+    return output
+  }
 }

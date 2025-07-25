@@ -269,7 +269,7 @@ final class SortTests: XCTestCase {
   // - study the worst-case execution time of the refined algorithm
   func testWorkSplitting() throws {
     var testCase = TestCase()
-    testCase.taskCount = 3
+    testCase.taskCount = 4
     testCase.childCount = 5
     
     // Set the child latencies to random values.
@@ -368,7 +368,7 @@ private struct CombinationLine {
 private func createCombinationLines(
   pairs: [SIMD2<Float>]
 ) -> [CombinationLine] {
-  let maxEntriesPerLine: Int = 15
+  let maxEntriesPerLine: Int = 30
   var output: [CombinationLine] = []
   
   var currentLine: [SIMD2<Float>] = []
@@ -427,22 +427,22 @@ private func runFullTest(testCase: TestCase) {
     var output: [SIMD2<Float>] = []
     
     // Iterate over all combinations.
-    print()
+//    print()
     var counter: SIMD8<UInt8> = .zero
     for combinationID in 0..<createCombinationCount() {
-      print("#\(combinationID)")
-      print(counter)
-      let repr = testCase.combinationRepr(assignments: counter)
-      print(repr)
+//      print("#\(combinationID)")
+//      print(counter)
+//      let repr = testCase.combinationRepr(assignments: counter)
+//      print(repr)
       
       let taskLatencies = testCase.taskLatencies(assignments: counter)
-      for taskID in 0..<testCase.taskCount {
-        let latency = taskLatencies[taskID]
-        let repr = format(latency: latency)
-        print(repr, terminator: "  ")
-      }
-      print()
-      print()
+//      for taskID in 0..<testCase.taskCount {
+//        let latency = taskLatencies[taskID]
+//        let repr = format(latency: latency)
+//        print(repr, terminator: "  ")
+//      }
+//      print()
+//      print()
       
       let maxTaskLatency = taskLatencies.max()
       let pair = SIMD2(
@@ -468,7 +468,20 @@ private func runFullTest(testCase: TestCase) {
   }
   let combinationLines = createCombinationLines(
     pairs: combinationPairs)
-  display(combinationLines: combinationLines)
+  
+  // Avoid overflowing the console.
+  if combinationLines.count > 10 {
+    let lineCount = combinationLines.count
+    let lowRange = 0..<5
+    let highRange = (lineCount - 5)..<lineCount
+    
+    display(combinationLines: Array(combinationLines[lowRange]))
+    print("...")
+    print()
+    display(combinationLines: Array(combinationLines[highRange]))
+  } else {
+    display(combinationLines: combinationLines)
+  }
 }
 
 private func runRestrictedTest(testCase: TestCase) {
@@ -581,28 +594,28 @@ private func runRestrictedTest(testCase: TestCase) {
     var output: [SIMD2<Float>] = []
     
     // Iterate over all combinations of variable children.
-    print()
+//    print()
     var counter: SIMD8<UInt8> = .zero
     for combinationID in 0..<createCombinationCount() {
       let combinedAssignments = combine(
         fixed: fixedChildAssignments,
         variable: counter)
-      print("#\(combinationID)")
-      print(combinedAssignments)
+//      print("#\(combinationID)")
+//      print(combinedAssignments)
       
-      let repr = testCase.combinationRepr(
-        assignments: combinedAssignments)
-      print(repr)
+//      let repr = testCase.combinationRepr(
+//        assignments: combinedAssignments)
+//      print(repr)
       
       let taskLatencies = testCase.taskLatencies(
         assignments: combinedAssignments)
-      for taskID in 0..<testCase.taskCount {
-        let latency = taskLatencies[taskID]
-        let repr = format(latency: latency)
-        print(repr, terminator: "  ")
-      }
-      print()
-      print()
+//      for taskID in 0..<testCase.taskCount {
+//        let latency = taskLatencies[taskID]
+//        let repr = format(latency: latency)
+//        print(repr, terminator: "  ")
+//      }
+//      print()
+//      print()
       
       let maxTaskLatency = taskLatencies.max()
       let pair = SIMD2(
@@ -628,5 +641,7 @@ private func runRestrictedTest(testCase: TestCase) {
   }
   let combinationLines = createCombinationLines(
     pairs: combinationPairs)
+  print()
+  print()
   display(combinationLines: combinationLines)
 }

@@ -369,6 +369,15 @@ struct TestCase {
     }
     return output
   }
+  
+  // The number of combinations in the restricted algorithm, without investing
+  // further effort into shrinking the combinatorial space.
+  var nativeCombinationCount: Int {
+    var remainingChildCount = childCount - taskCount
+    remainingChildCount -= 1
+    return combinationCount(
+      childCount: remainingChildCount)
+  }
 }
 
 // A line of sorted combinations to display.
@@ -491,6 +500,10 @@ private func runRestrictedTest(testCase: TestCase) {
     return output
   }
   
+  func createFixedChildCount() -> Int {
+    testCase.taskCount + 1
+  }
+  
   func createFixedAssignments(
     pairs: [SIMD2<Float>]
   ) -> SIMD8<Int8> {
@@ -507,10 +520,9 @@ private func runRestrictedTest(testCase: TestCase) {
     
     // Assign the largest of the remaining children to the highest-index task.
     do {
-      let sortedChildID = testCase.childCount - 1 - testCase.taskCount
-      let pair = pairs[sortedChildID]
+      let remainingChildCount = testCase.childCount - testCase.taskCount
+      let pair = pairs[remainingChildCount - 1]
       let childID = Int(pair[0])
-      
       let taskID = testCase.taskCount - 1
       output[childID] = Int8(taskID)
     }
@@ -532,7 +544,7 @@ private func runRestrictedTest(testCase: TestCase) {
   
   let fixedChildAssignments = createFixedAssignments(
     pairs: sortedChildPairs)
-  sortedChildPairs.removeLast(testCase.taskCount + 1)
+  sortedChildPairs.removeLast(createFixedChildCount())
   
   // Merge the fixed and variable children into an assignment like the
   // original 'fixed' algorithm.
@@ -554,7 +566,7 @@ private func runRestrictedTest(testCase: TestCase) {
     
     // assert taskCount + sortedChildPairs = expected
     do {
-      let actual = testCase.taskCount + 1 + sortedChildPairs.count
+      let actual = createFixedChildCount() + sortedChildPairs.count
       guard actual == testCase.childCount else {
         fatalError("This should never happen.")
       }
@@ -590,6 +602,9 @@ private func runRestrictedTest(testCase: TestCase) {
     var counter: SIMD8<UInt8> = .zero
     let combinationCount = testCase.combinationCount(
       childCount: sortedChildPairs.count)
+    guard combinationCount == testCase.nativeCombinationCount else {
+      fatalError("This should never happen.")
+    }
     for combinationID in 0..<combinationCount {
       let combinedAssignments = combine(
         fixed: fixedChildAssignments,

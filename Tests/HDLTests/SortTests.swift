@@ -493,35 +493,45 @@ private func runRestrictedTest(testCase: TestCase) {
     return output
   }
   
+  func createFixedAssignments(
+    pairs: [SIMD2<Float>]
+  ) -> SIMD8<Int8> {
+    var output = SIMD8<Int8>(repeating: -1)
+    guard testCase.childCount > testCase.taskCount else {
+      fatalError("Invalid conditions for the restricted algorithm.")
+    }
+    for taskID in 0..<testCase.taskCount {
+      let sortedChildID = testCase.childCount - 1 - taskID
+      let pair = pairs[sortedChildID]
+      let childID = Int(pair[0])
+      output[childID] = Int8(taskID)
+    }
+    
+    // TODO: In the future, include the change that migrates the largest
+    // non-sorted child to the highest-index task.
+    return output
+  }
+  
   // Sort the children in ascending order, so we can just pop one off the list.
   var sortedChildPairs = createChildPairs()
   sortedChildPairs.sort {
     $0[1] < $1[1]
   }
-  do {
-    let combinationLines = createCombinationLines(
-      pairs: sortedChildPairs)
-    display(combinationLines: combinationLines)
-  }
-  
-  // Assign the fixed children to tasks.
-  var fixedChildAssignments = SIMD8<Int8>(repeating: -1)
-  guard testCase.childCount > testCase.taskCount else {
-    fatalError("Invalid conditions for the restricted algorithm.")
-  }
-  for taskID in 0..<testCase.taskCount {
-    let sortedChildID = testCase.childCount - 1 - taskID
-    let pair = sortedChildPairs[sortedChildID]
-    let childID = Int(pair[0])
-    fixedChildAssignments[childID] = Int8(taskID)
-  }
-  print(fixedChildAssignments)
-  print()
-  
+  let fixedChildAssignments = createFixedAssignments(
+    pairs: sortedChildPairs)
   sortedChildPairs.removeLast(testCase.taskCount)
-  do {
-    let combinationLines = createCombinationLines(
-      pairs: sortedChildPairs)
-    display(combinationLines: combinationLines)
+  
+  // combinations = tasks^(children - tasks)
+  //
+  // TODO: Update this documentation when an additional child is fixed.
+  func createCombinationCount() -> Int {
+    var output: Int = 1
+    for _ in 0..<sortedChildPairs.count {
+      output = output * testCase.taskCount
+    }
+    return output
   }
+  
+  // Iterate over all combinations of variable children.
+  
 }

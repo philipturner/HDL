@@ -533,18 +533,41 @@ private func runRestrictedTest(testCase: TestCase) {
       let large0 = pairs[remainingChildCount]
       let large1 = pairs[remainingChildCount + 1]
       
-      let smallLatencies = SIMD2(small0[1], small1[1])
-      let largeLatencies = SIMD2(large0[1], large1[1])
       func assignment(combinationID: Int) -> SIMD2<Int> {
         SIMD2(combinationID & 1, combinationID >> 1)
       }
       
+      print()
+      print("searching")
+      print(small0)
+      print(small1)
+      print(large0)
+      print(large1)
+      
       var bestCombinationID: Int?
       var bestCombinationLatency: Float = .greatestFiniteMagnitude
       for combinationID in 0..<4 {
+        print()
+        print("#\(combinationID)")
         let assignment = assignment(combinationID: combinationID)
-//        var summedLargeLatencies
+        print(assignment)
+        var largeLatencies = SIMD2(large0[1], large1[1])
+        print(largeLatencies)
+        largeLatencies[assignment[0]] += small0[1]
+        largeLatencies[assignment[1]] += small1[1]
+        print(largeLatencies)
+        
+        let maxLargeLatency = largeLatencies.max()
+        if maxLargeLatency < bestCombinationLatency {
+          bestCombinationID = combinationID
+          bestCombinationLatency = maxLargeLatency
+        }
       }
+      guard let bestCombinationID else {
+        fatalError("Could not find best combination.")
+      }
+      print()
+      print(bestCombinationID, bestCombinationLatency)
       
       let pair = pairs[remainingChildCount - 1]
       let childID = Int(pair[0])

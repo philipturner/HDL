@@ -267,9 +267,15 @@ final class SortTests: XCTestCase {
   // - study the characteristics with computationally tractable parameters
   // - study the effects of restricting the combinatorial space
   // - study the worst-case execution time of the refined algorithm
+  //
+  // TODO: Profile execution time of the existing code ASAP.
+  //
+  // TODO: Find adversarial test cases to detect when the algorithm is
+  // reverting to the behavior of a prior version. Cover specific combinations
+  // of (taskCount, childCount) - enough to get full coverage.
   func testWorkSplitting() throws {
     var testCase = TestCase()
-    testCase.taskCount = 3
+    testCase.taskCount = 5
     testCase.childCount = 8
     
     // Set the child latencies to random values.
@@ -500,8 +506,12 @@ private func runRestrictedTest(testCase: TestCase) {
     return output
   }
   
+  func maxNativeCombinations() -> Int {
+    20
+  }
+  
   func createFixedChildCount() -> Int {
-    if testCase.nativeCombinationCount < 20 {
+    if testCase.nativeCombinationCount < maxNativeCombinations() {
       return testCase.taskCount + 1
     } else {
       return testCase.taskCount + 2
@@ -526,7 +536,7 @@ private func runRestrictedTest(testCase: TestCase) {
     
     // Assign the largest of the remaining children to the highest-index task.
     let remainingChildCount = testCase.childCount - testCase.taskCount
-    if testCase.nativeCombinationCount < 20 {
+    if testCase.nativeCombinationCount < maxNativeCombinations() {
       let pair = pairs[remainingChildCount - 1]
       let childID = Int(pair[0])
       let taskID = testCase.taskCount - 1
@@ -541,25 +551,25 @@ private func runRestrictedTest(testCase: TestCase) {
         SIMD2(combinationID & 1, combinationID >> 1)
       }
       
-      print()
-      print("searching")
-      print(small0)
-      print(small1)
-      print(large0)
-      print(large1)
+//      print()
+//      print("searching")
+//      print(small0)
+//      print(small1)
+//      print(large0)
+//      print(large1)
       
       var bestCombinationID: Int?
       var bestCombinationLatency: Float = .greatestFiniteMagnitude
       for combinationID in 0..<4 {
-        print()
-        print("#\(combinationID)")
+//        print()
+//        print("#\(combinationID)")
         let assignment = assignment(combinationID: combinationID)
-        print(assignment)
+//        print(assignment)
         var largeLatencies = SIMD2(large0[1], large1[1])
-        print(largeLatencies)
+//        print(largeLatencies)
         largeLatencies[assignment[0]] += small0[1]
         largeLatencies[assignment[1]] += small1[1]
-        print(largeLatencies)
+//        print(largeLatencies)
         
         let maxLargeLatency = largeLatencies.max()
         if maxLargeLatency < bestCombinationLatency {
@@ -571,23 +581,23 @@ private func runRestrictedTest(testCase: TestCase) {
         fatalError("Could not find best combination.")
       }
       
-      print()
-      print("found optimal combination")
-      print(bestCombinationID, bestCombinationLatency)
+//      print()
+//      print("found optimal combination")
+//      print(bestCombinationID, bestCombinationLatency)
       
       do {
         let assignment = assignment(combinationID: bestCombinationID)
         let taskID0 = testCase.taskCount - 1 - assignment[0]
         let taskID1 = testCase.taskCount - 1 - assignment[1]
-        print("taskID0:", taskID0)
-        print("taskID1:", taskID1)
+//        print("taskID0:", taskID0)
+//        print("taskID1:", taskID1)
         
         let childID0 = Int(small0[0])
         let childID1 = Int(small1[0])
         output[childID0] = Int8(taskID0)
         output[childID1] = Int8(taskID1)
       }
-      print()
+//      print()
     }
     
     return output
@@ -597,19 +607,9 @@ private func runRestrictedTest(testCase: TestCase) {
   sortedChildPairs.sort {
     $0[1] < $1[1]
   }
-  do {
-    let lines = createCombinationLines(pairs: sortedChildPairs)
-    display(combinationLines: lines)
-  }
-  
   let fixedChildAssignments = createFixedAssignments(
     pairs: sortedChildPairs)
   sortedChildPairs.removeLast(createFixedChildCount())
-  do {
-    print(fixedChildAssignments)
-    let lines = createCombinationLines(pairs: sortedChildPairs)
-    display(combinationLines: lines)
-  }
   
   // Merge the fixed and variable children into an assignment like the
   // original 'fixed' algorithm.

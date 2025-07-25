@@ -269,7 +269,7 @@ final class SortTests: XCTestCase {
   // - study the worst-case execution time of the refined algorithm
   func testWorkSplitting() throws {
     var testCase = TestCase()
-    testCase.taskCount = 3
+    testCase.taskCount = 4
     testCase.childCount = 8
     
     // Set the child latencies to random values.
@@ -534,6 +534,8 @@ private func runRestrictedTest(testCase: TestCase) {
     
     // TODO: Assign the second largest remaining child if the number of
     // combinations is large enough.
+    // - Decide between the last and the second-last task, based on which one
+    //   (with the update) is still the smallest.
     
     return output
   }

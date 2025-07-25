@@ -276,9 +276,13 @@ final class SortTests: XCTestCase {
   // - Use a temporary 3rd test to find situations where behavior differs,
   //   depending on whether there are 1 or 2 extra fixed assignments.
   //   - Scope out the feasibility of this ASAP.
+  //   - Found a situation for: (2, 8)
+  //                            (3, 8)
+  //                            (3, 7)
   //
   // Once the tests are in place, we can try optimizations without causing
   // correctness regressions.
+  // - Current execution time: ~1.0-3.5 μs, depending on problem size
   func testWorkSplitting() throws {
     var testCase = TestCase()
     testCase.taskCount = 3

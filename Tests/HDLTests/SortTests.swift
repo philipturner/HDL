@@ -269,8 +269,8 @@ final class SortTests: XCTestCase {
   // - study the worst-case execution time of the refined algorithm
   func testWorkSplitting() throws {
     var testCase = TestCase()
-    testCase.taskCount = 4
-    testCase.childCount = 6
+    testCase.taskCount = 3
+    testCase.childCount = 8
     
     // Set the child latencies to random values.
     for childID in 0..<testCase.childCount {
@@ -531,6 +531,10 @@ private func runRestrictedTest(testCase: TestCase) {
       let taskID = testCase.taskCount - 1
       output[childID] = Int8(taskID)
     }
+    
+    // TODO: Assign the second largest remaining child if the number of
+    // combinations is large enough.
+    
     return output
   }
   
@@ -539,19 +543,10 @@ private func runRestrictedTest(testCase: TestCase) {
   sortedChildPairs.sort {
     $0[1] < $1[1]
   }
-  do {
-    let lines = createCombinationLines(pairs: sortedChildPairs)
-    display(combinationLines: lines)
-  }
   
   let fixedChildAssignments = createFixedAssignments(
     pairs: sortedChildPairs)
   sortedChildPairs.removeLast(testCase.taskCount + 1)
-  do {
-    print(fixedChildAssignments)
-    let lines = createCombinationLines(pairs: sortedChildPairs)
-    display(combinationLines: lines)
-  }
   
   // Merge the fixed and variable children into an assignment like the
   // original 'fixed' algorithm.

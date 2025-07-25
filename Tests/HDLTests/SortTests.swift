@@ -268,11 +268,17 @@ final class SortTests: XCTestCase {
   // - study the effects of restricting the combinatorial space
   // - study the worst-case execution time of the refined algorithm
   //
-  // TODO: Profile execution time of the existing code ASAP.
-  //
   // TODO: Find adversarial test cases to detect when the algorithm is
   // reverting to the behavior of a prior version. Cover specific combinations
   // of (taskCount, childCount) - enough to get full coverage.
+  // - Reformulate the algorithms, so they return the exact assignment of
+  //   children to tasks, that would be useful in actual work splitting.
+  // - Use a temporary 3rd test to find situations where behavior differs,
+  //   depending on whether there are 1 or 2 extra fixed assignments.
+  //   - Scope out the feasibility of this ASAP.
+  //
+  // Once the tests are in place, we can try optimizations without causing
+  // correctness regressions.
   func testWorkSplitting() throws {
     var testCase = TestCase()
     testCase.taskCount = 3
@@ -284,20 +290,10 @@ final class SortTests: XCTestCase {
       testCase.childLatencies[childID] = latency
     }
     
-    do {
-      let start = Profiler.time()
-      runFullTest(testCase: testCase)
-      let end = Profiler.time()
-      print("full test time:", Float(end - start))
-    }
+    runFullTest(testCase: testCase)
     print()
     print()
-    do {
-      let start = Profiler.time()
-      runRestrictedTest(testCase: testCase)
-      let end = Profiler.time()
-      print("restricted test time:", Float(end - start))
-    }
+    runRestrictedTest(testCase: testCase)
   }
 }
 
@@ -482,25 +478,25 @@ private func runFullTest(testCase: TestCase) {
   }
   
   var combinationPairs = createCombinationPairs()
-//  combinationPairs.sort {
-//    $0[1] < $1[1]
-//  }
-//  let combinationLines = createCombinationLines(
-//    pairs: combinationPairs)
-//  
-//  // Avoid overflowing the console.
-//  if combinationLines.count > 10 {
-//    let lineCount = combinationLines.count
-//    let lowRange = 0..<5
-//    let highRange = (lineCount - 5)..<lineCount
-//    
-//    display(combinationLines: Array(combinationLines[lowRange]))
-//    print("...")
-//    print()
-//    display(combinationLines: Array(combinationLines[highRange]))
-//  } else {
-//    display(combinationLines: combinationLines)
-//  }
+  combinationPairs.sort {
+    $0[1] < $1[1]
+  }
+  let combinationLines = createCombinationLines(
+    pairs: combinationPairs)
+  
+  // Avoid overflowing the console.
+  if combinationLines.count > 10 {
+    let lineCount = combinationLines.count
+    let lowRange = 0..<5
+    let highRange = (lineCount - 5)..<lineCount
+    
+    display(combinationLines: Array(combinationLines[lowRange]))
+    print("...")
+    print()
+    display(combinationLines: Array(combinationLines[highRange]))
+  } else {
+    display(combinationLines: combinationLines)
+  }
 }
 
 private func runRestrictedTest(testCase: TestCase) {
@@ -561,25 +557,13 @@ private func runRestrictedTest(testCase: TestCase) {
         SIMD2(combinationID & 1, combinationID >> 1)
       }
       
-//      print()
-//      print("searching")
-//      print(small0)
-//      print(small1)
-//      print(large0)
-//      print(large1)
-      
       var bestCombinationID: Int?
       var bestCombinationLatency: Float = .greatestFiniteMagnitude
       for combinationID in 0..<4 {
-//        print()
-//        print("#\(combinationID)")
         let assignment = assignment(combinationID: combinationID)
-//        print(assignment)
         var largeLatencies = SIMD2(large0[1], large1[1])
-//        print(largeLatencies)
         largeLatencies[assignment[0]] += small0[1]
         largeLatencies[assignment[1]] += small1[1]
-//        print(largeLatencies)
         
         let maxLargeLatency = largeLatencies.max()
         if maxLargeLatency < bestCombinationLatency {
@@ -591,23 +575,16 @@ private func runRestrictedTest(testCase: TestCase) {
         fatalError("Could not find best combination.")
       }
       
-//      print()
-//      print("found optimal combination")
-//      print(bestCombinationID, bestCombinationLatency)
-      
       do {
         let assignment = assignment(combinationID: bestCombinationID)
         let taskID0 = testCase.taskCount - 1 - assignment[0]
         let taskID1 = testCase.taskCount - 1 - assignment[1]
-//        print("taskID0:", taskID0)
-//        print("taskID1:", taskID1)
         
         let childID0 = Int(small0[0])
         let childID1 = Int(small1[0])
         output[childID0] = Int8(taskID0)
         output[childID1] = Int8(taskID1)
       }
-//      print()
     }
     
     return output
@@ -669,7 +646,7 @@ private func runRestrictedTest(testCase: TestCase) {
     }
     return output
   }
-    
+  
   func createCombinationPairs() -> [SIMD2<Float>] {
     var output: [SIMD2<Float>] = []
     
@@ -677,9 +654,6 @@ private func runRestrictedTest(testCase: TestCase) {
     var counter: SIMD8<UInt8> = .zero
     let combinationCount = testCase.combinationCount(
       childCount: sortedChildPairs.count)
-//    guard combinationCount == testCase.nativeCombinationCount else {
-//      fatalError("This should never happen.")
-//    }
     for combinationID in 0..<combinationCount {
       let combinedAssignments = combine(
         fixed: fixedChildAssignments,
@@ -707,10 +681,10 @@ private func runRestrictedTest(testCase: TestCase) {
   }
   
   var combinationPairs = createCombinationPairs()
-//  combinationPairs.sort {
-//    $0[1] < $1[1]
-//  }
-//  let combinationLines = createCombinationLines(
-//    pairs: combinationPairs)
-//  display(combinationLines: combinationLines)
+  combinationPairs.sort {
+    $0[1] < $1[1]
+  }
+  let combinationLines = createCombinationLines(
+    pairs: combinationPairs)
+  display(combinationLines: combinationLines)
 }

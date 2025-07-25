@@ -270,7 +270,7 @@ final class SortTests: XCTestCase {
   func testWorkSplitting() throws {
     var testCase = TestCase()
     testCase.taskCount = 3
-    testCase.childCount = 5
+    testCase.childCount = 8
     
     // Set the child latencies to random values.
     for childID in 0..<testCase.childCount {
@@ -511,6 +511,8 @@ private func runRestrictedTest(testCase: TestCase) {
     guard testCase.childCount > testCase.taskCount else {
       fatalError("Invalid conditions for the restricted algorithm.")
     }
+    
+    // Assign the highest-index children to the lowest-index tasks.
     for taskID in 0..<testCase.taskCount {
       let sortedChildID = testCase.childCount - 1 - taskID
       let pair = pairs[sortedChildID]
@@ -519,8 +521,31 @@ private func runRestrictedTest(testCase: TestCase) {
     }
     
     // Assign the largest of the remaining children to the highest-index task.
-    do {
-      let remainingChildCount = testCase.childCount - testCase.taskCount
+    let remainingChildCount = testCase.childCount - testCase.taskCount
+    if testCase.nativeCombinationCount < 20 {
+      let pair = pairs[remainingChildCount - 1]
+      let childID = Int(pair[0])
+      let taskID = testCase.taskCount - 1
+      output[childID] = Int8(taskID)
+    } else {
+      let small0 = pairs[remainingChildCount - 2]
+      let small1 = pairs[remainingChildCount - 1]
+      let large0 = pairs[remainingChildCount]
+      let large1 = pairs[remainingChildCount + 1]
+      
+      let smallLatencies = SIMD2(small0[1], small1[1])
+      let largeLatencies = SIMD2(large0[1], large1[1])
+      func assignment(combinationID: Int) -> SIMD2<Int> {
+        SIMD2(combinationID & 1, combinationID >> 1)
+      }
+      
+      var bestCombinationID: Int?
+      var bestCombinationLatency: Float = .greatestFiniteMagnitude
+      for combinationID in 0..<4 {
+        let assignment = assignment(combinationID: combinationID)
+//        var summedLargeLatencies
+      }
+      
       let pair = pairs[remainingChildCount - 1]
       let childID = Int(pair[0])
       let taskID = testCase.taskCount - 1
@@ -541,10 +566,19 @@ private func runRestrictedTest(testCase: TestCase) {
   sortedChildPairs.sort {
     $0[1] < $1[1]
   }
+  do {
+    let lines = createCombinationLines(pairs: sortedChildPairs)
+    display(combinationLines: lines)
+  }
   
   let fixedChildAssignments = createFixedAssignments(
     pairs: sortedChildPairs)
   sortedChildPairs.removeLast(createFixedChildCount())
+  do {
+    print(fixedChildAssignments)
+    let lines = createCombinationLines(pairs: sortedChildPairs)
+    display(combinationLines: lines)
+  }
   
   // Merge the fixed and variable children into an assignment like the
   // original 'fixed' algorithm.

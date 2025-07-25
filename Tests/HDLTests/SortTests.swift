@@ -566,21 +566,25 @@ private func runRestrictedTest(testCase: TestCase) {
       guard let bestCombinationID else {
         fatalError("Could not find best combination.")
       }
+      
       print()
+      print("found optimal combination")
       print(bestCombinationID, bestCombinationLatency)
       
-      let pair = pairs[remainingChildCount - 1]
-      let childID = Int(pair[0])
-      let taskID = testCase.taskCount - 1
-      output[childID] = Int8(taskID)
+      do {
+        let assignment = assignment(combinationID: bestCombinationID)
+        let taskID0 = testCase.taskCount - 1 - assignment[0]
+        let taskID1 = testCase.taskCount - 1 - assignment[1]
+        print("taskID0:", taskID0)
+        print("taskID1:", taskID1)
+        
+        let childID0 = Int(small0[0])
+        let childID1 = Int(small1[1])
+        output[childID0] = Int8(taskID0)
+        output[childID1] = Int8(taskID1)
+      }
+      print()
     }
-    
-    // TODO: Assign the second largest remaining child if the number of
-    // combinations is large enough.
-    // - This is an alternative branch to the 'do' statement above.
-    //   - Activates when the combination count reaches 20.
-    // - Explicitly search the 4 combinations, to find which pairing
-    //   minimizes the maximum size of the smallest 2 tasks.
     
     return output
   }

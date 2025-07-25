@@ -466,7 +466,6 @@ private func runFullTest(testCase: TestCase) {
   combinationPairs.sort {
     $0[1] < $1[1]
   }
-  
   let combinationLines = createCombinationLines(
     pairs: combinationPairs)
   display(combinationLines: combinationLines)
@@ -507,8 +506,8 @@ private func runRestrictedTest(testCase: TestCase) {
       output[childID] = Int8(taskID)
     }
     
-    // TODO: In the future, include the change that migrates the largest
-    // non-sorted child to the highest-index task.
+    // In the future, include the change that migrates the largest non-sorted
+    // child to the highest-index task.
     return output
   }
   
@@ -521,9 +520,6 @@ private func runRestrictedTest(testCase: TestCase) {
     pairs: sortedChildPairs)
   sortedChildPairs.removeLast(testCase.taskCount)
   
-  // combinations = tasks^(children - tasks)
-  //
-  // TODO: Update this documentation when an additional child is fixed.
   func createCombinationCount() -> Int {
     var output: Int = 1
     for _ in 0..<sortedChildPairs.count {
@@ -543,15 +539,55 @@ private func runRestrictedTest(testCase: TestCase) {
       let pair = sortedChildPairs[sortedChildID]
       let childID = Int(pair[0])
       let taskID = variable[sortedChildID]
-      guard combined[Int(taskID)] == -1 else {
-        fatalError("Task was already assigned.")
+      guard combined[Int(childID)] == -1 else {
+        let errorMessage = """
+        Task was already assigned.
+        
+        logging failure
+        \(fixed)
+        \(variable)
+        \(combined)
+        
+        \(sortedChildPairs)
+        \(sortedChildID)
+        \(pair)
+        \(taskID)
+        """
+        fatalError(errorMessage)
       }
       
-      combined[Int(taskID)] = Int8(childID)
+      combined[Int(childID)] = Int8(taskID)
     }
     
     // assert taskCount + sortedChildPairs = expected
-    // assert contiguous 'childCount' nonnegative entries, 8 - childCount neg.
+    do {
+      let actual = testCase.taskCount + sortedChildPairs.count
+      guard actual == testCase.childCount else {
+        fatalError("This should never happen.")
+      }
+    }
+    
+    // assert 'childCount' consecutive nonnegative entries
+    // assert '8 - childCount' consecutive negative entries
+    for entryID in 0..<8 {
+      let taskID = combined[entryID]
+      if entryID < testCase.childCount {
+        guard taskID >= 0 else {
+          fatalError("This should never happen.")
+        }
+      } else {
+        guard taskID == -1 else {
+          fatalError("This should never happen.")
+        }
+      }
+    }
+    
+    var output: SIMD8<UInt8> = .zero
+    for childID in 0..<testCase.childCount {
+      let taskID = combined[childID]
+      output[childID] = UInt8(taskID)
+    }
+    return output
   }
   
   func createCombinationPairs() -> [SIMD2<Float>] {
@@ -561,8 +597,15 @@ private func runRestrictedTest(testCase: TestCase) {
     print()
     var counter: SIMD8<UInt8> = .zero
     for combinationID in 0..<createCombinationCount() {
-      
+      let combinedAssignments = combine(
+        fixed: fixedChildAssignments,
+        variable: counter)
+      print("#\(combinationID)")
+      print(counter)
+      print()
     }
     return output
   }
+  
+  _ = createCombinationPairs()
 }

@@ -269,8 +269,8 @@ final class SortTests: XCTestCase {
   // - study the worst-case execution time of the refined algorithm
   func testWorkSplitting() throws {
     var testCase = TestCase()
-    testCase.taskCount = 4
-    testCase.childCount = 5
+    testCase.taskCount = 2
+    testCase.childCount = 8
     
     // Set the child latencies to random values.
     for childID in 0..<testCase.childCount {
@@ -391,21 +391,24 @@ private func createCombinationLines(
 
 private func display(combinationLines: [CombinationLine]) {
   for line in combinationLines {
-    var entriesTaskID: [String] = []
+    var entriesCombinationID: [String] = []
     var entriesLatency: [String] = []
     for entry in line.entries {
-      let taskID = entry[0]
-      let reprTaskID = format(latency: taskID)
-      entriesTaskID.append(reprTaskID)
+      var combinationID = entry[0]
+      if combinationID > 9999 {
+        combinationID = 9999
+      }
+      let reprCombinatinID = format(latency: combinationID)
+      entriesCombinationID.append(reprCombinatinID)
       
       let latency = entry[1]
       let reprLatency = format(latency: latency)
       entriesLatency.append(reprLatency)
     }
     
-    let lineTaskID = entriesTaskID.joined(separator: "  ")
+    let lineCombinationID = entriesCombinationID.joined(separator: "  ")
     let lineLatency = entriesLatency.joined(separator: "  ")
-    print(lineTaskID)
+    print(lineCombinationID)
     print(lineLatency)
     print()
   }

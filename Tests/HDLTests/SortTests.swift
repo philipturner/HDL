@@ -589,7 +589,26 @@ private func runRestrictedTest(testCase: TestCase) {
         variable: counter)
       print("#\(combinationID)")
       print(combinedAssignments)
+      
+      let repr = testCase.combinationRepr(
+        assignments: combinedAssignments)
+      print(repr)
+      
+      let taskLatencies = testCase.taskLatencies(
+        assignments: combinedAssignments)
+      for taskID in 0..<testCase.taskCount {
+        let latency = taskLatencies[taskID]
+        let repr = format(latency: latency)
+        print(repr, terminator: "  ")
+      }
       print()
+      print()
+      
+      let maxTaskLatency = taskLatencies.max()
+      let pair = SIMD2(
+        Float(combinationID),
+        maxTaskLatency)
+      output.append(pair)
       
       for laneID in 0..<8 {
         counter[laneID] += 1
@@ -603,5 +622,11 @@ private func runRestrictedTest(testCase: TestCase) {
     return output
   }
   
-  _ = createCombinationPairs()
+  var combinationPairs = createCombinationPairs()
+  combinationPairs.sort {
+    $0[1] < $1[1]
+  }
+  let combinationLines = createCombinationLines(
+    pairs: combinationPairs)
+  display(combinationLines: combinationLines)
 }

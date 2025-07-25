@@ -269,8 +269,8 @@ final class SortTests: XCTestCase {
   // - study the worst-case execution time of the refined algorithm
   func testWorkSplitting() throws {
     var testCase = TestCase()
-    testCase.taskCount = 4
-    testCase.childCount = 8
+    testCase.taskCount = 3
+    testCase.childCount = 5
     
     // Set the child latencies to random values.
     for childID in 0..<testCase.childCount {
@@ -279,6 +279,8 @@ final class SortTests: XCTestCase {
     }
     
     runFullTest(testCase: testCase)
+    print()
+    print()
     runRestrictedTest(testCase: testCase)
   }
 }
@@ -358,6 +360,15 @@ struct TestCase {
     let output = outputLines.joined(separator: "\n")
     return output
   }
+  
+  // (task count) to the power of (child count)
+  func combinationCount(childCount: Int) -> Int {
+    var output: Int = 1
+    for _ in 0..<childCount {
+      output = output * taskCount
+    }
+    return output
+  }
 }
 
 // A line of sorted combinations to display.
@@ -417,35 +428,15 @@ private func display(combinationLines: [CombinationLine]) {
 // MARK: - Algorithm Variants
 
 private func runFullTest(testCase: TestCase) {
-  // combinations = tasks^children
-  func createCombinationCount() -> Int {
-    var output: Int = 1
-    for _ in 0..<testCase.childCount {
-      output = output * testCase.taskCount
-    }
-    return output
-  }
-  
   func createCombinationPairs() -> [SIMD2<Float>] {
     var output: [SIMD2<Float>] = []
     
     // Iterate over all combinations.
-//    print()
     var counter: SIMD8<UInt8> = .zero
-    for combinationID in 0..<createCombinationCount() {
-//      print("#\(combinationID)")
-//      print(counter)
-//      let repr = testCase.combinationRepr(assignments: counter)
-//      print(repr)
-      
+    let combinationCount = testCase.combinationCount(
+      childCount: testCase.childCount)
+    for combinationID in 0..<combinationCount {
       let taskLatencies = testCase.taskLatencies(assignments: counter)
-//      for taskID in 0..<testCase.taskCount {
-//        let latency = taskLatencies[taskID]
-//        let repr = format(latency: latency)
-//        print(repr, terminator: "  ")
-//      }
-//      print()
-//      print()
       
       let maxTaskLatency = taskLatencies.max()
       let pair = SIMD2(
@@ -488,14 +479,6 @@ private func runFullTest(testCase: TestCase) {
 }
 
 private func runRestrictedTest(testCase: TestCase) {
-  // Sort the children by key and value, locating the top 'taskCount' children.
-  // Split the range of children into two lists:
-  // - Fixed child IDs
-  // - Variable child IDs
-  // Provide a mapping from childID to assigned tasks, which is only valid for
-  // fixed children.
-  // Iterate over the combinations of variable children.
-  
   func createChildPairs() -> [SIMD2<Float>] {
     var output: [SIMD2<Float>] = []
     for childID in 0..<testCase.childCount {
@@ -534,13 +517,14 @@ private func runRestrictedTest(testCase: TestCase) {
     
     // TODO: Assign the second largest remaining child if the number of
     // combinations is large enough.
-    // - Decide between the last and the second-last task, based on which one
-    //   (with the update) is still the smallest.
+    // - This is an alternative branch to the 'do' statement above.
+    //   - Activates when the combination count reaches 20.
+    // - Explicitly search the 4 combinations, to find which pairing
+    //   minimizes the maximum size of the smallest 2 tasks.
     
     return output
   }
   
-  // Sort the children in ascending order, so we can just pop one off the list.
   var sortedChildPairs = createChildPairs()
   sortedChildPairs.sort {
     $0[1] < $1[1]
@@ -598,41 +582,21 @@ private func runRestrictedTest(testCase: TestCase) {
     }
     return output
   }
-  
-  func createCombinationCount() -> Int {
-    var output: Int = 1
-    for _ in 0..<sortedChildPairs.count {
-      output = output * testCase.taskCount
-    }
-    return output
-  }
-  
+    
   func createCombinationPairs() -> [SIMD2<Float>] {
     var output: [SIMD2<Float>] = []
     
     // Iterate over all combinations of variable children.
-//    print()
     var counter: SIMD8<UInt8> = .zero
-    for combinationID in 0..<createCombinationCount() {
+    let combinationCount = testCase.combinationCount(
+      childCount: sortedChildPairs.count)
+    for combinationID in 0..<combinationCount {
       let combinedAssignments = combine(
         fixed: fixedChildAssignments,
         variable: counter)
-//      print("#\(combinationID)")
-//      print(combinedAssignments)
-      
-//      let repr = testCase.combinationRepr(
-//        assignments: combinedAssignments)
-//      print(repr)
       
       let taskLatencies = testCase.taskLatencies(
         assignments: combinedAssignments)
-//      for taskID in 0..<testCase.taskCount {
-//        let latency = taskLatencies[taskID]
-//        let repr = format(latency: latency)
-//        print(repr, terminator: "  ")
-//      }
-//      print()
-//      print()
       
       let maxTaskLatency = taskLatencies.max()
       let pair = SIMD2(
@@ -658,7 +622,5 @@ private func runRestrictedTest(testCase: TestCase) {
   }
   let combinationLines = createCombinationLines(
     pairs: combinationPairs)
-  print()
-  print()
   display(combinationLines: combinationLines)
 }

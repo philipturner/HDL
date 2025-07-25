@@ -269,8 +269,8 @@ final class SortTests: XCTestCase {
   // - study the worst-case execution time of the refined algorithm
   func testWorkSplitting() throws {
     var testCase = TestCase()
-    testCase.taskCount = 2
-    testCase.childCount = 8
+    testCase.taskCount = 4
+    testCase.childCount = 6
     
     // Set the child latencies to random values.
     for childID in 0..<testCase.childCount {
@@ -522,8 +522,15 @@ private func runRestrictedTest(testCase: TestCase) {
       output[childID] = Int8(taskID)
     }
     
-    // In the future, include the change that migrates the largest non-sorted
-    // child to the highest-index task.
+    // Assign the largest of the remaining children to the highest-index task.
+    do {
+      let sortedChildID = testCase.childCount - 1 - testCase.taskCount
+      let pair = pairs[sortedChildID]
+      let childID = Int(pair[0])
+      
+      let taskID = testCase.taskCount - 1
+      output[childID] = Int8(taskID)
+    }
     return output
   }
   
@@ -532,9 +539,19 @@ private func runRestrictedTest(testCase: TestCase) {
   sortedChildPairs.sort {
     $0[1] < $1[1]
   }
+  do {
+    let lines = createCombinationLines(pairs: sortedChildPairs)
+    display(combinationLines: lines)
+  }
+  
   let fixedChildAssignments = createFixedAssignments(
     pairs: sortedChildPairs)
-  sortedChildPairs.removeLast(testCase.taskCount)
+  sortedChildPairs.removeLast(testCase.taskCount + 1)
+  do {
+    print(fixedChildAssignments)
+    let lines = createCombinationLines(pairs: sortedChildPairs)
+    display(combinationLines: lines)
+  }
   
   // Merge the fixed and variable children into an assignment like the
   // original 'fixed' algorithm.
@@ -556,7 +573,7 @@ private func runRestrictedTest(testCase: TestCase) {
     
     // assert taskCount + sortedChildPairs = expected
     do {
-      let actual = testCase.taskCount + sortedChildPairs.count
+      let actual = testCase.taskCount + 1 + sortedChildPairs.count
       guard actual == testCase.childCount else {
         fatalError("This should never happen.")
       }

@@ -480,6 +480,27 @@ final class SortTests: XCTestCase {
   //  SIMD8<UInt8>(0, 1, 0, 0, 0, 0, 0, 0) 535.0
   //  SIMD8<UInt8>(1, 0, 1, 0, 0, 0, 0, 0) 535.0
   //  SIMD8<UInt8>(1, 0, 1, 0, 0, 0, 0, 0) 535.0
+  
+  func testWorkSplittingUnit() throws {
+    do {
+      var test = CompleteTestCase()
+      test.problemSize = (2, 8)
+      test.childValues = [
+        787.0,
+        824.0,
+        183.0,
+        916.0,
+        885.0,
+        447.0,
+        799.0,
+        878.0,
+      ]
+      test.resultFull = 2862.0
+      test.resultRestricted1 = 2900.0 // intentional bug to check whether the test catches it
+      test.resultRestricted2 = 2974.0
+      test.run()
+    }
+  }
 }
 
 // MARK: - Utilities
@@ -632,6 +653,25 @@ private func display(combinationLines: [CombinationLine]) {
 }
 
 // MARK: - Algorithm Variants
+
+// The full specification for a unit test that covers all 3 algorithms.
+private struct CompleteTestCase {
+  var problemSize: (testCount: Int, childCount: Int)?
+  var childValues: [Float]?
+  var resultFull: Float?
+  var resultRestricted1: Float?
+  var resultRestricted2: Float?
+  
+  func run() {
+    guard let problemSize,
+          let childValues,
+          let resultFull,
+          let resultRestricted1,
+          let resultRestricted2 else {
+      fatalError("Test was not fully specified.")
+    }
+  }
+}
 
 private func runFullTest(
   testCase: TestCase

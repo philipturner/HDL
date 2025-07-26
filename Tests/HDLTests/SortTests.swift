@@ -242,43 +242,18 @@ final class SortTests: XCTestCase {
   // This test will prototype the work splitting algorithm, ensuring it
   // executes in a reasonable amount of time.
   //
-  // compute ideal task count
-  //   retrieve total atom count
-  //   retrieve levels remaining (7 @ 4 nm)
-  //   compute total latency from 7.5 ns/atom/level
-  //   ideal task count = round_to_nearest(total latency / 20 μs)
-  //   restrict ideal task count to 1 to 8
-  //
-  // early returns to disallow work splitting
-  //   level size is 1.0 nm or smaller
-  //   task count is 1
-  //
-  // child count = 1 to 8
-  // task count ≥ child count
-  //   every child
-  //   likely at highest level of tree
-  //   likely leaving breadcrumbs
-  // task count < child count
-  //   continue with algorithm
-  //
-  // find the optimal grouping of children in tasks, which minimizes the
-  // length of the longest task
-  // - create an algorithm to explicitly iterate over all possible combinations
-  // - study the characteristics with computationally tractable parameters
-  // - study the effects of restricting the combinatorial space
-  // - study the worst-case execution time of the refined algorithm
-  //
-  // TODO: Find adversarial test cases to detect when the algorithm is
-  // reverting to the behavior of a prior version. Cover specific combinations
-  // of (taskCount, childCount) - enough to get full coverage.
+  // Find adversarial test cases to detect when the algorithm is reverting to
+  // the behavior of a prior version.
+  // - Use a temporary 3rd test to find situations where behavior differs,
+  //   depending on whether there are 1 or 2 extra fixed assignments. [DONE]
+  //   - Found a situation for: (2, 8), (3, 8), (3, 7)
   // - Reformulate the algorithms, so they return the exact assignment of
   //   children to tasks, that would be useful in actual work splitting.
-  // - Use a temporary 3rd test to find situations where behavior differs,
-  //   depending on whether there are 1 or 2 extra fixed assignments.
-  //   - Scope out the feasibility of this ASAP.
-  //   - Found a situation for: (2, 8)
-  //                            (3, 8)
-  //                            (3, 7)
+  //   - Start by elaborating on the new I/O interface for test functions
+  //   - Elaborate on floating point rounding error, triggering false outcomes
+  //     of assertions
+  // - Cover specific combinations of (taskCount, childCount), enough to get
+  //   full coverage.
   //
   // Once the tests are in place, we can try optimizations without causing
   // correctness regressions.

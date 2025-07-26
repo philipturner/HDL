@@ -652,14 +652,25 @@ private struct PreparationStage {
   var sortedChildPairs: [SIMD2<Float>]
   var fixedChildAssignments: SIMD8<UInt8>
   
-  init(testCase: TestCase) {
-    sortedChildPairs = createChildPairs(testCase: testCase)
+  init(
+    testCase: TestCase,
+    restrictMaxCombinations: Bool
+  ) {
+    sortedChildPairs = Self.createChildPairs(
+      testCase: testCase)
     sortedChildPairs.sort {
       $0[1] < $1[1]
     }
-    fixedChildAssignments = createFixedAssignments(
+    
+    fixedChildAssignments = Self.createFixedAssignments(
+      testCase: testCase,
+      restrictMaxCombinations: restrictMaxCombinations,
       pairs: sortedChildPairs)
-    sortedChildPairs.removeLast(createFixedChildCount())
+    
+    let fixedChildCount = Self.createFixedChildCount(
+      testCase: testCase,
+      restrictMaxCombinations: restrictMaxCombinations)
+    sortedChildPairs.removeLast(fixedChildCount)
   }
   
   static func createChildPairs(
@@ -676,21 +687,9 @@ private struct PreparationStage {
     return output
   }
   
-  static func maxNativeCombinations(
-    testCase: TestCase
-  ) -> Int {
-    restrictMaxCombinations ? 20 : 100
-  }
-  
-  static func createFixedChildCount() -> Int {
-    if testCase.nativeCombinationCount < maxNativeCombinations() {
-      return testCase.taskCount + 1
-    } else {
-      return testCase.taskCount + 2
-    }
-  }
-  
   static func createFixedAssignments(
+    testCase: TestCase,
+    restrictMaxCombinations: Bool,
     pairs: [SIMD2<Float>]
   ) -> SIMD8<UInt8> {
     var output = SIMD8<UInt8>(repeating: .max)
@@ -708,7 +707,8 @@ private struct PreparationStage {
     
     // Assign the largest of the remaining children to the highest-index task.
     let remainingChildCount = testCase.childCount - testCase.taskCount
-    if testCase.nativeCombinationCount < maxNativeCombinations() {
+    let maxNativeCombinations = restrictMaxCombinations ? 20 : 100
+    if testCase.nativeCombinationCount < maxNativeCombinations {
       let pair = pairs[remainingChildCount - 1]
       let childID = Int(pair[0])
       let taskID = testCase.taskCount - 1
@@ -724,13 +724,27 @@ private struct PreparationStage {
     
     return output
   }
+  
+  static func createFixedChildCount(
+    testCase: TestCase,
+    restrictMaxCombinations: Bool
+  ) -> Int {
+    let maxNativeCombinations = restrictMaxCombinations ? 20 : 100
+    if testCase.nativeCombinationCount < maxNativeCombinations {
+      return testCase.taskCount + 1
+    } else {
+      return testCase.taskCount + 2
+    }
+  }
 }
 
 private func runRestrictedTest(
   testCase: TestCase,
   restrictMaxCombinations: Bool
 ) -> SIMD8<UInt8> {
-  let preparationStage = PreparationStage()
+  let preparationStage = PreparationStage(
+    testCase: testCase,
+    restrictMaxCombinations: restrictMaxCombinations)
   
   // Declare the state variables for the best assignment.
   var bestAssignment: SIMD8<UInt8>?

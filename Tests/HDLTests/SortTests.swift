@@ -247,7 +247,6 @@ final class SortTests: XCTestCase {
   // - Current execution time: ~1.0-3.5 μs, depending on problem size
   //
   // Tasks:
-  // - Eliminate the code for printing out many possible combinations
   // - Eliminate the time-consuming "full" test
   //   - We'll keep "restricted1" around for quite a while. It's a good way to
   //     measure the latency contribution that scales with combination count.
@@ -266,57 +265,15 @@ final class SortTests: XCTestCase {
     }
     
     // Generate assignments from the three algorithm variants.
-    let assignmentFull = runFullTest(
+    _ = runFullTest(
       testCase: testCase)
-    print()
-    print()
-    let assignmentRestricted1 = runRestrictedTest(
+    _ = runRestrictedTest(
       testCase: testCase,
       restrictMaxCombinations: false)
-    print()
-    print()
-    let assignmentRestricted2 = runRestrictedTest(
+    _ = runRestrictedTest(
       testCase: testCase,
       restrictMaxCombinations: true)
-    
-    func validate(assignment: SIMD8<UInt8>) {
-      let taskLatencies = testCase.taskLatencies(
-        assignments: assignment)
-      for taskID in 0..<testCase.taskCount {
-        let latency = taskLatencies[taskID]
-        guard latency > 0 else {
-          fatalError("Unassigned task.")
-        }
-      }
-    }
-    validate(assignment: assignmentRestricted1)
-    validate(assignment: assignmentRestricted2)
-    
-    // In the summary section, display the inputs.
-    print()
-    print()
-    for childID in 0..<testCase.childCount {
-      let latency = testCase.childLatencies[childID]
-      print(latency)
-    }
-    
-    // In the summary section, display the outputs.
-    print()
-    func latency(assignment: SIMD8<UInt8>) -> Float {
-      let taskLatencies = testCase.taskLatencies(
-        assignments: assignment)
-      return taskLatencies.max()
-    }
-    func display(assignment: SIMD8<UInt8>) {
-      let latency = latency(assignment: assignment)
-      print(assignment, latency)
-    }
-    display(assignment: assignmentFull)
-    display(assignment: assignmentRestricted1)
-    display(assignment: assignmentRestricted2)
   }
-  
-  // MARK: - Test Cases
   
   func testWorkSplittingUnit() throws {
     do {
@@ -565,48 +522,7 @@ struct TestCase {
     }
     return output
   }
-  
-  // Input: which task each child is assigned to.
-  func combinationRepr(
-    assignments: SIMD8<UInt8>
-  ) -> String {
-    var tasks = [[Float]](repeating: [], count: taskCount)
-    for childID in 0..<childCount {
-      let latency = childLatencies[childID]
-      let taskID = assignments[childID]
-      tasks[Int(taskID)].append(latency)
-    }
     
-    var maxChildCount: Int = .zero
-    for task in tasks {
-      let childCount = task.count
-      if childCount > maxChildCount {
-        maxChildCount = childCount
-      }
-    }
-    
-    var outputLines: [String] = []
-    for lineID in 0..<maxChildCount {
-      var lineEntries: [String] = []
-      for taskID in 0..<taskCount {
-        var entry: String
-        if lineID < tasks[taskID].count {
-          let latency = tasks[taskID][lineID]
-          entry = format(latency: latency)
-        } else {
-          entry = "    "
-        }
-        lineEntries.append(entry)
-      }
-      
-      let line = lineEntries.joined(separator: "  ")
-      outputLines.append(line)
-    }
-    
-    let output = outputLines.joined(separator: "\n")
-    return output
-  }
-  
   // (task count) to the power of (child count)
   func combinationCount(childCount: Int) -> Int {
     var output: Int = 1
@@ -623,60 +539,6 @@ struct TestCase {
     remainingChildCount -= 1
     return combinationCount(
       childCount: remainingChildCount)
-  }
-}
-
-// A line of sorted combinations to display.
-private struct CombinationLine {
-  var entries: [SIMD2<Float>] = []
-}
-
-private func createCombinationLines(
-  pairs: [SIMD2<Float>]
-) -> [CombinationLine] {
-  let maxEntriesPerLine: Int = 30
-  var output: [CombinationLine] = []
-  
-  var currentLine: [SIMD2<Float>] = []
-  for pair in pairs {
-    currentLine.append(pair)
-    if currentLine.count >= maxEntriesPerLine {
-      let combinationLine = CombinationLine(entries: currentLine)
-      output.append(combinationLine)
-      currentLine = []
-    }
-  }
-  
-  if currentLine.count > 0 {
-    let combinationLine = CombinationLine(entries: currentLine)
-    output.append(combinationLine)
-    currentLine = []
-  }
-  return output
-}
-
-private func display(combinationLines: [CombinationLine]) {
-  for line in combinationLines {
-    var entriesCombinationID: [String] = []
-    var entriesLatency: [String] = []
-    for entry in line.entries {
-      var combinationID = entry[0]
-      if combinationID > 9999 {
-        combinationID = 9999
-      }
-      let reprCombinatinID = format(latency: combinationID)
-      entriesCombinationID.append(reprCombinatinID)
-      
-      let latency = entry[1]
-      let reprLatency = format(latency: latency)
-      entriesLatency.append(reprLatency)
-    }
-    
-    let lineCombinationID = entriesCombinationID.joined(separator: "  ")
-    let lineLatency = entriesLatency.joined(separator: "  ")
-    print(lineCombinationID)
-    print(lineLatency)
-    print()
   }
 }
 
@@ -739,13 +601,13 @@ private struct CompleteTestCase {
         assignments: assignment)
       return taskLatencies.max()
     }
-    func check(assignment: SIMD8<UInt8>, expected: Float) {
+    func compare(assignment: SIMD8<UInt8>, expected: Float) {
       let latency = latency(assignment: assignment)
       XCTAssertEqual(latency, expected)
     }
-    check(assignment: assignmentFull, expected: resultFull)
-    check(assignment: assignmentPartial1, expected: resultRestricted1)
-    check(assignment: assignmentPartial2, expected: resultRestricted2)
+    compare(assignment: assignmentFull, expected: resultFull)
+    compare(assignment: assignmentPartial1, expected: resultRestricted1)
+    compare(assignment: assignmentPartial2, expected: resultRestricted2)
   }
 }
 
@@ -755,60 +617,33 @@ private func runFullTest(
   testCase: TestCase
 ) -> SIMD8<UInt8> {
   var bestAssignment: SIMD8<UInt8>?
-  var combinationPairs: [SIMD2<Float>] = []
-  do {
-    // Iterate over all combinations.
-    var bestAssignmentLatency: Float = .greatestFiniteMagnitude
-    var counter: SIMD8<UInt8> = .zero
-    let combinationCount = testCase.combinationCount(
-      childCount: testCase.childCount)
-    for combinationID in 0..<combinationCount {
-      let taskLatencies = testCase.taskLatencies(assignments: counter)
-      let maxTaskLatency = taskLatencies.max()
-      if maxTaskLatency < bestAssignmentLatency {
-        bestAssignment = counter
-        bestAssignmentLatency = maxTaskLatency
-      }
-      
-      let pair = SIMD2(
-        Float(combinationID),
-        maxTaskLatency)
-      combinationPairs.append(pair)
-      
-      for laneID in 0..<8 {
-        counter[laneID] += 1
-        if counter[laneID] >= testCase.taskCount {
-          counter[laneID] = 0
-        } else {
-          break
-        }
+  var bestAssignmentLatency: Float = .greatestFiniteMagnitude
+  
+  // Iterate over all combinations.
+  var counter: SIMD8<UInt8> = .zero
+  let combinationCount = testCase.combinationCount(
+    childCount: testCase.childCount)
+  for combinationID in 0..<combinationCount {
+    let taskLatencies = testCase.taskLatencies(assignments: counter)
+    let maxTaskLatency = taskLatencies.max()
+    if maxTaskLatency < bestAssignmentLatency {
+      bestAssignment = counter
+      bestAssignmentLatency = maxTaskLatency
+    }
+    
+    for laneID in 0..<8 {
+      counter[laneID] += 1
+      if counter[laneID] >= testCase.taskCount {
+        counter[laneID] = 0
+      } else {
+        break
       }
     }
   }
+  
   guard let bestAssignment else {
     fatalError("This should never happen.")
   }
-  
-  combinationPairs.sort {
-    $0[1] < $1[1]
-  }
-  let combinationLines = createCombinationLines(
-    pairs: combinationPairs)
-  
-  // Avoid overflowing the console.
-  if combinationLines.count > 10 {
-    let lineCount = combinationLines.count
-    let lowRange = 0..<5
-    let highRange = (lineCount - 5)..<lineCount
-    
-//    display(combinationLines: Array(combinationLines[lowRange]))
-//    print("...")
-//    print()
-//    display(combinationLines: Array(combinationLines[highRange]))
-  } else {
-//    display(combinationLines: combinationLines)
-  }
-  
   return bestAssignment
 }
 
@@ -876,6 +711,7 @@ private func runRestrictedTest(
       }
       
       do {
+        // Check that setting combinationID to 0 is caught in the unit tests.
         let assignment = assignment(combinationID: 1)
         let taskID0 = testCase.taskCount - 1 - assignment[0]
         let taskID1 = testCase.taskCount - 1 - assignment[1]
@@ -948,44 +784,37 @@ private func runRestrictedTest(
   }
   
   var bestAssignment: SIMD8<UInt8>?
-  var combinationPairs: [SIMD2<Float>] = []
-  do {
-    // Iterate over all combinations of variable children.
-    var bestAssignmentLatency: Float = .greatestFiniteMagnitude
-    var counter: SIMD8<UInt8> = .zero
-    let combinationCount = testCase.combinationCount(
-      childCount: sortedChildPairs.count)
-    for combinationID in 0..<combinationCount {
-      let combinedAssignments = combine(
-        fixed: fixedChildAssignments,
-        variable: counter)
-      
-      let taskLatencies = testCase.taskLatencies(
-        assignments: combinedAssignments)
-      let maxTaskLatency = taskLatencies.max()
-      if maxTaskLatency < bestAssignmentLatency {
-        bestAssignment = combinedAssignments
-        bestAssignmentLatency = maxTaskLatency
-      }
-      
-      let pair = SIMD2(
-        Float(combinationID),
-        maxTaskLatency)
-      combinationPairs.append(pair)
-      
-      for laneID in 0..<8 {
-        counter[laneID] += 1
-        if counter[laneID] >= testCase.taskCount {
-          counter[laneID] = 0
-        } else {
-          break
-        }
+  var bestAssignmentLatency: Float = .greatestFiniteMagnitude
+  
+  // Iterate over all combinations of variable children.
+  var counter: SIMD8<UInt8> = .zero
+  let combinationCount = testCase.combinationCount(
+    childCount: sortedChildPairs.count)
+  for combinationID in 0..<combinationCount {
+    let combinedAssignments = combine(
+      fixed: fixedChildAssignments,
+      variable: counter)
+    
+    let taskLatencies = testCase.taskLatencies(
+      assignments: combinedAssignments)
+    let maxTaskLatency = taskLatencies.max()
+    if maxTaskLatency < bestAssignmentLatency {
+      bestAssignment = combinedAssignments
+      bestAssignmentLatency = maxTaskLatency
+    }
+    
+    for laneID in 0..<8 {
+      counter[laneID] += 1
+      if counter[laneID] >= testCase.taskCount {
+        counter[laneID] = 0
+      } else {
+        break
       }
     }
   }
+  
   guard let bestAssignment else {
     fatalError("This should never happen.")
   }
-  
   return bestAssignment
 }

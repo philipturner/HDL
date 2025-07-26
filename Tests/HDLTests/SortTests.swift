@@ -272,10 +272,7 @@ final class SortTests: XCTestCase {
     runFullTest(testCase: testCase)
     print()
     print()
-    runRestrictedTest(testCase: testCase, forceCombination1: false)
-    print()
-    print()
-    runRestrictedTest(testCase: testCase, forceCombination1: true)
+    runRestrictedTest(testCase: testCase)
   }
 }
 
@@ -481,7 +478,7 @@ private func runFullTest(testCase: TestCase) {
   }
 }
 
-private func runRestrictedTest(testCase: TestCase, forceCombination1: Bool) {
+private func runRestrictedTest(testCase: TestCase) {
   func createChildPairs() -> [SIMD2<Float>] {
     var output: [SIMD2<Float>] = []
     for childID in 0..<testCase.childCount {
@@ -530,6 +527,8 @@ private func runRestrictedTest(testCase: TestCase, forceCombination1: Bool) {
       let taskID = testCase.taskCount - 1
       output[childID] = Int8(taskID)
     } else {
+      // Optimize/simplify this once you have a test to prove you didn't change
+      // the outcome.
       let small0 = pairs[remainingChildCount - 2]
       let small1 = pairs[remainingChildCount - 1]
       let large0 = pairs[remainingChildCount]
@@ -539,55 +538,8 @@ private func runRestrictedTest(testCase: TestCase, forceCombination1: Bool) {
         SIMD2(combinationID & 1, combinationID >> 1)
       }
       
-      // Most often, combination 1 is chosen. A small portion of the time,
-      // combination 0 is chosen.
-      //
-      // In a future optimization, reduce this loop from 4 to 2 iterations.
-      var bestCombinationID: Int?
-      var bestCombinationLatency: Float = .greatestFiniteMagnitude
-      for combinationID in 0..<4 {
-        let assignment = assignment(combinationID: combinationID)
-        var largeLatencies = SIMD2(large0[1], large1[1])
-        largeLatencies[assignment[0]] += small0[1]
-        largeLatencies[assignment[1]] += small1[1]
-        
-        let maxLargeLatency = largeLatencies.max()
-        if maxLargeLatency < bestCombinationLatency {
-          bestCombinationID = combinationID
-          bestCombinationLatency = maxLargeLatency
-        }
-      }
-      guard let bestCombinationID else {
-        fatalError("Could not find best combination.")
-      }
-      print("bestCombinationID:", bestCombinationID)
-      
-      // Does combination 0 actually lead to worse results, even though we
-      // think it might be better?
-      //
-      // ~50 attempts at each pair of (tasks, children)
-      //
-      // (2, 8)
-      // - wins for 0: II
-      // - wins for 1:
-      //
-      // (3, 8)
-      // - wins for 0: III
-      // - wins for 1: I
-      //
-      // (4, 8)
-      // - wins for 0: I
-      // - wins for 1:
-      // - ties: IIII
-      //
-      // Attempts where 0 improves the outcome: 3.3%
-      // Attempts where 0 harms the outcome: 0.7%
-      // Attempts where 0 does not affect outcome: 96.0%
-      //
-      // It is sensible to force the combination to 1, simplifying the code.
       do {
-        let combinationID = forceCombination1 ? 1 : bestCombinationID
-        let assignment = assignment(combinationID: combinationID)
+        let assignment = assignment(combinationID: 1)
         let taskID0 = testCase.taskCount - 1 - assignment[0]
         let taskID1 = testCase.taskCount - 1 - assignment[1]
         

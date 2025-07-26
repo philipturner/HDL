@@ -269,6 +269,7 @@ final class SortTests: XCTestCase {
       testCase.childLatencies[childID] = latency
     }
     
+    // Generate assignments from the three algorithm variants.
     let assignmentFull = runFullTest(
       testCase: testCase)
     print()
@@ -282,11 +283,22 @@ final class SortTests: XCTestCase {
       testCase: testCase,
       restrictMaxCombinations: true)
     
+    // In the summary section, display the inputs.
     print()
     print()
-    print(assignmentFull)
-    print(assignmentPartial1)
-    print(assignmentPartial2)
+    for childID in 0..<testCase.childCount {
+      let latency = testCase.childLatencies[childID]
+      print(latency)
+    }
+    
+    // In the summary section, display the outputs.
+    print()
+    func display(assignment: SIMD8<UInt8>) {
+      print(assignment)
+    }
+    display(assignment:assignmentFull)
+    display(assignment:assignmentPartial1)
+    display(assignment:assignmentPartial2)
   }
 }
 

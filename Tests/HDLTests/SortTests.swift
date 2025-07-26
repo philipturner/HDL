@@ -315,100 +315,6 @@ final class SortTests: XCTestCase {
   
   // MARK: - Test Cases
   
-  // Make the test setup like a data structure, which can be fed in to the
-  // same utility function for all cases. Then, it's a single XCTest function,
-  // instead of many similarly named functions.
-  
-  // (2, 8)
-  //
-  //  787.0
-  //  824.0
-  //  183.0
-  //  916.0
-  //  885.0
-  //  447.0
-  //  799.0
-  //  878.0
-  //
-  //  SIMD8<UInt8>(1, 1, 0, 0, 0, 1, 1, 0) 2862.0
-  //  SIMD8<UInt8>(0, 1, 1, 0, 1, 0, 0, 1) 2949.0
-  //  SIMD8<UInt8>(0, 0, 1, 0, 1, 0, 1, 1) 2974.0
-  
-  // (3, 8)
-  //
-  //  459.0
-  //  713.0
-  //  657.0
-  //  672.0
-  //  358.0
-  //  345.0
-  //  845.0
-  //  202.0
-  //
-  //  SIMD8<UInt8>(1, 2, 1, 2, 0, 1, 0, 0) 1461.0
-  //  SIMD8<UInt8>(0, 1, 2, 2, 1, 1, 0, 0) 1506.0
-  //  SIMD8<UInt8>(1, 1, 2, 2, 0, 1, 0, 0) 1517.0
-  
-  // (4, 8)
-  //
-  //  961.0
-  //  416.0
-  //  426.0
-  //  710.0
-  //  290.0
-  //  510.0
-  //  362.0
-  //  262.0
-  //
-  //  SIMD8<UInt8>(3, 0, 1, 2, 2, 1, 0, 0) 1040.0
-  //  SIMD8<UInt8>(0, 3, 3, 1, 2, 2, 1, 2) 1072.0
-  //  SIMD8<UInt8>(0, 3, 3, 1, 1, 2, 2, 3) 1104.0
-  
-  // (5, 8)
-  //
-  //  770.0
-  //  82.0
-  //  267.0
-  //  329.0
-  //  770.0
-  //  205.0
-  //  720.0
-  //  636.0
-  //
-  //  SIMD8<UInt8>(4, 0, 2, 2, 3, 2, 1, 0) 801.0
-  //  SIMD8<UInt8>(1, 3, 4, 4, 0, 4, 2, 3) 801.0
-  //  SIMD8<UInt8>(1, 2, 4, 4, 0, 3, 2, 3) 841.0
-  
-  // (6, 8)
-  //
-  //  608.0
-  //  866.0
-  //  311.0
-  //  289.0
-  //  737.0
-  //  921.0
-  //  935.0
-  //  596.0
-  //
-  //  SIMD8<UInt8>(4, 5, 4, 0, 3, 2, 1, 0) 935.0
-  //  SIMD8<UInt8>(4, 2, 5, 4, 3, 1, 0, 5) 935.0
-  //  SIMD8<UInt8>(4, 2, 5, 4, 3, 1, 0, 5) 935.0
-  
-  // (7, 8)
-  //
-  //  453.0
-  //  708.0
-  //  120.0
-  //  358.0
-  //  15.0
-  //  62.0
-  //  45.0
-  //  905.0
-  //
-  //  SIMD8<UInt8>(3, 2, 1, 1, 1, 1, 1, 0) 905.0
-  //  SIMD8<UInt8>(2, 1, 4, 3, 6, 5, 6, 0) 905.0
-  //  SIMD8<UInt8>(2, 1, 4, 3, 6, 5, 6, 0) 905.0
-  
   // (3, 7)
   //
   //  836.0
@@ -536,6 +442,63 @@ final class SortTests: XCTestCase {
       test.resultFull = 1040
       test.resultRestricted1 = 1072
       test.resultRestricted2 = 1104
+      test.run()
+    }
+    
+    do {
+      var test = CompleteTestCase()
+      test.problemSize = (5, 8)
+      test.childValues = [
+        770.0,
+        82.0,
+        267.0,
+        329.0,
+        770.0,
+        205.0,
+        720.0,
+        636.0,
+      ]
+      test.resultFull = 801
+      test.resultRestricted1 = 801
+      test.resultRestricted2 = 841
+      test.run()
+    }
+    
+    do {
+      var test = CompleteTestCase()
+      test.problemSize = (6, 8)
+      test.childValues = [
+        608.0,
+        866.0,
+        311.0,
+        289.0,
+        737.0,
+        921.0,
+        935.0,
+        596.0,
+      ]
+      test.resultFull = 935
+      test.resultRestricted1 = 935
+      test.resultRestricted2 = 935
+      test.run()
+    }
+    
+    do {
+      var test = CompleteTestCase()
+      test.problemSize = (7, 8)
+      test.childValues = [
+        453.0,
+        708.0,
+        120.0,
+        358.0,
+        15.0,
+        62.0,
+        45.0,
+        905.0,
+      ]
+      test.resultFull = 905
+      test.resultRestricted1 = 905
+      test.resultRestricted2 = 905
       test.run()
     }
   }

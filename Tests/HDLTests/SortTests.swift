@@ -261,7 +261,7 @@ final class SortTests: XCTestCase {
   func testWorkSplitting() throws {
     var testCase = TestCase()
     testCase.taskCount = 3
-    testCase.childCount = 5
+    testCase.childCount = 8
     
     // Set the child latencies to random values.
     for childID in 0..<testCase.childCount {
@@ -536,6 +536,10 @@ private func runRestrictedTest(testCase: TestCase) {
         SIMD2(combinationID & 1, combinationID >> 1)
       }
       
+      // Most often, combination 1 is chosen. A small portion of the time,
+      // combination 0 is chosen.
+      //
+      // In a future optimization, reduce this loop from 4 to 2 iterations.
       var bestCombinationID: Int?
       var bestCombinationLatency: Float = .greatestFiniteMagnitude
       for combinationID in 0..<4 {
@@ -553,6 +557,7 @@ private func runRestrictedTest(testCase: TestCase) {
       guard let bestCombinationID else {
         fatalError("Could not find best combination.")
       }
+      print("bestCombinationID:", bestCombinationID)
       
       do {
         let assignment = assignment(combinationID: bestCombinationID)

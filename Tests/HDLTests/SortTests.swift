@@ -495,9 +495,47 @@ final class SortTests: XCTestCase {
         799.0,
         878.0,
       ]
-      test.resultFull = 2862.0
-      test.resultRestricted1 = 2900.0 // intentional bug to check whether the test catches it
-      test.resultRestricted2 = 2974.0
+      test.resultFull = 2862
+      test.resultRestricted1 = 2949
+      test.resultRestricted2 = 2974
+      test.run()
+    }
+    
+    do {
+      var test = CompleteTestCase()
+      test.problemSize = (3, 8)
+      test.childValues = [
+        459.0,
+        713.0,
+        657.0,
+        672.0,
+        358.0,
+        345.0,
+        845.0,
+        202.0,
+      ]
+      test.resultFull = 1461
+      test.resultRestricted1 = 1506
+      test.resultRestricted2 = 1517
+      test.run()
+    }
+    
+    do {
+      var test = CompleteTestCase()
+      test.problemSize = (4, 8)
+      test.childValues = [
+        961.0,
+        416.0,
+        426.0,
+        710.0,
+        290.0,
+        510.0,
+        362.0,
+        262.0,
+      ]
+      test.resultFull = 1040
+      test.resultRestricted1 = 1072
+      test.resultRestricted2 = 1104
       test.run()
     }
   }
@@ -773,12 +811,12 @@ private func runFullTest(
     let lowRange = 0..<5
     let highRange = (lineCount - 5)..<lineCount
     
-    display(combinationLines: Array(combinationLines[lowRange]))
-    print("...")
-    print()
-    display(combinationLines: Array(combinationLines[highRange]))
+//    display(combinationLines: Array(combinationLines[lowRange]))
+//    print("...")
+//    print()
+//    display(combinationLines: Array(combinationLines[highRange]))
   } else {
-    display(combinationLines: combinationLines)
+//    display(combinationLines: combinationLines)
   }
   
   return bestAssignment
@@ -964,7 +1002,7 @@ private func runRestrictedTest(
   }
   let combinationLines = createCombinationLines(
     pairs: combinationPairs)
-  display(combinationLines: combinationLines)
+//  display(combinationLines: combinationLines)
   
   return bestAssignment
 }

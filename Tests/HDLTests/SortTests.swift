@@ -294,8 +294,8 @@ final class SortTests: XCTestCase {
       }
     }
     validate(assignment: assignmentFull)
-//    validate(assignment: assignmentPartial1)
-//    validate(assignment: assignmentPartial2)
+    validate(assignment: assignmentPartial1)
+    validate(assignment: assignmentPartial2)
     
     // In the summary section, display the inputs.
     print()
@@ -686,7 +686,7 @@ private func runRestrictedTest(
         assignments: combinedAssignments)
       let maxTaskLatency = taskLatencies.max()
       if maxTaskLatency < bestAssignmentLatency {
-        bestAssignment = counter // intentional bug, to test the checker
+        bestAssignment = combinedAssignments
         bestAssignmentLatency = maxTaskLatency
       }
       

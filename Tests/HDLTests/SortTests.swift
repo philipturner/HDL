@@ -264,7 +264,7 @@ final class SortTests: XCTestCase {
     
     // Set the child latencies to random values.
     for childID in 0..<testCase.childCount {
-      var latency = Float.random(in: 0..<1000)
+      var latency = Float.random(in: 1...1000)
       latency.round(.toNearestOrEven)
       testCase.childLatencies[childID] = latency
     }
@@ -283,6 +283,20 @@ final class SortTests: XCTestCase {
       testCase: testCase,
       restrictMaxCombinations: true)
     
+    func validate(assignment: SIMD8<UInt8>) {
+      let taskLatencies = testCase.taskLatencies(
+        assignments: assignment)
+      for taskID in 0..<testCase.taskCount {
+        let latency = taskLatencies[taskID]
+        guard latency > 0 else {
+          fatalError("Unassigned task.")
+        }
+      }
+    }
+    validate(assignment: assignmentFull)
+//    validate(assignment: assignmentPartial1)
+//    validate(assignment: assignmentPartial2)
+    
     // In the summary section, display the inputs.
     print()
     print()
@@ -293,12 +307,18 @@ final class SortTests: XCTestCase {
     
     // In the summary section, display the outputs.
     print()
-    func display(assignment: SIMD8<UInt8>) {
-      print(assignment)
+    func latency(assignment: SIMD8<UInt8>) -> Float {
+      let taskLatencies = testCase.taskLatencies(
+        assignments: assignment)
+      return taskLatencies.max()
     }
-    display(assignment:assignmentFull)
-    display(assignment:assignmentPartial1)
-    display(assignment:assignmentPartial2)
+    func display(assignment: SIMD8<UInt8>) {
+      let latency = latency(assignment: assignment)
+      print(assignment, latency)
+    }
+    display(assignment: assignmentFull)
+    display(assignment: assignmentPartial1)
+    display(assignment: assignmentPartial2)
   }
 }
 

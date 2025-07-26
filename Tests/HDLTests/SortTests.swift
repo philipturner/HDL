@@ -248,7 +248,8 @@ final class SortTests: XCTestCase {
   //
   // Tasks:
   // - Eliminate the code for printing out many possible combinations
-  // - Simplify the code that once covered several ...
+  // - Simplify the code that once examined 4 combinations
+  // - Add profiler metrics to the main test ('testWorkSplittingMain')
   func testWorkSplittingMain() throws {
     var testCase = TestCase()
     testCase.taskCount = 2

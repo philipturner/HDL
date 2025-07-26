@@ -247,9 +247,8 @@ final class SortTests: XCTestCase {
   // - Current execution time: ~1.0-3.5 μs, depending on problem size
   //
   // Tasks:
-  // - Implement the tests
-  //   - Test whether a couple of intentional bugs trigger assertion failures
   // - Eliminate the code for printing out many possible combinations
+  // - Simplify the code that once covered several ...
   func testWorkSplittingMain() throws {
     var testCase = TestCase()
     testCase.taskCount = 2
@@ -314,78 +313,6 @@ final class SortTests: XCTestCase {
   }
   
   // MARK: - Test Cases
-  
-  // (3, 7)
-  //
-  //  836.0
-  //  860.0
-  //  544.0
-  //  411.0
-  //  493.0
-  //  765.0
-  //  151.0
-  //
-  //  SIMD8<UInt8>(2, 1, 2, 0, 1, 0, 0, 0) 1380.0
-  //  SIMD8<UInt8>(1, 0, 2, 1, 0, 2, 1, 0) 1398.0
-  //  SIMD8<UInt8>(1, 0, 2, 0, 1, 2, 0, 0) 1422.0
-  
-  // (3, 6)
-  //
-  //  331.0
-  //  838.0
-  //  528.0
-  //  290.0
-  //  112.0
-  //  463.0
-  //
-  //  SIMD8<UInt8>(1, 2, 1, 0, 0, 0, 0, 0) 865.0
-  //  SIMD8<UInt8>(2, 0, 1, 1, 2, 2, 0, 0) 906.0
-  //  SIMD8<UInt8>(2, 0, 1, 1, 2, 2, 0, 0) 906.0
-  
-  // (2, 5)
-  //
-  //  640.0
-  //  545.0
-  //  31.0
-  //  653.0
-  //  574.0
-  //
-  //  SIMD8<UInt8>(1, 1, 1, 0, 0, 0, 0, 0) 1227.0
-  //  SIMD8<UInt8>(1, 0, 0, 0, 1, 0, 0, 0) 1229.0
-  //  SIMD8<UInt8>(1, 0, 0, 0, 1, 0, 0, 0) 1229.0
-  
-  // (4, 5)
-  //
-  //  946.0
-  //  642.0
-  //  527.0
-  //  464.0
-  //  413.0
-  //
-  //  SIMD8<UInt8>(3, 2, 1, 0, 0, 0, 0, 0) 946.0
-  //  SIMD8<UInt8>(0, 1, 2, 3, 3, 0, 0, 0) 946.0
-  //  SIMD8<UInt8>(0, 1, 2, 3, 3, 0, 0, 0) 946.0
-  
-  // (2, 4)
-  //
-  //  691.0
-  //  380.0
-  //  124.0
-  //  382.0
-  //
-  //  SIMD8<UInt8>(1, 0, 1, 0, 0, 0, 0, 0) 815.0
-  //  SIMD8<UInt8>(0, 1, 0, 1, 0, 0, 0, 0) 815.0
-  //  SIMD8<UInt8>(0, 1, 0, 1, 0, 0, 0, 0) 815.0
-  
-  // (2, 3)
-  //
-  //  475.0
-  //  479.0
-  //  60.0
-  //
-  //  SIMD8<UInt8>(0, 1, 0, 0, 0, 0, 0, 0) 535.0
-  //  SIMD8<UInt8>(1, 0, 1, 0, 0, 0, 0, 0) 535.0
-  //  SIMD8<UInt8>(1, 0, 1, 0, 0, 0, 0, 0) 535.0
   
   func testWorkSplittingUnit() throws {
     do {
@@ -499,6 +426,102 @@ final class SortTests: XCTestCase {
       test.resultFull = 905
       test.resultRestricted1 = 905
       test.resultRestricted2 = 905
+      test.run()
+    }
+    
+    do {
+      var test = CompleteTestCase()
+      test.problemSize = (3, 7)
+      test.childValues = [
+        836.0,
+        860.0,
+        544.0,
+        411.0,
+        493.0,
+        765.0,
+        151.0,
+      ]
+      test.resultFull = 1380
+      test.resultRestricted1 = 1398
+      test.resultRestricted2 = 1422
+      test.run()
+    }
+    
+    do {
+      var test = CompleteTestCase()
+      test.problemSize = (3, 6)
+      test.childValues = [
+        331.0,
+        838.0,
+        528.0,
+        290.0,
+        112.0,
+        463.0,
+      ]
+      test.resultFull = 865
+      test.resultRestricted1 = 906
+      test.resultRestricted2 = 906
+      test.run()
+    }
+    
+    do {
+      var test = CompleteTestCase()
+      test.problemSize = (2, 5)
+      test.childValues = [
+        640.0,
+        545.0,
+        31.0,
+        653.0,
+        574.0,
+      ]
+      test.resultFull = 1227
+      test.resultRestricted1 = 1229
+      test.resultRestricted2 = 1229
+      test.run()
+    }
+    
+    do {
+      var test = CompleteTestCase()
+      test.problemSize = (4, 5)
+      test.childValues = [
+        946.0,
+        642.0,
+        527.0,
+        464.0,
+        413.0,
+      ]
+      test.resultFull = 946
+      test.resultRestricted1 = 946
+      test.resultRestricted2 = 946
+      test.run()
+    }
+    
+    do {
+      var test = CompleteTestCase()
+      test.problemSize = (2, 4)
+      test.childValues = [
+        691.0,
+        380.0,
+        124.0,
+        382.0,
+      ]
+      test.resultFull = 815
+      test.resultRestricted1 = 815
+      test.resultRestricted2 = 815
+      test.run()
+    }
+    
+    do {
+      var test = CompleteTestCase()
+      test.problemSize = (2, 3)
+      test.childValues = [
+        475.0,
+        479.0,
+        60.0,
+      ]
+      test.resultFull = 535
+      test.resultRestricted1 = 535
+      test.resultRestricted2 = 535
       test.run()
     }
   }

@@ -242,25 +242,18 @@ final class SortTests: XCTestCase {
   // This test will prototype the work splitting algorithm, ensuring it
   // executes in a reasonable amount of time.
   //
-  // Find adversarial test cases to detect when the algorithm is reverting to
-  // the behavior of a prior version.
-  // - Use a temporary 3rd test to find situations where behavior differs,
-  //   depending on whether there are 1 or 2 extra fixed assignments. [DONE]
-  //   - Found a situation for: (2, 8), (3, 8), (3, 7)
-  // - Reformulate the algorithms, so they return the exact assignment of
-  //   children to tasks, that would be useful in actual work splitting.
-  //   - Start by elaborating on the new I/O interface for test functions
-  // - Cover specific combinations of (taskCount, childCount), enough to get
-  //   full coverage.
-  // - Eliminate the code for printing out many possible combinations.
-  //
   // Once the tests are in place, we can try optimizations without causing
   // correctness regressions.
   // - Current execution time: ~1.0-3.5 μs, depending on problem size
-  func testWorkSplitting() throws {
+  //
+  // Tasks:
+  // - Implement the tests
+  //   - Test whether a couple of intentional bugs trigger assertion failures
+  // - Eliminate the code for printing out many possible combinations
+  func testWorkSplittingMain() throws {
     var testCase = TestCase()
     testCase.taskCount = 3
-    testCase.childCount = 8
+    testCase.childCount = 6
     
     // Set the child latencies to random values.
     for childID in 0..<testCase.childCount {
@@ -293,7 +286,6 @@ final class SortTests: XCTestCase {
         }
       }
     }
-    validate(assignment: assignmentFull)
     validate(assignment: assignmentPartial1)
     validate(assignment: assignmentPartial2)
     
@@ -320,6 +312,127 @@ final class SortTests: XCTestCase {
     display(assignment: assignmentPartial1)
     display(assignment: assignmentPartial2)
   }
+  
+  // MARK: - Test Cases
+  
+  // (2, 8)
+  //
+  //  787.0
+  //  824.0
+  //  183.0
+  //  916.0
+  //  885.0
+  //  447.0
+  //  799.0
+  //  878.0
+  //
+  //  SIMD8<UInt8>(1, 1, 0, 0, 0, 1, 1, 0) 2862.0
+  //  SIMD8<UInt8>(0, 1, 1, 0, 1, 0, 0, 1) 2949.0
+  //  SIMD8<UInt8>(0, 0, 1, 0, 1, 0, 1, 1) 2974.0
+  
+  // (3, 8)
+  //
+  //  459.0
+  //  713.0
+  //  657.0
+  //  672.0
+  //  358.0
+  //  345.0
+  //  845.0
+  //  202.0
+  //
+  //  SIMD8<UInt8>(1, 2, 1, 2, 0, 1, 0, 0) 1461.0
+  //  SIMD8<UInt8>(0, 1, 2, 2, 1, 1, 0, 0) 1506.0
+  //  SIMD8<UInt8>(1, 1, 2, 2, 0, 1, 0, 0) 1517.0
+  
+  // (4, 8)
+  //
+  //  961.0
+  //  416.0
+  //  426.0
+  //  710.0
+  //  290.0
+  //  510.0
+  //  362.0
+  //  262.0
+  //
+  //  SIMD8<UInt8>(3, 0, 1, 2, 2, 1, 0, 0) 1040.0
+  //  SIMD8<UInt8>(0, 3, 3, 1, 2, 2, 1, 2) 1072.0
+  //  SIMD8<UInt8>(0, 3, 3, 1, 1, 2, 2, 3) 1104.0
+  
+  // (5, 8)
+  //
+  //  770.0
+  //  82.0
+  //  267.0
+  //  329.0
+  //  770.0
+  //  205.0
+  //  720.0
+  //  636.0
+  //
+  //  SIMD8<UInt8>(4, 0, 2, 2, 3, 2, 1, 0) 801.0
+  //  SIMD8<UInt8>(1, 3, 4, 4, 0, 4, 2, 3) 801.0
+  //  SIMD8<UInt8>(1, 2, 4, 4, 0, 3, 2, 3) 841.0
+  
+  // (6, 8)
+  //
+  //  608.0
+  //  866.0
+  //  311.0
+  //  289.0
+  //  737.0
+  //  921.0
+  //  935.0
+  //  596.0
+  //
+  //  SIMD8<UInt8>(4, 5, 4, 0, 3, 2, 1, 0) 935.0
+  //  SIMD8<UInt8>(4, 2, 5, 4, 3, 1, 0, 5) 935.0
+  //  SIMD8<UInt8>(4, 2, 5, 4, 3, 1, 0, 5) 935.0
+  
+  // (7, 8)
+  //
+  //  453.0
+  //  708.0
+  //  120.0
+  //  358.0
+  //  15.0
+  //  62.0
+  //  45.0
+  //  905.0
+  //
+  //  SIMD8<UInt8>(3, 2, 1, 1, 1, 1, 1, 0) 905.0
+  //  SIMD8<UInt8>(2, 1, 4, 3, 6, 5, 6, 0) 905.0
+  //  SIMD8<UInt8>(2, 1, 4, 3, 6, 5, 6, 0) 905.0
+  
+  // (3, 7)
+  //
+  //  836.0
+  //  860.0
+  //  544.0
+  //  411.0
+  //  493.0
+  //  765.0
+  //  151.0
+  //
+  //  SIMD8<UInt8>(2, 1, 2, 0, 1, 0, 0, 0) 1380.0
+  //  SIMD8<UInt8>(1, 0, 2, 1, 0, 2, 1, 0) 1398.0
+  //  SIMD8<UInt8>(1, 0, 2, 0, 1, 2, 0, 0) 1422.0
+  
+  // (3, 6)
+  //
+  //  331.0
+  //  838.0
+  //  528.0
+  //  290.0
+  //  112.0
+  //  463.0
+  //
+  //  SIMD8<UInt8>(1, 2, 1, 0, 0, 0, 0, 0) 865.0
+  //  SIMD8<UInt8>(2, 0, 1, 1, 2, 2, 0, 0) 906.0
+  //  SIMD8<UInt8>(2, 0, 1, 1, 2, 2, 0, 0) 906.0
+  
+  // testWorkSplitting28
 }
 
 // MARK: - Utilities

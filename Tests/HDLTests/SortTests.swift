@@ -260,7 +260,7 @@ final class SortTests: XCTestCase {
   // - Current execution time: ~1.0-3.5 μs, depending on problem size
   func testWorkSplitting() throws {
     var testCase = TestCase()
-    testCase.taskCount = 3
+    testCase.taskCount = 4
     testCase.childCount = 8
     
     // Set the child latencies to random values.
@@ -272,7 +272,10 @@ final class SortTests: XCTestCase {
     runFullTest(testCase: testCase)
     print()
     print()
-    runRestrictedTest(testCase: testCase)
+    runRestrictedTest(testCase: testCase, forceCombination1: false)
+    print()
+    print()
+    runRestrictedTest(testCase: testCase, forceCombination1: true)
   }
 }
 
@@ -478,7 +481,7 @@ private func runFullTest(testCase: TestCase) {
   }
 }
 
-private func runRestrictedTest(testCase: TestCase) {
+private func runRestrictedTest(testCase: TestCase, forceCombination1: Bool) {
   func createChildPairs() -> [SIMD2<Float>] {
     var output: [SIMD2<Float>] = []
     for childID in 0..<testCase.childCount {
@@ -559,8 +562,32 @@ private func runRestrictedTest(testCase: TestCase) {
       }
       print("bestCombinationID:", bestCombinationID)
       
+      // Does combination 0 actually lead to worse results, even though we
+      // think it might be better?
+      //
+      // ~50 attempts at each pair of (tasks, children)
+      //
+      // (2, 8)
+      // - wins for 0: II
+      // - wins for 1:
+      //
+      // (3, 8)
+      // - wins for 0: III
+      // - wins for 1: I
+      //
+      // (4, 8)
+      // - wins for 0: I
+      // - wins for 1:
+      // - ties: IIII
+      //
+      // Attempts where 0 improves the outcome: 3.3%
+      // Attempts where 0 harms the outcome: 0.7%
+      // Attempts where 0 does not affect outcome: 96.0%
+      //
+      // It is sensible to force the combination to 1, simplifying the code.
       do {
-        let assignment = assignment(combinationID: bestCombinationID)
+        let combinationID = forceCombination1 ? 1 : bestCombinationID
+        let assignment = assignment(combinationID: combinationID)
         let taskID0 = testCase.taskCount - 1 - assignment[0]
         let taskID1 = testCase.taskCount - 1 - assignment[1]
         

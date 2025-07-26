@@ -675,8 +675,8 @@ private func runRestrictedTest(
   
   func createFixedAssignments(
     pairs: [SIMD2<Float>]
-  ) -> SIMD8<Int8> {
-    var output = SIMD8<Int8>(repeating: .max)
+  ) -> SIMD8<UInt8> {
+    var output = SIMD8<UInt8>(repeating: .max)
     guard testCase.childCount > testCase.taskCount else {
       fatalError("Invalid conditions for the restricted algorithm.")
     }
@@ -686,7 +686,7 @@ private func runRestrictedTest(
       let sortedChildID = testCase.childCount - 1 - taskID
       let pair = pairs[sortedChildID]
       let childID = Int(pair[0])
-      output[childID] = Int8(taskID)
+      output[childID] = UInt8(taskID)
     }
     
     // Assign the largest of the remaining children to the highest-index task.
@@ -695,19 +695,20 @@ private func runRestrictedTest(
       let pair = pairs[remainingChildCount - 1]
       let childID = Int(pair[0])
       let taskID = testCase.taskCount - 1
-      output[childID] = Int8(taskID)
+      output[childID] = UInt8(taskID)
     } else {
       let pair0 = pairs[remainingChildCount - 2]
       let pair1 = pairs[remainingChildCount - 1]
       let childID0 = Int(pair0[0])
       let childID1 = Int(pair1[0])
-      output[childID0] = Int8(testCase.taskCount - 2)
-      output[childID1] = Int8(testCase.taskCount - 1)
+      output[childID0] = UInt8(testCase.taskCount - 2)
+      output[childID1] = UInt8(testCase.taskCount - 1)
     }
     
     return output
   }
   
+  // This ought to be encapsulated a little more, for example with a struct.
   var sortedChildPairs = createChildPairs()
   sortedChildPairs.sort {
     $0[1] < $1[1]
@@ -716,32 +717,7 @@ private func runRestrictedTest(
     pairs: sortedChildPairs)
   sortedChildPairs.removeLast(createFixedChildCount())
   
-  // Merge the fixed and variable children into an assignment like the
-  // original 'fixed' algorithm.
-  func combine(
-    fixed: SIMD8<Int8>,
-    variable: SIMD8<UInt8>
-  ) -> SIMD8<UInt8> {
-    // TODO: Elide all of this checking.
-    
-    // Fill a vector of 'Int8', where some are -1.
-    var combined = fixed
-    for sortedChildID in sortedChildPairs.indices {
-      let pair = sortedChildPairs[sortedChildID]
-      let childID = Int(pair[0])
-      let taskID = variable[sortedChildID]
-      combined[Int(childID)] = Int8(taskID)
-    }
-    
-    // Convert everything to 0.
-    var output: SIMD8<UInt8> = .zero
-    for childID in 0..<testCase.childCount {
-      let taskID = combined[childID]
-      output[childID] = UInt8(taskID)
-    }
-    return output
-  }
-  
+  // Declare the state variables for the best assignment.
   var bestAssignment: SIMD8<UInt8>?
   var bestAssignmentLatency: Float = .greatestFiniteMagnitude
   
@@ -750,9 +726,14 @@ private func runRestrictedTest(
   let combinationCount = testCase.combinationCount(
     childCount: sortedChildPairs.count)
   for combinationID in 0..<combinationCount {
-    let combinedAssignments = combine(
-      fixed: fixedChildAssignments,
-      variable: counter)
+    // Merge the fixed and variable assignments.
+    var combinedAssignments = fixedChildAssignments
+    for sortedChildID in sortedChildPairs.indices {
+      let pair = sortedChildPairs[sortedChildID]
+      let childID = Int(pair[0])
+      let taskID = counter[sortedChildID]
+      combinedAssignments[childID] = UInt8(taskID)
+    }
     
     let taskLatencies = testCase.taskLatencies(
       assignments: combinedAssignments)

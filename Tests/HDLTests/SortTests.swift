@@ -267,12 +267,12 @@ final class SortTests: XCTestCase {
       testCase: testCase)
     print()
     print()
-    let assignmentPartial1 = runRestrictedTest(
+    let assignmentRestricted1 = runRestrictedTest(
       testCase: testCase,
       restrictMaxCombinations: false)
     print()
     print()
-    let assignmentPartial2 = runRestrictedTest(
+    let assignmentRestricted2 = runRestrictedTest(
       testCase: testCase,
       restrictMaxCombinations: true)
     
@@ -286,8 +286,8 @@ final class SortTests: XCTestCase {
         }
       }
     }
-    validate(assignment: assignmentPartial1)
-    validate(assignment: assignmentPartial2)
+    validate(assignment: assignmentRestricted1)
+    validate(assignment: assignmentRestricted2)
     
     // In the summary section, display the inputs.
     print()
@@ -309,8 +309,8 @@ final class SortTests: XCTestCase {
       print(assignment, latency)
     }
     display(assignment: assignmentFull)
-    display(assignment: assignmentPartial1)
-    display(assignment: assignmentPartial2)
+    display(assignment: assignmentRestricted1)
+    display(assignment: assignmentRestricted2)
   }
   
   // MARK: - Test Cases
@@ -652,11 +652,8 @@ private func display(combinationLines: [CombinationLine]) {
   }
 }
 
-// MARK: - Algorithm Variants
-
-// The full specification for a unit test that covers all 3 algorithms.
 private struct CompleteTestCase {
-  var problemSize: (testCount: Int, childCount: Int)?
+  var problemSize: (taskCount: Int, childCount: Int)?
   var childValues: [Float]?
   var resultFull: Float?
   var resultRestricted1: Float?
@@ -670,8 +667,61 @@ private struct CompleteTestCase {
           let resultRestricted2 else {
       fatalError("Test was not fully specified.")
     }
+    
+    var testCase = TestCase()
+    testCase.taskCount = problemSize.taskCount
+    testCase.childCount = problemSize.childCount
+    
+    // Assign the child latencies.
+    guard childValues.count == testCase.childCount else {
+      fatalError("Incorrect number of child values.")
+    }
+    for childID in 0..<testCase.childCount {
+      let latency = childValues[childID]
+      testCase.childLatencies[childID] = latency
+    }
+    
+    // Generate assignments from the three algorithm variants.
+    let assignmentFull = runFullTest(
+      testCase: testCase)
+    let assignmentPartial1 = runRestrictedTest(
+      testCase: testCase,
+      restrictMaxCombinations: false)
+    let assignmentPartial2 = runRestrictedTest(
+      testCase: testCase,
+      restrictMaxCombinations: true)
+    
+    // Check that restricted algorithms fill each task with ≥1 child.
+    func validate(assignment: SIMD8<UInt8>) {
+      let taskLatencies = testCase.taskLatencies(
+        assignments: assignment)
+      for taskID in 0..<testCase.taskCount {
+        let latency = taskLatencies[taskID]
+        guard latency > 0 else {
+          fatalError("Unassigned task.")
+        }
+      }
+    }
+    validate(assignment: assignmentPartial1)
+    validate(assignment: assignmentPartial2)
+    
+    // Check the exact value of the outputs.
+    func latency(assignment: SIMD8<UInt8>) -> Float {
+      let taskLatencies = testCase.taskLatencies(
+        assignments: assignment)
+      return taskLatencies.max()
+    }
+    func check(assignment: SIMD8<UInt8>, expected: Float) {
+      let latency = latency(assignment: assignment)
+      XCTAssertEqual(latency, expected)
+    }
+    check(assignment: assignmentFull, expected: resultFull)
+    check(assignment: assignmentPartial1, expected: resultRestricted1)
+    check(assignment: assignmentPartial2, expected: resultRestricted2)
   }
 }
+
+// MARK: - Algorithm Variants
 
 private func runFullTest(
   testCase: TestCase

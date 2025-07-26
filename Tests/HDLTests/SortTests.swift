@@ -247,10 +247,8 @@ final class SortTests: XCTestCase {
   // - Current execution time: ~1.0-3.5 μs, depending on problem size
   //
   // Tasks:
-  // - Eliminate the time-consuming "full" test
-  //   - We'll keep "restricted1" around for quite a while. It's a good way to
-  //     measure the latency contribution that scales with combination count.
-  // - Simplify the code that once examined 4 combinations
+  // - Perform small cleanups that coincidentally optimize performance, for the
+  //   restricted algorithm.
   // - Add profiler metrics to the main test ('testWorkSplittingMain')
   func testWorkSplittingMain() throws {
     var testCase = TestCase()
@@ -740,6 +738,9 @@ private func runRestrictedTest(
     fixed: SIMD8<Int8>,
     variable: SIMD8<UInt8>
   ) -> SIMD8<UInt8> {
+    // TODO: Elide all of this checking.
+    
+    // Fill a vector of 'Int8', where some are -1.
     var combined = fixed
     for sortedChildID in sortedChildPairs.indices {
       let pair = sortedChildPairs[sortedChildID]
@@ -752,29 +753,7 @@ private func runRestrictedTest(
       combined[Int(childID)] = Int8(taskID)
     }
     
-    // assert taskCount + sortedChildPairs = expected
-    do {
-      let actual = createFixedChildCount() + sortedChildPairs.count
-      guard actual == testCase.childCount else {
-        fatalError("This should never happen.")
-      }
-    }
-    
-    // assert 'childCount' consecutive nonnegative entries
-    // assert '8 - childCount' consecutive negative entries
-    for entryID in 0..<8 {
-      let taskID = combined[entryID]
-      if entryID < testCase.childCount {
-        guard taskID >= 0 else {
-          fatalError("This should never happen.")
-        }
-      } else {
-        guard taskID == -1 else {
-          fatalError("This should never happen.")
-        }
-      }
-    }
-    
+    // Convert everything to 0.
     var output: SIMD8<UInt8> = .zero
     for childID in 0..<testCase.childCount {
       let taskID = combined[childID]

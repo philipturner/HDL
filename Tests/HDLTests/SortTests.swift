@@ -252,8 +252,8 @@ final class SortTests: XCTestCase {
   // - Eliminate the code for printing out many possible combinations
   func testWorkSplittingMain() throws {
     var testCase = TestCase()
-    testCase.taskCount = 3
-    testCase.childCount = 6
+    testCase.taskCount = 2
+    testCase.childCount = 3
     
     // Set the child latencies to random values.
     for childID in 0..<testCase.childCount {
@@ -314,6 +314,10 @@ final class SortTests: XCTestCase {
   }
   
   // MARK: - Test Cases
+  
+  // Make the test setup like a data structure, which can be fed in to the
+  // same utility function for all cases. Then, it's a single XCTest function,
+  // instead of many similarly named functions.
   
   // (2, 8)
   //
@@ -432,7 +436,50 @@ final class SortTests: XCTestCase {
   //  SIMD8<UInt8>(2, 0, 1, 1, 2, 2, 0, 0) 906.0
   //  SIMD8<UInt8>(2, 0, 1, 1, 2, 2, 0, 0) 906.0
   
-  // testWorkSplitting28
+  // (2, 5)
+  //
+  //  640.0
+  //  545.0
+  //  31.0
+  //  653.0
+  //  574.0
+  //
+  //  SIMD8<UInt8>(1, 1, 1, 0, 0, 0, 0, 0) 1227.0
+  //  SIMD8<UInt8>(1, 0, 0, 0, 1, 0, 0, 0) 1229.0
+  //  SIMD8<UInt8>(1, 0, 0, 0, 1, 0, 0, 0) 1229.0
+  
+  // (4, 5)
+  //
+  //  946.0
+  //  642.0
+  //  527.0
+  //  464.0
+  //  413.0
+  //
+  //  SIMD8<UInt8>(3, 2, 1, 0, 0, 0, 0, 0) 946.0
+  //  SIMD8<UInt8>(0, 1, 2, 3, 3, 0, 0, 0) 946.0
+  //  SIMD8<UInt8>(0, 1, 2, 3, 3, 0, 0, 0) 946.0
+  
+  // (2, 4)
+  //
+  //  691.0
+  //  380.0
+  //  124.0
+  //  382.0
+  //
+  //  SIMD8<UInt8>(1, 0, 1, 0, 0, 0, 0, 0) 815.0
+  //  SIMD8<UInt8>(0, 1, 0, 1, 0, 0, 0, 0) 815.0
+  //  SIMD8<UInt8>(0, 1, 0, 1, 0, 0, 0, 0) 815.0
+  
+  // (2, 3)
+  //
+  //  475.0
+  //  479.0
+  //  60.0
+  //
+  //  SIMD8<UInt8>(0, 1, 0, 0, 0, 0, 0, 0) 535.0
+  //  SIMD8<UInt8>(1, 0, 1, 0, 0, 0, 0, 0) 535.0
+  //  SIMD8<UInt8>(1, 0, 1, 0, 0, 0, 0, 0) 535.0
 }
 
 // MARK: - Utilities

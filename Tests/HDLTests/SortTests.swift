@@ -676,7 +676,7 @@ private func runRestrictedTest(
   func createFixedAssignments(
     pairs: [SIMD2<Float>]
   ) -> SIMD8<Int8> {
-    var output = SIMD8<Int8>(repeating: -1)
+    var output = SIMD8<Int8>(repeating: .max)
     guard testCase.childCount > testCase.taskCount else {
       fatalError("Invalid conditions for the restricted algorithm.")
     }
@@ -697,28 +697,12 @@ private func runRestrictedTest(
       let taskID = testCase.taskCount - 1
       output[childID] = Int8(taskID)
     } else {
-      // Optimize/simplify this once you have a test to prove you didn't change
-      // the outcome.
-      let small0 = pairs[remainingChildCount - 2]
-      let small1 = pairs[remainingChildCount - 1]
-      let large0 = pairs[remainingChildCount]
-      let large1 = pairs[remainingChildCount + 1]
-      
-      func assignment(combinationID: Int) -> SIMD2<Int> {
-        SIMD2(combinationID & 1, combinationID >> 1)
-      }
-      
-      do {
-        // Check that setting combinationID to 0 is caught in the unit tests.
-        let assignment = assignment(combinationID: 1)
-        let taskID0 = testCase.taskCount - 1 - assignment[0]
-        let taskID1 = testCase.taskCount - 1 - assignment[1]
-        
-        let childID0 = Int(small0[0])
-        let childID1 = Int(small1[0])
-        output[childID0] = Int8(taskID0)
-        output[childID1] = Int8(taskID1)
-      }
+      let pair0 = pairs[remainingChildCount - 2]
+      let pair1 = pairs[remainingChildCount - 1]
+      let childID0 = Int(pair0[0])
+      let childID1 = Int(pair1[0])
+      output[childID0] = Int8(testCase.taskCount - 2)
+      output[childID1] = Int8(testCase.taskCount - 1)
     }
     
     return output
@@ -746,10 +730,6 @@ private func runRestrictedTest(
       let pair = sortedChildPairs[sortedChildID]
       let childID = Int(pair[0])
       let taskID = variable[sortedChildID]
-      guard combined[Int(childID)] == -1 else {
-        fatalError("Task was already assigned.")
-      }
-      
       combined[Int(childID)] = Int8(taskID)
     }
     

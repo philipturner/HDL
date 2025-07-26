@@ -249,6 +249,9 @@ final class SortTests: XCTestCase {
   // Tasks:
   // - Perform small cleanups that coincidentally optimize performance, for the
   //   restricted algorithm.
+  // - Remove the "restricted1" algorithm variant. The regular full algorithm
+  //   will now serve as a proxy for the component dominated by combination
+  //   count.
   // - Add profiler metrics to the main test ('testWorkSplittingMain')
   func testWorkSplittingMain() throws {
     var testCase = TestCase()
@@ -645,11 +648,23 @@ private func runFullTest(
   return bestAssignment
 }
 
-private func runRestrictedTest(
-  testCase: TestCase,
-  restrictMaxCombinations: Bool
-) -> SIMD8<UInt8> {
-  func createChildPairs() -> [SIMD2<Float>] {
+private struct PreparationStage {
+  var sortedChildPairs: [SIMD2<Float>]
+  var fixedChildAssignments: SIMD8<UInt8>
+  
+  init(testCase: TestCase) {
+    sortedChildPairs = createChildPairs(testCase: testCase)
+    sortedChildPairs.sort {
+      $0[1] < $1[1]
+    }
+    fixedChildAssignments = createFixedAssignments(
+      pairs: sortedChildPairs)
+    sortedChildPairs.removeLast(createFixedChildCount())
+  }
+  
+  static func createChildPairs(
+    testCase: TestCase
+  ) -> [SIMD2<Float>] {
     var output: [SIMD2<Float>] = []
     for childID in 0..<testCase.childCount {
       let latency = testCase.childLatencies[childID]
@@ -661,11 +676,13 @@ private func runRestrictedTest(
     return output
   }
   
-  func maxNativeCombinations() -> Int {
+  static func maxNativeCombinations(
+    testCase: TestCase
+  ) -> Int {
     restrictMaxCombinations ? 20 : 100
   }
   
-  func createFixedChildCount() -> Int {
+  static func createFixedChildCount() -> Int {
     if testCase.nativeCombinationCount < maxNativeCombinations() {
       return testCase.taskCount + 1
     } else {
@@ -673,7 +690,7 @@ private func runRestrictedTest(
     }
   }
   
-  func createFixedAssignments(
+  static func createFixedAssignments(
     pairs: [SIMD2<Float>]
   ) -> SIMD8<UInt8> {
     var output = SIMD8<UInt8>(repeating: .max)
@@ -707,15 +724,13 @@ private func runRestrictedTest(
     
     return output
   }
-  
-  // This ought to be encapsulated a little more, for example with a struct.
-  var sortedChildPairs = createChildPairs()
-  sortedChildPairs.sort {
-    $0[1] < $1[1]
-  }
-  let fixedChildAssignments = createFixedAssignments(
-    pairs: sortedChildPairs)
-  sortedChildPairs.removeLast(createFixedChildCount())
+}
+
+private func runRestrictedTest(
+  testCase: TestCase,
+  restrictMaxCombinations: Bool
+) -> SIMD8<UInt8> {
+  let preparationStage = PreparationStage()
   
   // Declare the state variables for the best assignment.
   var bestAssignment: SIMD8<UInt8>?
@@ -724,12 +739,12 @@ private func runRestrictedTest(
   // Iterate over all combinations of variable children.
   var counter: SIMD8<UInt8> = .zero
   let combinationCount = testCase.combinationCount(
-    childCount: sortedChildPairs.count)
+    childCount: preparationStage.sortedChildPairs.count)
   for combinationID in 0..<combinationCount {
     // Merge the fixed and variable assignments.
-    var combinedAssignments = fixedChildAssignments
-    for sortedChildID in sortedChildPairs.indices {
-      let pair = sortedChildPairs[sortedChildID]
+    var combinedAssignments = preparationStage.fixedChildAssignments
+    for sortedChildID in preparationStage.sortedChildPairs.indices {
+      let pair = preparationStage.sortedChildPairs[sortedChildID]
       let childID = Int(pair[0])
       let taskID = counter[sortedChildID]
       combinedAssignments[childID] = UInt8(taskID)

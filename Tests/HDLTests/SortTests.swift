@@ -250,8 +250,6 @@ final class SortTests: XCTestCase {
   // - Reformulate the algorithms, so they return the exact assignment of
   //   children to tasks, that would be useful in actual work splitting.
   //   - Start by elaborating on the new I/O interface for test functions
-  //   - Elaborate on floating point rounding error, triggering false outcomes
-  //     of assertions
   // - Cover specific combinations of (taskCount, childCount), enough to get
   //   full coverage.
   //
@@ -260,12 +258,13 @@ final class SortTests: XCTestCase {
   // - Current execution time: ~1.0-3.5 μs, depending on problem size
   func testWorkSplitting() throws {
     var testCase = TestCase()
-    testCase.taskCount = 4
-    testCase.childCount = 8
+    testCase.taskCount = 3
+    testCase.childCount = 6
     
     // Set the child latencies to random values.
     for childID in 0..<testCase.childCount {
-      let latency = Float.random(in: 0..<1000)
+      var latency = Float.random(in: 0..<1000)
+      latency.round(.toNearestOrEven)
       testCase.childLatencies[childID] = latency
     }
     

@@ -248,6 +248,9 @@ final class SortTests: XCTestCase {
   //
   // Tasks:
   // - Eliminate the code for printing out many possible combinations
+  // - Eliminate the time-consuming "full" test
+  //   - We'll keep "restricted1" around for quite a while. It's a good way to
+  //     measure the latency contribution that scales with combination count.
   // - Simplify the code that once examined 4 combinations
   // - Add profiler metrics to the main test ('testWorkSplittingMain')
   func testWorkSplittingMain() throws {
@@ -983,13 +986,6 @@ private func runRestrictedTest(
   guard let bestAssignment else {
     fatalError("This should never happen.")
   }
-  
-  combinationPairs.sort {
-    $0[1] < $1[1]
-  }
-  let combinationLines = createCombinationLines(
-    pairs: combinationPairs)
-//  display(combinationLines: combinationLines)
   
   return bestAssignment
 }

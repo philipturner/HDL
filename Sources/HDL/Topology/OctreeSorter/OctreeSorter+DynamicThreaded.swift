@@ -189,22 +189,27 @@ extension OctreeSorter {
       
       // Child count is always 8, until we break through the barrier to entry
       // for implementing the full algorithm.
-      do {
-        let idealTaskCount = createTaskCount()
-        // let actualTaskCount = (idealTaskCount > 1) ? 8 : 1
-        
-        if levelSize >= 2 {
-          print(levelSize, atomIDs.count, idealTaskCount)
-        }
+      struct WorkSplitting {
+        var taskCount: Int = .zero
+        var assignments: SIMD8<UInt8> = .zero
       }
-      let assignments: SIMD8<UInt8> = SIMD8(0, 1, 2, 3, 4, 5, 6, 7)
+      func createWorkSplitting() -> WorkSplitting {
+        let idealTaskCount = createTaskCount()
+        let actualTaskCount = (idealTaskCount > 1) ? 8 : 1
+        
+        var output = WorkSplitting()
+        output.taskCount = 7
+        output.assignments = SIMD8(0, 1, 2, 3, 4, 5, 6, 5)
+        return output
+      }
+      let workSplitting = createWorkSplitting()
       
       // Organize the children into tasks.
       var taskSizes: SIMD8<UInt8> = .zero
       var taskChildren: SIMD8<UInt64> = .zero
       for childID in 0..<8 {
         // taskID per child obtained from work splitting algorithm
-        let taskID = assignments[childID]
+        let taskID = workSplitting.assignments[childID]
         let offset = taskSizes[Int(taskID)]
         taskSizes[Int(taskID)] = offset + 1
         
@@ -216,8 +221,7 @@ extension OctreeSorter {
       }
       
       // Invoke the traversal function recursively.
-      let taskCount = 8
-      for taskID in 0..<taskCount {
+      for taskID in 0..<workSplitting.taskCount {
         let size = taskSizes[taskID]
         let children = unsafeBitCast(
           taskChildren[taskID], to: SIMD8<UInt8>.self)

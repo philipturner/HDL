@@ -243,7 +243,7 @@ extension OctreeSorter {
        
        */
       
-      func createLevelsRemaining() -> Int {
+      func createRemainingLevels() -> Int {
         let exponentFor4 = Float(4).exponentBitPattern
         let exponentForLevel = levelSize.exponentBitPattern
         return Int(exponentForLevel - exponentFor4) + 7
@@ -252,7 +252,7 @@ extension OctreeSorter {
         // 5.0 ns/atom/level
         var output = SIMD8<Float>(childSizes)
         output *= Float(5.0e-9)
-        output *= Float(createLevelsRemaining())
+        output *= Float(createRemainingLevels())
         return output
       }
       let childLatencies = createChildLatencies()
@@ -291,15 +291,6 @@ extension OctreeSorter {
         var output = WorkSplitting()
         let maximumTaskCount = createMaximumTaskCount()
         output.taskCount = createTaskCount(maximum: maximumTaskCount)
-        
-        /*
-         dataset    | octree |  grid
-         ---------- | ------ | ------
-         pre-sorted |   8159 |  10352
-         lattice    |   7803 |  10793
-         shuffled   |   9398 |  10528
-         reversed   |   8026 |  10373
-         */
         
         func createAssignments() -> SIMD8<UInt8> {
           if output.taskCount == 1 {

@@ -125,7 +125,7 @@ extension OctreeSorter {
       }
       
       // Fast-path for smaller cells at the bottom of the tree.
-      do {
+      if levelSize <= 1 {
         fastPath()
         return
       }
@@ -222,6 +222,17 @@ extension OctreeSorter {
        lattice    |   8020 |   6990
        shuffled   |   9438 |   6935
        reversed   |   7960 |   6809
+       
+       after making the scratchpad a function argument:
+       
+       atoms: 129600
+       dataset    | octree |  grid
+       ---------- | ------ | ------
+       pre-sorted |   7657 |   6969
+       lattice    |   7889 |   7246
+       shuffled   |   9436 |   7044
+       reversed   |   7959 |   6964
+       
        */
       
       func createLevelsRemaining() -> Int {

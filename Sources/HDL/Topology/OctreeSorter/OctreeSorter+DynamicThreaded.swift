@@ -41,16 +41,11 @@ extension OctreeSorter {
   // Algorithm that adaptively uses multi-threading, when a subset of the
   // octree has enough atoms.
   func mortonReorderingDynamic() -> [UInt32] {
-    // Create the scratch pad.
-    let _scratchPad: UnsafeMutablePointer<UInt32> =
-      .allocate(capacity: 8 * atoms.count)
-    defer { _scratchPad.deallocate() }
-    
     func traverse(
       atomIDs: UnsafeMutableBufferPointer<UInt32>,
+      scratchPad: UnsafeMutablePointer<UInt32>,
       levelOrigin: SIMD3<Float>,
-      levelSize: Float,
-      parentOffset: UInt32
+      levelSize: Float
     ) {
       // Use the scratch pad.
       var childSizes: SIMD8<UInt32> = .zero
@@ -71,7 +66,7 @@ extension OctreeSorter {
         childSizes[Int(childID)] = previousSize + 1
         
         let scratchPadSlot = childID * UInt32(atomIDs.count) + previousSize
-        _scratchPad[Int(parentOffset + scratchPadSlot)] = atomID
+        scratchPad[Int(scratchPadSlot)] = atomID
       }
       
       // Retrieve the base pointer of the input buffer.
@@ -91,7 +86,7 @@ extension OctreeSorter {
           
           let newPointer = allocationPointer() + Int(childOffset)
           newPointer.initialize(
-            from: _scratchPad + Int(parentOffset) + Int(childID) * atomIDs.count,
+            from: scratchPad + Int(childID) * atomIDs.count,
             count: Int(childSize))
           
           childOffsets[Int(childID)] = childOffset
@@ -123,9 +118,9 @@ extension OctreeSorter {
           }
           traverse(
             atomIDs: newBufferPointer,
+            scratchPad: scratchPad + Int(8 * childOffset),
             levelOrigin: createNewOrigin(),
-            levelSize: levelSize / 2,
-            parentOffset: parentOffset + 8 * childOffset)
+            levelSize: levelSize / 2)
         }
       }
       
@@ -344,23 +339,28 @@ extension OctreeSorter {
           }
           traverse(
             atomIDs: newBufferPointer,
+            scratchPad: scratchPad + Int(8 * childOffset),
             levelOrigin: createNewOrigin(),
-            levelSize: levelSize / 2,
-            parentOffset: parentOffset + 8 * childOffset)
+            levelSize: levelSize / 2)
         }
       }
     }
     
     var inPlaceBuffer = atoms.indices.map(UInt32.init)
     inPlaceBuffer.withUnsafeMutableBufferPointer { bufferPointer in
+      // Create the scratch pad.
+      let scratchPad: UnsafeMutablePointer<UInt32> =
+        .allocate(capacity: 8 * atoms.count)
+      defer { scratchPad.deallocate() }
+      
       // Invoke the traversal function the first time.
       let levelOrigin = SIMD3<Float>(
         repeating: highestLevelSize / 2)
       traverse(
         atomIDs: bufferPointer,
+        scratchPad: scratchPad,
         levelOrigin: levelOrigin,
-        levelSize: highestLevelSize,
-        parentOffset: 0)
+        levelSize: highestLevelSize)
     }
     return inPlaceBuffer
   }

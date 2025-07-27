@@ -133,14 +133,22 @@ extension OctreeSorter {
        
        */
       
-//      func createTaskCount() -> Int {
-//        if levelSize >= 1 {
-//          print(levelSize, levelSize.exponentBitPattern, levelSize.significandBitPattern)
-//        }
-//        return 0
-//      }
+      func createTaskCount() -> Int {
+        if levelSize <= 1 {
+          return 1
+        }
+        
+        let exponentFor4 = Float(4).exponentBitPattern
+        let exponentForLevel = levelSize.exponentBitPattern
+        let levelsRemaining = (exponentForLevel - exponentFor4) + 7
+        
+        if levelSize >= 2 {
+          print(levelSize, levelsRemaining)
+        }
+        return 0
+      }
 //      
-//      createTaskCount()
+      createTaskCount()
       let assignments: SIMD8<UInt8> = SIMD8(0, 1, 2, 3, 4, 5, 6, 7)
       
       // Organize the children into tasks.

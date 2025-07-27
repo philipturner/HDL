@@ -251,23 +251,23 @@ final class SortTests: XCTestCase {
   //
   // Next steps: TODO
   func testWorkSplittingMain() throws {
-    var testInput = TestInput()
-    testInput.taskCount = 3
-    testInput.childCount = 8
+    var test = WorkSplittingTest()
+    test.taskCount = 3
+    test.childCount = 8
     
     // Set the child latencies to random values.
-    for childID in 0..<testInput.childCount {
+    for childID in 0..<test.childCount {
       var latency = Float.random(in: 1...1000)
       latency.round(.toNearestOrEven)
-      testInput.childLatencies[childID] = latency
+      test.childLatencies[childID] = latency
     }
     
     for _ in 0..<10 {
-      _ = testInput.run()
+      _ = test.run()
     }
     do {
       let start = Profiler.time()
-      _ = testInput.run()
+      _ = test.run()
       let end = Profiler.time()
       print("restricted:", Float(end - start))
     }
@@ -474,27 +474,27 @@ private struct TestCase {
       fatalError("Test was not fully specified.")
     }
     
-    var testInput = TestInput()
-    testInput.taskCount = problemSize.taskCount
-    testInput.childCount = problemSize.childCount
+    var test = WorkSplittingTest()
+    test.taskCount = problemSize.taskCount
+    test.childCount = problemSize.childCount
     
     // Assign the child latencies.
-    guard childValues.count == testInput.childCount else {
+    guard childValues.count == test.childCount else {
       fatalError("Incorrect number of child values.")
     }
-    for childID in 0..<testInput.childCount {
+    for childID in 0..<test.childCount {
       let latency = childValues[childID]
-      testInput.childLatencies[childID] = latency
+      test.childLatencies[childID] = latency
     }
     
     // Generate the output.
-    let assignment = testInput.run()
+    let assignment = test.run()
     
     // Check that each task is filled with ≥1 child.
     func validate(assignment: SIMD8<UInt8>) {
-      let taskLatencies = testInput.taskLatencies(
+      let taskLatencies = test.taskLatencies(
         assignments: assignment)
-      for taskID in 0..<testInput.taskCount {
+      for taskID in 0..<test.taskCount {
         let latency = taskLatencies[taskID]
         guard latency > 0 else {
           fatalError("Unassigned task.")
@@ -505,7 +505,7 @@ private struct TestCase {
     
     // Check the exact value of the output.
     func latency(assignment: SIMD8<UInt8>) -> Float {
-      let taskLatencies = testInput.taskLatencies(
+      let taskLatencies = test.taskLatencies(
         assignments: assignment)
       return taskLatencies.max()
     }

@@ -45,11 +45,11 @@ struct WorkSplitting {
       if taskCount == 1 {
         return SIMD8.zero
       } else if taskCount < 8 {
-        var testInput = TestInput()
-        testInput.taskCount = taskCount
-        testInput.childCount = 8
-        testInput.childLatencies = childLatencies
-        return testInput.run()
+        var test = WorkSplittingTest()
+        test.taskCount = taskCount
+        test.childCount = 8
+        test.childLatencies = childLatencies
+        return test.run()
       } else {
         return SIMD8(0, 1, 2, 3, 4, 5, 6, 7)
       }
@@ -70,7 +70,7 @@ struct WorkSplitting {
   }
 }
 
-struct TestInput {
+struct WorkSplittingTest {
   var taskCount: Int = .zero
   var childCount: Int = .zero
   var childLatencies: SIMD8<Float> = .zero
@@ -107,7 +107,7 @@ struct TestInput {
   }
   
   func run() -> SIMD8<UInt8> {
-    let preparationStage = PreparationStage(testInput: self)
+    let preparationStage = PreparationStage(test: self)
     
     // Declare the state variables for the best assignment.
     var bestCounter: SIMD8<UInt8>?
@@ -162,28 +162,28 @@ private struct PreparationStage {
   var fixedChildAssignments: SIMD8<UInt8>
   var fixedTaskLatencies: SIMD8<Float>
   
-  init(testInput: TestInput) {
-    sortedChildPairs = Self.createChildPairs(testInput: testInput)
+  init(test: WorkSplittingTest) {
+    sortedChildPairs = Self.createChildPairs(test: test)
     sortedChildPairs.sort {
       $0[1] < $1[1]
     }
     fixedChildAssignments = Self.createFixedAssignments(
-      testInput: testInput,
+      test: test,
       pairs: sortedChildPairs)
     fixedTaskLatencies = Self.createFixedLatencies(
-      testInput: testInput,
+      test: test,
       fixedAssignments: fixedChildAssignments)
     
-    let fixedChildCount = Self.createFixedChildCount(testInput: testInput)
+    let fixedChildCount = Self.createFixedChildCount(test: test)
     sortedChildPairs.removeLast(fixedChildCount)
   }
   
   static func createChildPairs(
-    testInput: TestInput
+    test: WorkSplittingTest
   ) -> [SIMD2<Float>] {
     var output: [SIMD2<Float>] = []
-    for childID in 0..<testInput.childCount {
-      let latency = testInput.childLatencies[childID]
+    for childID in 0..<test.childCount {
+      let latency = test.childLatencies[childID]
       let pair = SIMD2(
         Float(childID),
         latency)
@@ -193,48 +193,48 @@ private struct PreparationStage {
   }
   
   static func createFixedAssignments(
-    testInput: TestInput,
+    test: WorkSplittingTest,
     pairs: [SIMD2<Float>]
   ) -> SIMD8<UInt8> {
     var output = SIMD8<UInt8>(repeating: .max)
-    guard testInput.childCount > testInput.taskCount else {
+    guard test.childCount > test.taskCount else {
       fatalError("Invalid conditions for the restricted algorithm.")
     }
     
     // Assign the highest-index children to the lowest-index tasks.
-    for taskID in 0..<testInput.taskCount {
-      let sortedChildID = testInput.childCount - 1 - taskID
+    for taskID in 0..<test.taskCount {
+      let sortedChildID = test.childCount - 1 - taskID
       let pair = pairs[sortedChildID]
       let childID = Int(pair[0])
       output[childID] = UInt8(taskID)
     }
     
     // Assign the largest of the remaining children to the highest-index task.
-    let remainingChildCount = testInput.childCount - testInput.taskCount
-    if testInput.nativeCombinationCount < 20 {
+    let remainingChildCount = test.childCount - test.taskCount
+    if test.nativeCombinationCount < 20 {
       let pair = pairs[remainingChildCount - 1]
       let childID = Int(pair[0])
-      let taskID = testInput.taskCount - 1
+      let taskID = test.taskCount - 1
       output[childID] = UInt8(taskID)
     } else {
       let pair0 = pairs[remainingChildCount - 2]
       let pair1 = pairs[remainingChildCount - 1]
       let childID0 = Int(pair0[0])
       let childID1 = Int(pair1[0])
-      output[childID0] = UInt8(testInput.taskCount - 2)
-      output[childID1] = UInt8(testInput.taskCount - 1)
+      output[childID0] = UInt8(test.taskCount - 2)
+      output[childID1] = UInt8(test.taskCount - 1)
     }
     
     return output
   }
   
   static func createFixedLatencies(
-    testInput: TestInput,
+    test: WorkSplittingTest,
     fixedAssignments: SIMD8<UInt8>
   ) -> SIMD8<Float> {
     var output: SIMD8<Float> = .zero
-    for childID in 0..<testInput.childCount {
-      let latency = testInput.childLatencies[childID]
+    for childID in 0..<test.childCount {
+      let latency = test.childLatencies[childID]
       let taskID = fixedAssignments[childID]
       if taskID != UInt8.max {
         output[Int(taskID)] += latency
@@ -244,12 +244,12 @@ private struct PreparationStage {
   }
   
   static func createFixedChildCount(
-    testInput: TestInput
+    test: WorkSplittingTest
   ) -> Int {
-    if testInput.nativeCombinationCount < 20 {
-      return testInput.taskCount + 1
+    if test.nativeCombinationCount < 20 {
+      return test.taskCount + 1
     } else {
-      return testInput.taskCount + 2
+      return test.taskCount + 2
     }
   }
 }

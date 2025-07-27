@@ -24,10 +24,10 @@ extension OctreeSorter {
       levelSize: Float
     ) {
       // Return early.
-      if levelSize == 1 / 32 {
+      if levelSize == 1.0 / 32 {
         output += atomIDs
         return
-      } else if levelSize < 1 / 32 {
+      } else if levelSize < 1.0 / 32 {
         fatalError("This should never happen.")
       }
       

@@ -5,6 +5,7 @@
 //  Created by Philip Turner on 7/27/25.
 //
 
+import Atomics
 import Dispatch
 
 // compute ideal task count
@@ -48,11 +49,10 @@ extension OctreeSorter {
   // Algorithm that adaptively uses multi-threading, when a subset of the
   // octree has enough atoms.
   func mortonReorderingDynamic() -> [UInt32] {
-    var threadCount: Int = 1
-    var callCount: Int = 0
-    var taskCounts: [Int] = []
+    let threadCount = ManagedAtomic<Int>(1)
+    let callCount = ManagedAtomic<Int>(0)
     
-//    @Sendable
+    @Sendable
     func traverse(
       atomCount: UInt32,
       inPlaceBuffer: UnsafeMutablePointer<UInt32>,
@@ -278,6 +278,12 @@ extension OctreeSorter {
         return
       }
       
+      // Statistics for benchmarking.
+      threadCount.wrappingIncrement(
+        by: workSplitting.taskCount - 1,
+        ordering: .relaxed)
+      callCount.wrappingIncrement(ordering: .relaxed)
+      
       // Make Swift concurrency happy.
       nonisolated(unsafe)
       let inPlaceBufferCopy = inPlaceBuffer
@@ -285,14 +291,10 @@ extension OctreeSorter {
       let scratchPadCopy = scratchPad
       
       // Invoke the traversal function recursively.
-      threadCount += workSplitting.taskCount - 1
-      callCount += 1
-      taskCounts.append(workSplitting.taskCount)
-      
-      for taskID in 0..<workSplitting.taskCount {
-//      DispatchQueue.concurrentPerform(
-//        iterations: workSplitting.taskCount
-//      ) { taskID in
+//      for taskID in 0..<workSplitting.taskCount {
+      DispatchQueue.concurrentPerform(
+        iterations: workSplitting.taskCount
+      ) { taskID in
         let size = workSplitting.taskSizes[taskID]
         let children = unsafeBitCast(
           workSplitting.taskChildren[taskID], to: SIMD8<UInt8>.self)
@@ -340,11 +342,8 @@ extension OctreeSorter {
     
     // expecting ~27 threads, ~1 calls
     print()
-    print("thread count:", threadCount)
-    print("call count:", callCount)
-    print("task counts:")
-    print("- number of elements:", taskCounts.count)
-    print("- sum:", taskCounts.reduce(0, +))
+    print("thread count:", threadCount.load(ordering: .relaxed))
+    print("call count:", callCount.load(ordering: .relaxed))
     
     return inPlaceBuffer
   }

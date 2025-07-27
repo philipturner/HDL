@@ -253,7 +253,7 @@ final class SortTests: XCTestCase {
   func testWorkSplittingMain() throws {
     var testInput = TestInput()
     testInput.taskCount = 3
-    testInput.childCount = 5
+    testInput.childCount = 8
     
     // Set the child latencies to random values.
     for childID in 0..<testInput.childCount {
@@ -263,11 +263,11 @@ final class SortTests: XCTestCase {
     }
     
     for _ in 0..<10 {
-      _ = runRestrictedTest(testInput: testInput)
+      _ = testInput.run()
     }
     do {
       let start = Profiler.time()
-      _ = runRestrictedTest(testInput: testInput)
+      _ = testInput.run()
       let end = Profiler.time()
       print("restricted:", Float(end - start))
     }
@@ -488,7 +488,7 @@ private struct TestCase {
     }
     
     // Generate the output.
-    let assignment = runRestrictedTest(testInput: testInput)
+    let assignment = testInput.run()
     
     // Check that each task is filled with ≥1 child.
     func validate(assignment: SIMD8<UInt8>) {

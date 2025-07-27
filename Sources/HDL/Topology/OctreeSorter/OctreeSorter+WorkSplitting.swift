@@ -49,7 +49,7 @@ struct WorkSplitting {
         testInput.taskCount = taskCount
         testInput.childCount = 8
         testInput.childLatencies = childLatencies
-        return runRestrictedTest(testInput: testInput)
+        return testInput.run()
       } else {
         return SIMD8(0, 1, 2, 3, 4, 5, 6, 7)
       }
@@ -68,58 +68,6 @@ struct WorkSplitting {
         children, to: UInt64.self)
     }
   }
-}
-
-func runRestrictedTest(
-  testInput: TestInput
-) -> SIMD8<UInt8> {
-  let preparationStage = PreparationStage(testInput: testInput)
-  
-  // Declare the state variables for the best assignment.
-  var bestCounter: SIMD8<UInt8>?
-  var bestCounterLatency: Float = .greatestFiniteMagnitude
-  
-  // Iterate over all combinations of variable children.
-  var counter: SIMD8<UInt8> = .zero
-  let combinationCount = testInput.combinationCount(
-    childCount: preparationStage.sortedChildPairs.count)
-  for _ in 0..<combinationCount {
-    var taskLatencies = preparationStage.fixedTaskLatencies
-    for sortedChildID in preparationStage.sortedChildPairs.indices {
-      let pair = preparationStage.sortedChildPairs[sortedChildID]
-      let latency = pair[1]
-      let taskID = counter[sortedChildID]
-      taskLatencies[Int(taskID)] += latency
-    }
-    
-    let maxTaskLatency = taskLatencies.max()
-    if maxTaskLatency < bestCounterLatency {
-      bestCounter = counter
-      bestCounterLatency = maxTaskLatency
-    }
-    
-    for laneID in 0..<8 {
-      counter[laneID] += 1
-      if counter[laneID] >= testInput.taskCount {
-        counter[laneID] = 0
-      } else {
-        break
-      }
-    }
-  }
-  
-  // Merge the fixed and variable assignments.
-  guard let bestCounter else {
-    fatalError("This should never happen.")
-  }
-  var combinedAssignments = preparationStage.fixedChildAssignments
-  for sortedChildID in preparationStage.sortedChildPairs.indices {
-    let pair = preparationStage.sortedChildPairs[sortedChildID]
-    let childID = Int(pair[0])
-    let taskID = bestCounter[sortedChildID]
-    combinedAssignments[childID] = UInt8(taskID)
-  }
-  return combinedAssignments
 }
 
 struct TestInput {
@@ -156,6 +104,56 @@ struct TestInput {
     remainingChildCount -= 1
     return combinationCount(
       childCount: remainingChildCount)
+  }
+  
+  func run() -> SIMD8<UInt8> {
+    let preparationStage = PreparationStage(testInput: self)
+    
+    // Declare the state variables for the best assignment.
+    var bestCounter: SIMD8<UInt8>?
+    var bestCounterLatency: Float = .greatestFiniteMagnitude
+    
+    // Iterate over all combinations of variable children.
+    var counter: SIMD8<UInt8> = .zero
+    let combinationCount = combinationCount(
+      childCount: preparationStage.sortedChildPairs.count)
+    for _ in 0..<combinationCount {
+      var taskLatencies = preparationStage.fixedTaskLatencies
+      for sortedChildID in preparationStage.sortedChildPairs.indices {
+        let pair = preparationStage.sortedChildPairs[sortedChildID]
+        let latency = pair[1]
+        let taskID = counter[sortedChildID]
+        taskLatencies[Int(taskID)] += latency
+      }
+      
+      let maxTaskLatency = taskLatencies.max()
+      if maxTaskLatency < bestCounterLatency {
+        bestCounter = counter
+        bestCounterLatency = maxTaskLatency
+      }
+      
+      for laneID in 0..<8 {
+        counter[laneID] += 1
+        if counter[laneID] >= taskCount {
+          counter[laneID] = 0
+        } else {
+          break
+        }
+      }
+    }
+    
+    // Merge the fixed and variable assignments.
+    guard let bestCounter else {
+      fatalError("This should never happen.")
+    }
+    var combinedAssignments = preparationStage.fixedChildAssignments
+    for sortedChildID in preparationStage.sortedChildPairs.indices {
+      let pair = preparationStage.sortedChildPairs[sortedChildID]
+      let childID = Int(pair[0])
+      let taskID = bestCounter[sortedChildID]
+      combinedAssignments[childID] = UInt8(taskID)
+    }
+    return combinedAssignments
   }
 }
 

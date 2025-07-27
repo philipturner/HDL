@@ -163,9 +163,13 @@ extension OctreeSorter {
         // 20 μs task size
         var taskCount = totalLatency / Float(20e-6)
         taskCount.round(.toNearestOrEven)
+        taskCount = min(taskCount, 8) // eventually incorporate max task count here
         taskCount = max(taskCount, 1)
-        taskCount = min(taskCount, 8)
         return Int(taskCount)
+      }
+      
+      func createMaximumTaskCount() -> Int {
+        
       }
       
       // Child count is always 8, until we break through the barrier to entry
@@ -174,8 +178,10 @@ extension OctreeSorter {
         let idealTaskCount = createTaskCount()
         // let actualTaskCount = (idealTaskCount > 1) ? 8 : 1
         
+        let childLatencies = createChildLatencies()
+        
         if levelSize >= 2 {
-          print(levelSize, atomIDs.count, createTaskCount())
+          print(levelSize, atomIDs.count, idealTaskCount, 8)
         }
       }
       let assignments: SIMD8<UInt8> = SIMD8(0, 1, 2, 3, 4, 5, 6, 7)

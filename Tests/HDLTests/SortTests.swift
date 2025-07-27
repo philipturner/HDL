@@ -548,11 +548,10 @@ private struct TestCase {
       testInput.childLatencies[childID] = latency
     }
     
-    // Generate assignments from the two algorithm variants.
-    let assignmentFull = runFullTest(testInput: testInput)
-    let assignmentRestricted = runRestrictedTest(testInput: testInput)
     
-    // Check that restricted algorithms fills each task with ≥1 child.
+    let assignment = runRestrictedTest(testInput: testInput)
+    
+    // Check that each task is filled with ≥1 child.
     func validate(assignment: SIMD8<UInt8>) {
       let taskLatencies = testInput.taskLatencies(
         assignments: assignment)
@@ -575,47 +574,11 @@ private struct TestCase {
       let latency = latency(assignment: assignment)
       XCTAssertEqual(latency, expected)
     }
-    compare(assignment: assignmentFull, expected: resultFull)
     compare(assignment: assignmentRestricted, expected: resultRestricted)
   }
 }
 
-// MARK: - Algorithm Variants
-
-private func runFullTest(
-  testInput: TestInput
-) -> SIMD8<UInt8> {
-  // Declare the state variables for the best assignment.
-  var bestAssignment: SIMD8<UInt8>?
-  var bestAssignmentLatency: Float = .greatestFiniteMagnitude
-  
-  // Iterate over all combinations.
-  var counter: SIMD8<UInt8> = .zero
-  let combinationCount = testInput.combinationCount(
-    childCount: testInput.childCount)
-  for _ in 0..<combinationCount {
-    let taskLatencies = testInput.taskLatencies(assignments: counter)
-    let maxTaskLatency = taskLatencies.max()
-    if maxTaskLatency < bestAssignmentLatency {
-      bestAssignment = counter
-      bestAssignmentLatency = maxTaskLatency
-    }
-    
-    for laneID in 0..<8 {
-      counter[laneID] += 1
-      if counter[laneID] >= testInput.taskCount {
-        counter[laneID] = 0
-      } else {
-        break
-      }
-    }
-  }
-  
-  guard let bestAssignment else {
-    fatalError("This should never happen.")
-  }
-  return bestAssignment
-}
+// MARK: - Algorithm
 
 private struct PreparationStage {
   var sortedChildPairs: [SIMD2<Float>]

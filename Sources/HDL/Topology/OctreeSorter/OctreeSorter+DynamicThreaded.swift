@@ -77,16 +77,6 @@ extension OctreeSorter {
         atomIDs.baseAddress.unsafelyUnwrapped
       }
       
-      /*
-       atoms: 129600
-       dataset    | octree |  grid
-       ---------- | ------ | ------
-       pre-sorted |   7534 |   6462
-       lattice    |   7785 |   6691
-       shuffled   |   9309 |   6682
-       reversed   |   7974 |   6639
-       */
-      
       // Transfer the scratch pad to the input buffer.
       var childOffsets: SIMD8<UInt32> = .zero
       do {
@@ -110,10 +100,45 @@ extension OctreeSorter {
         return
       }
       
+      /*
+       1 loop:
+       
+       atoms: 129600
+       dataset    | octree |  grid
+       ---------- | ------ | ------
+       pre-sorted |   7534 |   6462
+       lattice    |   7785 |   6691
+       shuffled   |   9309 |   6682
+       reversed   |   7974 |   6639
+       
+       2 nested loops:
+       
+       atoms: 129600
+       dataset    | octree |  grid
+       ---------- | ------ | ------
+       pre-sorted |   7521 |   7039
+       lattice    |   7860 |   7221
+       shuffled   |   9436 |   7294
+       reversed   |   7898 |   7167
+       
+       change:
+       
+       +9%
+       +8%
+       +9%
+       +8%
+       
+       Keep this data around to track progress, as performance worsens with
+       the inclusion of work splitting. Eventually, it may prove economical to
+       provide an explicit 1-loop branch, earlier up in this function body.
+       
+       */
+      
       // Organize the children into tasks.
       var taskSizes: SIMD8<UInt8> = .zero
       var taskChildren: SIMD8<UInt64> = .zero
       for childID in 0..<8 {
+        // taskID per child obtained from work splitting algorithm
         let taskID = 0
         let offset = taskSizes[taskID]
         taskSizes[taskID] = offset + 1
@@ -126,26 +151,34 @@ extension OctreeSorter {
       }
       
       // Invoke the traversal function recursively.
-      for childID in 0..<8 {
-        let childSize = childSizes[childID]
-        if childSize <= 1 {
-          continue
-        }
+      let taskCount = 1
+      for taskID in 0..<taskCount {
+        let size = taskSizes[taskID]
+        let children = unsafeBitCast(
+          taskChildren[taskID], to: SIMD8<UInt8>.self)
         
-        let offset = childOffsets[childID]
-        let newBufferPointer = UnsafeMutableBufferPointer(
-          start: allocationPointer() + Int(offset),
-          count: Int(childSize))
-        
-        func createNewOrigin() -> SIMD3<Float> {
-          let intOffset = (UInt32(childID) &>> SIMD3(0, 1, 2)) & 1
-          let floatOffset = SIMD3<Float>(intOffset) * 2 - 1
-          return levelOrigin + floatOffset * levelSize / 4
+        for workItemID in 0..<size {
+          let childID = children[Int(workItemID)]
+          let childSize = childSizes[Int(childID)]
+          if childSize <= 1 {
+            continue
+          }
+          
+          let offset = childOffsets[Int(childID)]
+          let newBufferPointer = UnsafeMutableBufferPointer(
+            start: allocationPointer() + Int(offset),
+            count: Int(childSize))
+          
+          func createNewOrigin() -> SIMD3<Float> {
+            let intOffset = (UInt8(childID) &>> SIMD3(0, 1, 2)) & 1
+            let floatOffset = SIMD3<Float>(intOffset) * 2 - 1
+            return levelOrigin + floatOffset * levelSize / 4
+          }
+          traverse(
+            atomIDs: newBufferPointer,
+            levelOrigin: createNewOrigin(),
+            levelSize: levelSize / 2)
         }
-        traverse(
-          atomIDs: newBufferPointer,
-          levelOrigin: createNewOrigin(),
-          levelSize: levelSize / 2)
       }
     }
     

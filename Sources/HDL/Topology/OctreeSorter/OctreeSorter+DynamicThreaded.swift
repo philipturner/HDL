@@ -41,15 +41,13 @@ extension OctreeSorter {
   // Algorithm that adaptively uses multi-threading, when a subset of the
   // octree has enough atoms.
   func mortonReorderingDynamic() -> [UInt32] {
-    // Create the scratch pad.
-    let scratchPad: UnsafeMutablePointer<UInt32> =
-      .allocate(capacity: 8 * atoms.count)
-    defer { scratchPad.deallocate() }
+    
     
     func traverse(
       atomIDs: UnsafeMutableBufferPointer<UInt32>,
       levelOrigin: SIMD3<Float>,
-      levelSize: Float
+      levelSize: Float,
+      scratchPad: UnsafeMutablePointer<UInt32>
     ) {
       // Use the scratch pad.
       var childSizes: SIMD8<UInt32> = .zero
@@ -123,12 +121,13 @@ extension OctreeSorter {
           traverse(
             atomIDs: newBufferPointer,
             levelOrigin: createNewOrigin(),
-            levelSize: levelSize / 2)
+            levelSize: levelSize / 2,
+            scratchPad: scratchPad)
         }
       }
       
       // Fast-path for smaller cells at the bottom of the tree.
-      if levelSize <= 1 {
+      do {
         fastPath()
         return
       }
@@ -332,20 +331,27 @@ extension OctreeSorter {
           traverse(
             atomIDs: newBufferPointer,
             levelOrigin: createNewOrigin(),
-            levelSize: levelSize / 2)
+            levelSize: levelSize / 2,
+            scratchPad: scratchPad)
         }
       }
     }
     
-    // Invoke the traversal function the first time.
-    let levelOrigin = SIMD3<Float>(
-      repeating: highestLevelSize / 2)
     var inPlaceBuffer = atoms.indices.map(UInt32.init)
     inPlaceBuffer.withUnsafeMutableBufferPointer { bufferPointer in
+      // Create the scratch pad.
+      let scratchPad: UnsafeMutablePointer<UInt32> =
+        .allocate(capacity: 8 * atoms.count)
+      defer { scratchPad.deallocate() }
+      
+      // Invoke the traversal function the first time.
+      let levelOrigin = SIMD3<Float>(
+        repeating: highestLevelSize / 2)
       traverse(
         atomIDs: bufferPointer,
         levelOrigin: levelOrigin,
-        levelSize: highestLevelSize)
+        levelSize: highestLevelSize,
+        scratchPad: scratchPad)
     }
     return inPlaceBuffer
   }

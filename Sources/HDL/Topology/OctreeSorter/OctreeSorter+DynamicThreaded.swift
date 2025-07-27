@@ -278,7 +278,6 @@ extension OctreeSorter {
       
       // Invoke the traversal function recursively.
 //      for taskID in 0..<workSplitting.taskCount {
-      
       DispatchQueue.concurrentPerform(
         iterations: workSplitting.taskCount
       ) { taskID in

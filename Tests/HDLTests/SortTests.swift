@@ -624,6 +624,7 @@ private func runFullTest(
 private struct PreparationStage {
   var sortedChildPairs: [SIMD2<Float>]
   var fixedChildAssignments: SIMD8<UInt8>
+//  var fixedTaskLatencies: SIMD8<Float>
   
   init(testInput: TestInput) {
     sortedChildPairs = Self.createChildPairs(testInput: testInput)
@@ -710,15 +711,14 @@ private func runRestrictedTest(
   let preparationStage = PreparationStage(testInput: testInput)
   
   // Declare the state variables for the best assignment.
-  var bestAssignment: SIMD8<UInt8>?
-  var bestAssignmentLatency: Float = .greatestFiniteMagnitude
+  var bestCounter: SIMD8<UInt8>?
+  var bestCounterLatency: Float = .greatestFiniteMagnitude
   
   // Iterate over all combinations of variable children.
   var counter: SIMD8<UInt8> = .zero
   let combinationCount = testInput.combinationCount(
     childCount: preparationStage.sortedChildPairs.count)
   for _ in 0..<combinationCount {
-    // Merge the fixed and variable assignments.
     // estimate: 59% of execution time outside prep stage
     var combinedAssignments = preparationStage.fixedChildAssignments
     for sortedChildID in preparationStage.sortedChildPairs.indices {
@@ -728,12 +728,17 @@ private func runRestrictedTest(
       combinedAssignments[childID] = UInt8(taskID)
     }
     
-    let taskLatencies = testInput.taskLatencies(
-      assignments: combinedAssignments)
+    var taskLatencies: SIMD8<Float> = .zero
+    for childID in 0..<testInput.childCount {
+      let latency = testInput.childLatencies[childID]
+      let taskID = combinedAssignments[childID]
+      taskLatencies[Int(taskID)] += latency
+    }
+    
     let maxTaskLatency = taskLatencies.max()
-    if maxTaskLatency < bestAssignmentLatency {
-      bestAssignment = combinedAssignments
-      bestAssignmentLatency = maxTaskLatency
+    if maxTaskLatency < bestCounterLatency {
+      bestCounter = counter
+      bestCounterLatency = maxTaskLatency
     }
     
     // estimate: 16% of execution time outside prep stage
@@ -747,8 +752,16 @@ private func runRestrictedTest(
     }
   }
   
-  guard let bestAssignment else {
+  // Merge the fixed and variable assignments.
+  guard let bestCounter else {
     fatalError("This should never happen.")
   }
-  return bestAssignment
+  var combinedAssignments = preparationStage.fixedChildAssignments
+  for sortedChildID in preparationStage.sortedChildPairs.indices {
+    let pair = preparationStage.sortedChildPairs[sortedChildID]
+    let childID = Int(pair[0])
+    let taskID = bestCounter[sortedChildID]
+    combinedAssignments[childID] = UInt8(taskID)
+  }
+  return combinedAssignments
 }

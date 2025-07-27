@@ -247,8 +247,6 @@ final class SortTests: XCTestCase {
   // - Current execution time: ~1.0-3.5 μs, depending on problem size
   //
   // Tasks:
-  // - Perform small cleanups that coincidentally optimize performance, for the
-  //   restricted algorithm.
   // - Remove the "restricted1" algorithm variant. The regular full algorithm
   //   will now serve as a proxy for the component dominated by combination
   //   count.
@@ -547,15 +545,13 @@ private struct CompleteTestCase {
   var problemSize: (taskCount: Int, childCount: Int)?
   var childValues: [Float]?
   var resultFull: Float?
-  var resultRestricted1: Float?
-  var resultRestricted2: Float?
+  var resultRestricted: Float?
   
   func run() {
     guard let problemSize,
           let childValues,
           let resultFull,
-          let resultRestricted1,
-          let resultRestricted2 else {
+          let resultRestricted else {
       fatalError("Test was not fully specified.")
     }
     
@@ -575,14 +571,11 @@ private struct CompleteTestCase {
     // Generate assignments from the three algorithm variants.
     let assignmentFull = runFullTest(
       testCase: testCase)
-    let assignmentPartial1 = runRestrictedTest(
-      testCase: testCase,
-      restrictMaxCombinations: false)
     let assignmentPartial2 = runRestrictedTest(
       testCase: testCase,
       restrictMaxCombinations: true)
     
-    // Check that restricted algorithms fill each task with ≥1 child.
+    // Check that restricted algorithms fills each task with ≥1 child.
     func validate(assignment: SIMD8<UInt8>) {
       let taskLatencies = testCase.taskLatencies(
         assignments: assignment)
@@ -593,7 +586,6 @@ private struct CompleteTestCase {
         }
       }
     }
-    validate(assignment: assignmentPartial1)
     validate(assignment: assignmentPartial2)
     
     // Check the exact value of the outputs.

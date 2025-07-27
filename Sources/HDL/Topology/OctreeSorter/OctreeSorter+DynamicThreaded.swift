@@ -46,13 +46,6 @@ extension OctreeSorter {
       levelOrigin: SIMD3<Float>,
       levelSize: Float
     ) {
-      // Return early.
-      if levelSize == 1 / 32 {
-        return
-      } else if levelSize < 1 / 32 {
-        fatalError("This should never happen.")
-      }
-      
       // Use the scratch pad.
       var childNodeCounts: SIMD8<Int> = .zero
       for atomID in atomIDs {
@@ -94,6 +87,9 @@ extension OctreeSorter {
             from: scratchPad + Int(key) * atomIDs.count,
             count: childNodeCount)
         }
+      }
+      if (levelSize / 2) <= Float(1 / 32) {
+        return
       }
       
       // Invoke the traversal function recursively.

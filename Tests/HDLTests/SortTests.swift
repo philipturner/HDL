@@ -571,7 +571,7 @@ private struct CompleteTestCase {
     // Generate assignments from the three algorithm variants.
     let assignmentFull = runFullTest(
       testCase: testCase)
-    let assignmentPartial2 = runRestrictedTest(
+    let assignmentRestricted = runRestrictedTest(
       testCase: testCase,
       restrictMaxCombinations: true)
     
@@ -586,7 +586,7 @@ private struct CompleteTestCase {
         }
       }
     }
-    validate(assignment: assignmentPartial2)
+    validate(assignment: assignmentRestricted)
     
     // Check the exact value of the outputs.
     func latency(assignment: SIMD8<UInt8>) -> Float {
@@ -599,8 +599,7 @@ private struct CompleteTestCase {
       XCTAssertEqual(latency, expected)
     }
     compare(assignment: assignmentFull, expected: resultFull)
-    compare(assignment: assignmentPartial1, expected: resultRestricted1)
-    compare(assignment: assignmentPartial2, expected: resultRestricted2)
+    compare(assignment: assignmentRestricted, expected: resultRestricted)
   }
 }
 

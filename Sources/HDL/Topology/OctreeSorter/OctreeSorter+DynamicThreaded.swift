@@ -26,6 +26,9 @@ import Dispatch
 // task count < child count
 //   continue with algorithm
 
+// Tasks:
+// - Implement work splitting, but make it single-threaded.
+
 extension OctreeSorter {
   // Algorithm that adaptively uses multi-threading, when a subset of the
   // octree has enough atoms.

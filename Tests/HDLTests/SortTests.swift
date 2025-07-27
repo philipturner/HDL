@@ -250,8 +250,8 @@ final class SortTests: XCTestCase {
   // - Add profiler metrics to the main test ('testWorkSplittingMain')
   func testWorkSplittingMain() throws {
     var testInput = TestInput()
-    testInput.taskCount = 2
-    testInput.childCount = 3
+    testInput.taskCount = 3
+    testInput.childCount = 8
     
     // Set the child latencies to random values.
     for childID in 0..<testInput.childCount {
@@ -260,9 +260,25 @@ final class SortTests: XCTestCase {
       testInput.childLatencies[childID] = latency
     }
     
-    // Generate assignments from the two algorithm variants.
-    _ = runFullTest(testInput: testInput)
-    _ = runRestrictedTest(testInput: testInput)
+    for _ in 0..<5 {
+      _ = runFullTest(testInput: testInput)
+    }
+    do {
+      let start = Profiler.time()
+      _ = runFullTest(testInput: testInput)
+      let end = Profiler.time()
+      print("full:", Float(end - start))
+    }
+    
+    for _ in 0..<10 {
+      _ = runRestrictedTest(testInput: testInput)
+    }
+    do {
+      let start = Profiler.time()
+      _ = runRestrictedTest(testInput: testInput)
+      let end = Profiler.time()
+      print("restricted:", Float(end - start))
+    }
   }
   
   func testWorkSplittingUnit() throws {
@@ -584,6 +600,11 @@ private func runFullTest(
       bestAssignmentLatency = maxTaskLatency
     }
     
+    // 0.00016508345
+//    counter[0] += 1
+//    counter[0] = counter[0] % 2
+    
+    // 0.00019570813
     for laneID in 0..<8 {
       counter[laneID] += 1
       if counter[laneID] >= testInput.taskCount {
@@ -710,6 +731,7 @@ private func runRestrictedTest(
       bestAssignmentLatency = maxTaskLatency
     }
     
+    // 9.6242875e-06
     for laneID in 0..<8 {
       counter[laneID] += 1
       if counter[laneID] >= testInput.taskCount {

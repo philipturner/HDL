@@ -134,24 +134,26 @@ extension OctreeSorter {
        
        */
       
+      let assignments: SIMD8<UInt8> = SIMD8(0, 1, 2, 3, 4, 5, 6, 7)
+      
       // Organize the children into tasks.
       var taskSizes: SIMD8<UInt8> = .zero
       var taskChildren: SIMD8<UInt64> = .zero
       for childID in 0..<8 {
         // taskID per child obtained from work splitting algorithm
-        let taskID = 0
-        let offset = taskSizes[taskID]
-        taskSizes[taskID] = offset + 1
+        let taskID = assignments[childID]
+        let offset = taskSizes[Int(taskID)]
+        taskSizes[Int(taskID)] = offset + 1
         
         var children = unsafeBitCast(
-          taskChildren[taskID], to: SIMD8<UInt8>.self)
+          taskChildren[Int(taskID)], to: SIMD8<UInt8>.self)
         children[Int(offset)] = UInt8(childID)
-        taskChildren[taskID] = unsafeBitCast(
+        taskChildren[Int(taskID)] = unsafeBitCast(
           children, to: UInt64.self)
       }
       
       // Invoke the traversal function recursively.
-      let taskCount = 1
+      let taskCount = 8
       for taskID in 0..<taskCount {
         let size = taskSizes[taskID]
         let children = unsafeBitCast(

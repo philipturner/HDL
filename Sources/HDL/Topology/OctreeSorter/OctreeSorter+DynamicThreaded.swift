@@ -76,36 +76,31 @@ extension OctreeSorter {
         scratchPad[Int(key) * atomIDs.count + previousCount] = atomID
       }
       
-      // Create the temporary allocation.
-//      withUnsafeTemporaryAllocation(
-//        of: UInt32.self,
-//        capacity: childNodeCounts.wrappedSum()
-//      ) { allocationBuffer in
+      // Retrieve the base pointer of the input buffer.
+      func allocationPointer() -> UnsafeMutablePointer<UInt32> {
+        atomIDs.baseAddress.unsafelyUnwrapped
+      }
+      
+      // Transfer the scratch pad to the input buffer.
       do {
-        let allocationBuffer = atomIDs
-        func allocationPointer() -> UnsafeMutablePointer<UInt32> {
-          allocationBuffer.baseAddress.unsafelyUnwrapped
-        }
-        
-        // Transfer the scratch pad to the temporary allocation.
-        do {
-          var cursor = 0
-          for key in 0..<UInt32(8) {
-            let childNodeCount = childNodeCounts[Int(key)]
-            guard childNodeCount > 0 else {
-              continue
-            }
-            
-            let newPointer = allocationPointer() + cursor
-            cursor += childNodeCount
-            
-            newPointer.initialize(
-              from: scratchPad + Int(key) * atomIDs.count,
-              count: childNodeCount)
+        var cursor = 0
+        for key in 0..<UInt32(8) {
+          let childNodeCount = childNodeCounts[Int(key)]
+          guard childNodeCount > 0 else {
+            continue
           }
+          
+          let newPointer = allocationPointer() + cursor
+          cursor += childNodeCount
+          
+          newPointer.initialize(
+            from: scratchPad + Int(key) * atomIDs.count,
+            count: childNodeCount)
         }
-        
-        // Invoke the traversal function recursively.
+      }
+      
+      // Invoke the traversal function recursively.
+      do {
         var cursor = 0
         for key in 0..<UInt32(8) {
           let childNodeCount = childNodeCounts[Int(key)]

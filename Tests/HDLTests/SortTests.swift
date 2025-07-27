@@ -700,9 +700,9 @@ private struct PreparationStage {
     for childID in 0..<testInput.childCount {
       let latency = testInput.childLatencies[childID]
       let taskID = fixedAssignments[childID]
-      
-      // intentional bug: not scoping within 'if taskID != UInt8.max'
-      output[Int(taskID)] += latency
+      if taskID != UInt8.max {
+        output[Int(taskID)] += latency
+      }
     }
     return output
   }
@@ -737,19 +737,11 @@ private func runRestrictedTest(
   let combinationCount = testInput.combinationCount(
     childCount: preparationStage.sortedChildPairs.count)
   for _ in 0..<combinationCount {
-    // estimate: 59% of execution time outside prep stage
-    var combinedAssignments = preparationStage.fixedChildAssignments
+    var taskLatencies = preparationStage.fixedTaskLatencies
     for sortedChildID in preparationStage.sortedChildPairs.indices {
       let pair = preparationStage.sortedChildPairs[sortedChildID]
-      let childID = Int(pair[0])
+      let latency = pair[1]
       let taskID = counter[sortedChildID]
-      combinedAssignments[childID] = UInt8(taskID)
-    }
-    
-    var taskLatencies: SIMD8<Float> = .zero
-    for childID in 0..<testInput.childCount {
-      let latency = testInput.childLatencies[childID]
-      let taskID = combinedAssignments[childID]
       taskLatencies[Int(taskID)] += latency
     }
     

@@ -247,9 +247,6 @@ final class SortTests: XCTestCase {
   // - Current execution time: ~1.0-3.5 μs, depending on problem size
   //
   // Tasks:
-  // - Remove the "restricted1" algorithm variant. The regular full algorithm
-  //   will now serve as a proxy for the component dominated by combination
-  //   count.
   // - Add profiler metrics to the main test ('testWorkSplittingMain')
   func testWorkSplittingMain() throws {
     var testCase = TestCase()
@@ -263,15 +260,9 @@ final class SortTests: XCTestCase {
       testCase.childLatencies[childID] = latency
     }
     
-    // Generate assignments from the three algorithm variants.
-    _ = runFullTest(
-      testCase: testCase)
-    _ = runRestrictedTest(
-      testCase: testCase,
-      restrictMaxCombinations: false)
-    _ = runRestrictedTest(
-      testCase: testCase,
-      restrictMaxCombinations: true)
+    // Generate assignments from the two algorithm variants.
+    _ = runFullTest(testCase: testCase)
+    _ = runRestrictedTest(testCase: testCase)
   }
   
   func testWorkSplittingUnit() throws {
@@ -289,8 +280,7 @@ final class SortTests: XCTestCase {
         878.0,
       ]
       test.resultFull = 2862
-      test.resultRestricted1 = 2949
-      test.resultRestricted2 = 2974
+      test.resultRestricted = 2974
       test.run()
     }
     
@@ -308,8 +298,7 @@ final class SortTests: XCTestCase {
         202.0,
       ]
       test.resultFull = 1461
-      test.resultRestricted1 = 1506
-      test.resultRestricted2 = 1517
+      test.resultRestricted = 1517
       test.run()
     }
     
@@ -327,8 +316,7 @@ final class SortTests: XCTestCase {
         262.0,
       ]
       test.resultFull = 1040
-      test.resultRestricted1 = 1072
-      test.resultRestricted2 = 1104
+      test.resultRestricted = 1104
       test.run()
     }
     
@@ -346,8 +334,7 @@ final class SortTests: XCTestCase {
         636.0,
       ]
       test.resultFull = 801
-      test.resultRestricted1 = 801
-      test.resultRestricted2 = 841
+      test.resultRestricted = 841
       test.run()
     }
     
@@ -365,8 +352,7 @@ final class SortTests: XCTestCase {
         596.0,
       ]
       test.resultFull = 935
-      test.resultRestricted1 = 935
-      test.resultRestricted2 = 935
+      test.resultRestricted = 935
       test.run()
     }
     
@@ -384,8 +370,7 @@ final class SortTests: XCTestCase {
         905.0,
       ]
       test.resultFull = 905
-      test.resultRestricted1 = 905
-      test.resultRestricted2 = 905
+      test.resultRestricted = 905
       test.run()
     }
     
@@ -402,8 +387,7 @@ final class SortTests: XCTestCase {
         151.0,
       ]
       test.resultFull = 1380
-      test.resultRestricted1 = 1398
-      test.resultRestricted2 = 1422
+      test.resultRestricted = 1422
       test.run()
     }
     
@@ -419,8 +403,7 @@ final class SortTests: XCTestCase {
         463.0,
       ]
       test.resultFull = 865
-      test.resultRestricted1 = 906
-      test.resultRestricted2 = 906
+      test.resultRestricted = 906
       test.run()
     }
     
@@ -435,8 +418,7 @@ final class SortTests: XCTestCase {
         574.0,
       ]
       test.resultFull = 1227
-      test.resultRestricted1 = 1229
-      test.resultRestricted2 = 1229
+      test.resultRestricted = 1229
       test.run()
     }
     
@@ -451,8 +433,7 @@ final class SortTests: XCTestCase {
         413.0,
       ]
       test.resultFull = 946
-      test.resultRestricted1 = 946
-      test.resultRestricted2 = 946
+      test.resultRestricted = 946
       test.run()
     }
     
@@ -466,8 +447,7 @@ final class SortTests: XCTestCase {
         382.0,
       ]
       test.resultFull = 815
-      test.resultRestricted1 = 815
-      test.resultRestricted2 = 815
+      test.resultRestricted = 815
       test.run()
     }
     
@@ -480,8 +460,7 @@ final class SortTests: XCTestCase {
         60.0,
       ]
       test.resultFull = 535
-      test.resultRestricted1 = 535
-      test.resultRestricted2 = 535
+      test.resultRestricted = 535
       test.run()
     }
   }
@@ -568,12 +547,9 @@ private struct CompleteTestCase {
       testCase.childLatencies[childID] = latency
     }
     
-    // Generate assignments from the three algorithm variants.
-    let assignmentFull = runFullTest(
-      testCase: testCase)
-    let assignmentRestricted = runRestrictedTest(
-      testCase: testCase,
-      restrictMaxCombinations: true)
+    // Generate assignments from the two algorithm variants.
+    let assignmentFull = runFullTest(testCase: testCase)
+    let assignmentRestricted = runRestrictedTest(testCase: testCase)
     
     // Check that restricted algorithms fills each task with ≥1 child.
     func validate(assignment: SIMD8<UInt8>) {
@@ -643,24 +619,17 @@ private struct PreparationStage {
   var sortedChildPairs: [SIMD2<Float>]
   var fixedChildAssignments: SIMD8<UInt8>
   
-  init(
-    testCase: TestCase,
-    restrictMaxCombinations: Bool
-  ) {
-    sortedChildPairs = Self.createChildPairs(
-      testCase: testCase)
+  init(testCase: TestCase) {
+    sortedChildPairs = Self.createChildPairs(testCase: testCase)
     sortedChildPairs.sort {
       $0[1] < $1[1]
     }
     
     fixedChildAssignments = Self.createFixedAssignments(
       testCase: testCase,
-      restrictMaxCombinations: restrictMaxCombinations,
       pairs: sortedChildPairs)
     
-    let fixedChildCount = Self.createFixedChildCount(
-      testCase: testCase,
-      restrictMaxCombinations: restrictMaxCombinations)
+    let fixedChildCount = Self.createFixedChildCount(testCase: testCase)
     sortedChildPairs.removeLast(fixedChildCount)
   }
   
@@ -680,7 +649,6 @@ private struct PreparationStage {
   
   static func createFixedAssignments(
     testCase: TestCase,
-    restrictMaxCombinations: Bool,
     pairs: [SIMD2<Float>]
   ) -> SIMD8<UInt8> {
     var output = SIMD8<UInt8>(repeating: .max)
@@ -698,8 +666,7 @@ private struct PreparationStage {
     
     // Assign the largest of the remaining children to the highest-index task.
     let remainingChildCount = testCase.childCount - testCase.taskCount
-    let maxNativeCombinations = restrictMaxCombinations ? 20 : 100
-    if testCase.nativeCombinationCount < maxNativeCombinations {
+    if testCase.nativeCombinationCount < 20 {
       let pair = pairs[remainingChildCount - 1]
       let childID = Int(pair[0])
       let taskID = testCase.taskCount - 1
@@ -718,10 +685,8 @@ private struct PreparationStage {
   
   static func createFixedChildCount(
     testCase: TestCase,
-    restrictMaxCombinations: Bool
   ) -> Int {
-    let maxNativeCombinations = restrictMaxCombinations ? 20 : 100
-    if testCase.nativeCombinationCount < maxNativeCombinations {
+    if testCase.nativeCombinationCount < 20 {
       return testCase.taskCount + 1
     } else {
       return testCase.taskCount + 2
@@ -730,12 +695,9 @@ private struct PreparationStage {
 }
 
 private func runRestrictedTest(
-  testCase: TestCase,
-  restrictMaxCombinations: Bool
+  testCase: TestCase
 ) -> SIMD8<UInt8> {
-  let preparationStage = PreparationStage(
-    testCase: testCase,
-    restrictMaxCombinations: restrictMaxCombinations)
+  let preparationStage = PreparationStage(testCase: testCase)
   
   // Declare the state variables for the best assignment.
   var bestAssignment: SIMD8<UInt8>?

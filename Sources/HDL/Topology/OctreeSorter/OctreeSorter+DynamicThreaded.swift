@@ -225,7 +225,7 @@ extension OctreeSorter {
       // Testing the impact when invoked on every call.
       do {
         var testInput = TestInput()
-        testInput.taskCount = 3
+        testInput.taskCount = 5
         testInput.childCount = 8
         testInput.childLatencies = childLatencies
         _ = runRestrictedTest(testInput: testInput)

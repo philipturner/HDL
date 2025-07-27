@@ -624,7 +624,7 @@ private func runFullTest(
 private struct PreparationStage {
   var sortedChildPairs: [SIMD2<Float>]
   var fixedChildAssignments: SIMD8<UInt8>
-//  var fixedTaskLatencies: SIMD8<Float>
+  var fixedTaskLatencies: SIMD8<Float>
   
   init(testInput: TestInput) {
     sortedChildPairs = Self.createChildPairs(testInput: testInput)
@@ -634,6 +634,9 @@ private struct PreparationStage {
     fixedChildAssignments = Self.createFixedAssignments(
       testInput: testInput,
       pairs: sortedChildPairs)
+    fixedTaskLatencies = Self.createFixedLatencies(
+      testInput: testInput,
+      fixedAssignments: fixedChildAssignments)
     
     let fixedChildCount = Self.createFixedChildCount(testInput: testInput)
     sortedChildPairs.removeLast(fixedChildCount)
@@ -686,6 +689,21 @@ private struct PreparationStage {
       output[childID1] = UInt8(testInput.taskCount - 1)
     }
     
+    return output
+  }
+  
+  static func createFixedLatencies(
+    testInput: TestInput,
+    fixedAssignments: SIMD8<UInt8>
+  ) -> SIMD8<Float> {
+    var output: SIMD8<Float> = .zero
+    for childID in 0..<testInput.childCount {
+      let latency = testInput.childLatencies[childID]
+      let taskID = fixedAssignments[childID]
+      
+      // intentional bug: not scoping within 'if taskID != UInt8.max'
+      output[Int(taskID)] += latency
+    }
     return output
   }
   

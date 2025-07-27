@@ -20,11 +20,17 @@
 //
 // child count = 1 to 8
 // task count ≥ child count
-//   every child
+//   <-- 2.5 μs guard reduces the frequency that this branch is hit
+//   every child gets a distinct task
 //   likely at highest level of tree
 //   likely leaving breadcrumbs
 // task count < child count
 //   continue with algorithm
+
+// prevent breadcrumbs at the highest level, in similar situations that
+// bypass the guard
+// - find the number of children whose latency exceeds 2.5 μs
+// - task count is limited to, at most, this number
 
 // Tasks:
 // - Implement work splitting, but make it single-threaded.
@@ -158,6 +164,10 @@ extension OctreeSorter {
       
       // Child count is always 8, until we break through the barrier to entry
       // for implementing the full algorithm.
+      do {
+        let idealTaskCount = createTaskCount()
+        let actualTaskCount = (idealTaskCount > 1) ? 8 : 1
+      }
       createTaskCount()
       let assignments: SIMD8<UInt8> = SIMD8(0, 1, 2, 3, 4, 5, 6, 7)
       

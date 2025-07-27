@@ -600,11 +600,11 @@ private func runFullTest(
       bestAssignmentLatency = maxTaskLatency
     }
     
-    // 0.00016508345
+    // total time with this enabled: 0.00016508345
 //    counter[0] += 1
 //    counter[0] = counter[0] % 2
     
-    // 0.00019570813
+    // total time with this enabled: 0.00019570813
     for laneID in 0..<8 {
       counter[laneID] += 1
       if counter[laneID] >= testInput.taskCount {
@@ -703,6 +703,7 @@ private struct PreparationStage {
 private func runRestrictedTest(
   testInput: TestInput
 ) -> SIMD8<UInt8> {
+  // contribution: 4.991889e-07
   let preparationStage = PreparationStage(testInput: testInput)
   
   // Declare the state variables for the best assignment.
@@ -731,7 +732,11 @@ private func runRestrictedTest(
       bestAssignmentLatency = maxTaskLatency
     }
     
-    // 9.6242875e-06
+    // total time with this enabled: 1.4165416e-06
+//    counter[0] += 1
+//    counter[0] = counter[0] % 2
+    
+    // total time with this enabled: 1.8328428e-06
     for laneID in 0..<8 {
       counter[laneID] += 1
       if counter[laneID] >= testInput.taskCount {

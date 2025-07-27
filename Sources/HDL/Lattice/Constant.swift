@@ -1,6 +1,6 @@
 //
-//  File.swift
-//  
+//  Constant.swift
+//  HDL
 //
 //  Created by Philip Turner on 8/22/24.
 //

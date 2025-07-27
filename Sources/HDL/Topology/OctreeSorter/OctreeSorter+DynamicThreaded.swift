@@ -7,6 +7,7 @@
 
 import Atomics
 import Dispatch
+import QuartzCore
 
 // compute ideal task count
 //   retrieve total atom count
@@ -49,6 +50,7 @@ extension OctreeSorter {
   // Algorithm that adaptively uses multi-threading, when a subset of the
   // octree has enough atoms.
   func mortonReorderingDynamic() -> [UInt32] {
+    let start = CACurrentMediaTime()
     let threadCount = ManagedAtomic<Int>(1)
     let callCount = ManagedAtomic<Int>(0)
     
@@ -291,7 +293,6 @@ extension OctreeSorter {
       let scratchPadCopy = scratchPad
       
       // Invoke the traversal function recursively.
-//      for taskID in 0..<workSplitting.taskCount {
       DispatchQueue.concurrentPerform(
         iterations: workSplitting.taskCount
       ) { taskID in
@@ -340,10 +341,11 @@ extension OctreeSorter {
         levelSize: highestLevelSize)
     }
     
-    // expecting ~27 threads, ~1 calls
+    let end = CACurrentMediaTime()
     print()
-    print("thread count:", threadCount.load(ordering: .relaxed))
     print("call count:", callCount.load(ordering: .relaxed))
+    print("thread count:", threadCount.load(ordering: .relaxed))
+    debugProfile(start, end, "dynamic")
     
     return inPlaceBuffer
   }

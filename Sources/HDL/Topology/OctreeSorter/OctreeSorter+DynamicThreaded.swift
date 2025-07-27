@@ -285,7 +285,8 @@ extension OctreeSorter {
       
       struct WorkSplitting {
         var taskCount: Int = .zero
-        var assignments: SIMD8<UInt8> = .zero
+        var taskSizes: SIMD8<UInt8> = .zero
+        var taskChildren: SIMD8<UInt64> = .zero
       }
       func createWorkSplitting() -> WorkSplitting {
         var output = WorkSplitting()
@@ -306,25 +307,36 @@ extension OctreeSorter {
           }
         }
         
-        output.assignments = createAssignments()
+        let assignments = createAssignments()
+        for childID in 0..<8 {
+          let taskID = assignments[childID]
+          let workItemOffset = output.taskSizes[Int(taskID)]
+          output.taskSizes[Int(taskID)] = workItemOffset + 1
+          
+          var children = unsafeBitCast(
+            output.taskChildren[Int(taskID)], to: SIMD8<UInt8>.self)
+          children[Int(workItemOffset)] = UInt8(childID)
+          output.taskChildren[Int(taskID)] = unsafeBitCast(
+            children, to: UInt64.self)
+        }
         return output
       }
       let workSplitting = createWorkSplitting()
       
       // Organize the children into tasks.
-      var taskSizes: SIMD8<UInt8> = .zero
-      var taskChildren: SIMD8<UInt64> = .zero
-      for childID in 0..<8 {
-        let taskID = workSplitting.assignments[childID]
-        let workItemOffset = taskSizes[Int(taskID)]
-        taskSizes[Int(taskID)] = workItemOffset + 1
-        
-        var children = unsafeBitCast(
-          taskChildren[Int(taskID)], to: SIMD8<UInt8>.self)
-        children[Int(workItemOffset)] = UInt8(childID)
-        taskChildren[Int(taskID)] = unsafeBitCast(
-          children, to: UInt64.self)
-      }
+//      var taskSizes: SIMD8<UInt8> = .zero
+//      var taskChildren: SIMD8<UInt64> = .zero
+//      for childID in 0..<8 {
+//        let taskID = workSplitting.assignments[childID]
+//        let workItemOffset = taskSizes[Int(taskID)]
+//        taskSizes[Int(taskID)] = workItemOffset + 1
+//        
+//        var children = unsafeBitCast(
+//          taskChildren[Int(taskID)], to: SIMD8<UInt8>.self)
+//        children[Int(workItemOffset)] = UInt8(childID)
+//        taskChildren[Int(taskID)] = unsafeBitCast(
+//          children, to: UInt64.self)
+//      }
       
       // Fast-path to avoid overhead of dispatch queue.
       if workSplitting.taskCount == 1 {
@@ -334,9 +346,9 @@ extension OctreeSorter {
       
       // Invoke the traversal function recursively.
       for taskID in 0..<workSplitting.taskCount {
-        let size = taskSizes[taskID]
+        let size = workSplitting.taskSizes[taskID]
         let children = unsafeBitCast(
-          taskChildren[taskID], to: SIMD8<UInt8>.self)
+          workSplitting.taskChildren[taskID], to: SIMD8<UInt8>.self)
         
         for workItemID in 0..<size {
           let childID = children[Int(workItemID)]

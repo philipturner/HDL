@@ -101,8 +101,9 @@ extension OctreeSorter {
         return
       }
       
-      // Fast-path for smaller cells at the bottom of the tree.
-      if levelSize <= 1 {
+      // Shared code for both fast-paths.
+      @inline(__always)
+      func fastPath() {
         for childID in 0..<8 {
           let childSize = childSizes[Int(childID)]
           if childSize <= 1 {
@@ -124,6 +125,11 @@ extension OctreeSorter {
             levelOrigin: createNewOrigin(),
             levelSize: levelSize / 2)
         }
+      }
+      
+      // Fast-path for smaller cells at the bottom of the tree.
+      if levelSize <= 1 {
+        fastPath()
         return
       }
       
@@ -190,6 +196,25 @@ extension OctreeSorter {
        the inclusion of work splitting. Eventually, it may prove economical to
        provide an explicit 1-loop branch, earlier up in this function body.
        
+       fast-path only for levelSize <= 1:
+       
+       atoms: 129600
+       dataset    | octree |  grid
+       ---------- | ------ | ------
+       pre-sorted |   7606 |   6579
+       lattice    |   8015 |   6844
+       shuffled   |   9540 |   6853
+       reversed   |   8042 |   6742
+       
+       fast-path for both appropriate cases:
+       
+       atoms: 129600
+       dataset    | octree |  grid
+       ---------- | ------ | ------
+       pre-sorted |   7535 |   7200
+       lattice    |   7857 |   7480
+       shuffled   |   9362 |   7374
+       reversed   |   7899 |   7222
        */
       
       func createLevelsRemaining() -> Int {
@@ -245,7 +270,7 @@ extension OctreeSorter {
           output.assignments = SIMD8.zero
         } else if output.taskCount == 8 {
           output.assignments = SIMD8(0, 1, 2, 3, 4, 5, 6, 7)
-        } else {
+        } else if output.taskCount != 10 {
           var testInput = TestInput()
           testInput.taskCount = output.taskCount
           testInput.childCount = 8
@@ -255,6 +280,12 @@ extension OctreeSorter {
         return output
       }
       let workSplitting = createWorkSplitting()
+      
+      // Fast-path to avoid overhead of dispatch queue.
+      if workSplitting.taskCount == 1 {
+        fastPath()
+        return
+      }
       
       // Organize the children into tasks.
       var taskSizes: SIMD8<UInt8> = .zero

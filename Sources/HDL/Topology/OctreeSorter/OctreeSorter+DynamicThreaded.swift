@@ -5,8 +5,6 @@
 //  Created by Philip Turner on 7/27/25.
 //
 
-import Dispatch
-
 // compute ideal task count
 //   retrieve total atom count
 //   retrieve levels remaining (7 @ 4 nm)
@@ -142,8 +140,19 @@ extension OctreeSorter {
         let exponentForLevel = levelSize.exponentBitPattern
         let levelsRemaining = (exponentForLevel - exponentFor4) + 7
         
+        // 5.0 ns/atom/level
+        var totalLatency = Float(5.0e-9)
+        totalLatency *= Float(atomIDs.count)
+        totalLatency *= Float(levelsRemaining)
+        
+        // 20 μs task size
+        var taskCount = totalLatency / Float(20e-6)
+        taskCount.round(.toNearestOrEven)
+        taskCount = max(taskCount, 1)
+        taskCount = min(taskCount, 8)
+        
         if levelSize >= 2 {
-          print(levelSize, levelsRemaining)
+          print(levelSize, atomIDs.count, taskCount)
         }
         return 0
       }

@@ -250,8 +250,8 @@ final class SortTests: XCTestCase {
   // - Add profiler metrics to the main test ('testWorkSplittingMain')
   func testWorkSplittingMain() throws {
     var testInput = TestInput()
-    testInput.taskCount = 3
-    testInput.childCount = 8
+    testInput.taskCount = 6
+    testInput.childCount = 7
     
     // Set the child latencies to random values.
     for childID in 0..<testInput.childCount {
@@ -595,7 +595,7 @@ private func runFullTest(
   var counter: SIMD8<UInt8> = .zero
   let combinationCount = testInput.combinationCount(
     childCount: testInput.childCount)
-  for combinationID in 0..<combinationCount {
+  for _ in 0..<combinationCount {
     let taskLatencies = testInput.taskLatencies(assignments: counter)
     let maxTaskLatency = taskLatencies.max()
     if maxTaskLatency < bestAssignmentLatency {
@@ -629,7 +629,6 @@ private struct PreparationStage {
     sortedChildPairs.sort {
       $0[1] < $1[1]
     }
-    
     fixedChildAssignments = Self.createFixedAssignments(
       testInput: testInput,
       pairs: sortedChildPairs)
@@ -717,7 +716,7 @@ private func runRestrictedTest(
   var counter: SIMD8<UInt8> = .zero
   let combinationCount = testInput.combinationCount(
     childCount: preparationStage.sortedChildPairs.count)
-  for combinationID in 0..<combinationCount {
+  for _ in 0..<combinationCount {
     // Merge the fixed and variable assignments.
     // estimate: 59% of execution time outside prep stage
     var combinedAssignments = preparationStage.fixedChildAssignments
@@ -727,10 +726,6 @@ private func runRestrictedTest(
       let taskID = counter[sortedChildID]
       combinedAssignments[childID] = UInt8(taskID)
     }
-//    combinedAssignments[0] ^= UInt8(combinationID)
-//    combinedAssignments[0] %= 5
-//    combinedAssignments[0] *= UInt8(combinationID)
-//    combinedAssignments[0] %= 3
     
     let taskLatencies = testInput.taskLatencies(
       assignments: combinedAssignments)

@@ -34,8 +34,8 @@
 
 // Tasks:
 // - Implement work splitting, but make it single-threaded.
-// - Start out with a condition: either 1 task or 8. Only split if there are
-//   8 children.
+// - Migrate from either 1 or 8 tasks, to the correct number. Implement the
+//   'restrictedTest' algorithm now.
 // - Reorder, treating all children as nonzero. Although this is sub-optimal,
 //   it simplifies the implementation for now.
 //   - Situations with just 1 valid child will face horrible breadcrumbs.
@@ -132,9 +132,8 @@ extension OctreeSorter {
        +9%
        +8%
        
-       Keep this data around to track progress, as performance worsens with
-       the inclusion of work splitting. Eventually, it may prove economical to
-       provide an explicit 1-loop branch, earlier up in this function body.
+       unexpected jump in cost, after making program output depend on result
+       of work splitting:
        
        atoms: 129600
        dataset    | octree |  grid
@@ -143,6 +142,20 @@ extension OctreeSorter {
        lattice    |   7808 |   9949
        shuffled   |   9311 |   9992
        reversed   |   7961 |   9897
+       
+       improvement after getting the compiler to inline a function:
+       
+       atoms: 129600
+       dataset    | octree |  grid
+       ---------- | ------ | ------
+       pre-sorted |   7610 |   9189
+       lattice    |   7790 |   9329
+       shuffled   |   9427 |   9297
+       reversed   |   8025 |   9212
+       
+       Keep this data around to track progress, as performance worsens with
+       the inclusion of work splitting. Eventually, it may prove economical to
+       provide an explicit 1-loop branch, earlier up in this function body.
        
        */
       
@@ -189,7 +202,7 @@ extension OctreeSorter {
       // Child count is always 8, until we break through the barrier to entry
       // for implementing the full algorithm.
       struct WorkSplitting {
-        var taskCount: Int = 2
+        var taskCount: Int = .zero
         var assignments: SIMD8<UInt8> = .zero
       }
       func createWorkSplitting() -> WorkSplitting {
@@ -197,13 +210,13 @@ extension OctreeSorter {
         let idealTaskCount = createTaskCount(maximum: maximumTaskCount)
         
         var output = WorkSplitting()
-//        if idealTaskCount > 1 {
-//          output.taskCount = 8
-//          output.assignments = SIMD8(0, 1, 2, 3, 4, 5, 6, 7)
-//        } else {
+        if idealTaskCount > 1 {
+          output.taskCount = 8
+          output.assignments = SIMD8(0, 1, 2, 3, 4, 5, 6, 7)
+        } else {
           output.taskCount = 1
           output.assignments = SIMD8.zero
-//        }
+        }
         return output
       }
       let workSplitting = createWorkSplitting()
@@ -225,9 +238,6 @@ extension OctreeSorter {
       }
       
       // Invoke the traversal function recursively.
-      guard workSplitting.taskCount == 1 else {
-        fatalError("Unexpected task count: \(workSplitting.taskCount)")
-      }
       for taskID in 0..<workSplitting.taskCount {
         let size = taskSizes[taskID]
         let children = unsafeBitCast(

@@ -77,8 +77,18 @@ extension OctreeSorter {
         atomIDs.baseAddress.unsafelyUnwrapped
       }
       
+      /*
+       atoms: 129600
+       dataset    | octree |  grid
+       ---------- | ------ | ------
+       pre-sorted |   7534 |   6462
+       lattice    |   7785 |   6691
+       shuffled   |   9309 |   6682
+       reversed   |   7974 |   6639
+       */
+      
       // Transfer the scratch pad to the input buffer.
-      // TODO: Define the cursor offset of each child before the second loop.
+      var childOffsets: SIMD8<UInt32> = .zero
       do {
         var cursor: UInt32 = .zero
         for childID in 0..<UInt32(8) {
@@ -91,6 +101,10 @@ extension OctreeSorter {
           newPointer.initialize(
             from: scratchPad + Int(childID) * atomIDs.count,
             count: Int(childSize))
+          
+          // TODO: Is the code measurably faster when this statement appears
+          // before 'continue'?
+          childOffsets[Int(childID)] = cursor
           cursor += childSize
         }
       }
@@ -104,24 +118,25 @@ extension OctreeSorter {
       
       // Invoke the traversal function recursively.
       do {
-        var cursor: UInt32 = .zero
         for childID in 0..<UInt32(8) {
-          let newPointer = allocationPointer() + Int(cursor)
+          let offset = childOffsets[Int(childID)]
+          let newPointer = allocationPointer() + Int(offset)
           
           let childSize = childSizes[Int(childID)]
-          cursor += childSize
           if childSize <= 1 {
             continue
           }
+          
+          // let offset = ...
+          let newBufferPointer = UnsafeMutableBufferPointer(
+            start: newPointer,
+            count: Int(childSize))
           
           func createNewOrigin() -> SIMD3<Float> {
             let intOffset = (childID &>> SIMD3(0, 1, 2)) & 1
             let floatOffset = SIMD3<Float>(intOffset) * 2 - 1
             return levelOrigin + floatOffset * levelSize / 4
           }
-          let newBufferPointer = UnsafeMutableBufferPointer(
-            start: newPointer,
-            count: Int(childSize))
           traverse(
             atomIDs: newBufferPointer,
             levelOrigin: createNewOrigin(),

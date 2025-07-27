@@ -593,8 +593,11 @@ private func runFullTest(
   
   // Iterate over all combinations.
   var counter: SIMD8<UInt8> = .zero
+  let start = Profiler.time()
   let combinationCount = testInput.combinationCount(
     childCount: testInput.childCount)
+  let end = Profiler.time()
+  print("combinationCount:", Float(end - start))
   for combinationID in 0..<combinationCount {
     let taskLatencies = testInput.taskLatencies(assignments: counter)
     let maxTaskLatency = taskLatencies.max()
@@ -713,8 +716,11 @@ private func runRestrictedTest(
   
   // Iterate over all combinations of variable children.
   var counter: SIMD8<UInt8> = .zero
+  let start = Profiler.time()
   let combinationCount = testInput.combinationCount(
     childCount: preparationStage.sortedChildPairs.count)
+  let end = Profiler.time()
+  print("combinationCount:", Float(end - start))
   for combinationID in 0..<combinationCount {
     // Merge the fixed and variable assignments.
     var combinedAssignments = preparationStage.fixedChildAssignments

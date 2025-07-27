@@ -34,8 +34,6 @@
 
 // Tasks:
 // - Implement work splitting, but make it single-threaded.
-// - Try to provide a fastpath to fix the bottleneck introduced for
-//   single-threaded.
 
 extension OctreeSorter {
   // Algorithm that adaptively uses multi-threading, when a subset of the
@@ -161,6 +159,10 @@ extension OctreeSorter {
        +9%
        +8%
        
+       Keep this data around to track progress, as performance worsens with
+       the inclusion of work splitting. Eventually, it may prove economical to
+       provide an explicit 1-loop branch, earlier up in this function body.
+       
        unexpected jump in cost, after making program output depend on result
        of work splitting:
        
@@ -192,10 +194,6 @@ extension OctreeSorter {
        shuffled   |   9458 |   9471
        reversed   |   8021 |   9389
        
-       Keep this data around to track progress, as performance worsens with
-       the inclusion of work splitting. Eventually, it may prove economical to
-       provide an explicit 1-loop branch, earlier up in this function body.
-       
        fast-path only for levelSize <= 1:
        
        atoms: 129600
@@ -211,10 +209,20 @@ extension OctreeSorter {
        atoms: 129600
        dataset    | octree |  grid
        ---------- | ------ | ------
-       pre-sorted |   7535 |   7200
-       lattice    |   7857 |   7480
-       shuffled   |   9362 |   7374
-       reversed   |   7899 |   7222
+       pre-sorted |   7553 |   7228
+       lattice    |   8125 |   7392
+       shuffled   |   9438 |   7376
+       reversed   |   7990 |   7230
+       
+       strange improvement after reworking conditional:
+       
+       atoms: 129600
+       dataset    | octree |  grid
+       ---------- | ------ | ------
+       pre-sorted |   7591 |   6604
+       lattice    |   8020 |   6990
+       shuffled   |   9438 |   6935
+       reversed   |   7960 |   6809
        */
       
       func createLevelsRemaining() -> Int {
@@ -232,10 +240,6 @@ extension OctreeSorter {
       let childLatencies = createChildLatencies()
       
       func createMaximumTaskCount() -> Float {
-        if levelSize <= 1 {
-          return 1
-        }
-        
         // 2.5 μs = 20 μs / 8
         var marks: SIMD8<Float> = .zero
         marks.replace(
@@ -266,11 +270,9 @@ extension OctreeSorter {
         let maximumTaskCount = createMaximumTaskCount()
         output.taskCount = createTaskCount(maximum: maximumTaskCount)
         
-        if output.taskCount == 1 {
-          output.assignments = SIMD8.zero
-        } else if output.taskCount == 8 {
+        if output.taskCount == 8 {
           output.assignments = SIMD8(0, 1, 2, 3, 4, 5, 6, 7)
-        } else if output.taskCount != 10 {
+        } else if output.taskCount > 1 {
           var testInput = TestInput()
           testInput.taskCount = output.taskCount
           testInput.childCount = 8

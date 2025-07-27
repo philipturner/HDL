@@ -164,12 +164,12 @@ final class SortTests: XCTestCase {
       var resultOctree: [UInt32]
       do {
         let sorter = OctreeSorter(atoms: trial.atoms)
-        let reordering = sorter.mortonReordering()
+        let reordering = sorter.mortonReorderingDynamic()
         resultOctree = OctreeSorter.invertOrder(reordering)
       }
       if testParallel {
         let sorter = OctreeSorter(atoms: trial.atoms)
-        let reordering = sorter.mortonReordering()
+        let reordering = sorter.mortonReorderingDynamic()
         _ = OctreeSorter.invertOrder(reordering)
       }
       let endOctree = Profiler.time()

@@ -28,6 +28,8 @@ import Dispatch
 
 // Tasks:
 // - Implement work splitting, but make it single-threaded.
+// - Start out with a condition: either 1 task or 8. Only split if there are
+//   8 children.
 
 extension OctreeSorter {
   // Algorithm that adaptively uses multi-threading, when a subset of the

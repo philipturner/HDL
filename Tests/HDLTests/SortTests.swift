@@ -593,11 +593,8 @@ private func runFullTest(
   
   // Iterate over all combinations.
   var counter: SIMD8<UInt8> = .zero
-  let start = Profiler.time()
   let combinationCount = testInput.combinationCount(
     childCount: testInput.childCount)
-  let end = Profiler.time()
-  print("combinationCount:", Float(end - start))
   for combinationID in 0..<combinationCount {
     let taskLatencies = testInput.taskLatencies(assignments: counter)
     let maxTaskLatency = taskLatencies.max()
@@ -705,8 +702,10 @@ private struct PreparationStage {
 private func runRestrictedTest(
   testInput: TestInput
 ) -> SIMD8<UInt8> {
-  // total time: 1.8328428e-06
+  // total time: 4.1248277e-06 (restricted1)
+  // total time: 1.8328428e-06 (restricted2)
   
+  // 4.992e-07
   // estimate: 27% of execution time
   let preparationStage = PreparationStage(testInput: testInput)
   
@@ -716,13 +715,11 @@ private func runRestrictedTest(
   
   // Iterate over all combinations of variable children.
   var counter: SIMD8<UInt8> = .zero
-  let start = Profiler.time()
   let combinationCount = testInput.combinationCount(
     childCount: preparationStage.sortedChildPairs.count)
-  let end = Profiler.time()
-  print("combinationCount:", Float(end - start))
   for combinationID in 0..<combinationCount {
     // Merge the fixed and variable assignments.
+    // estimate: 59% of execution time outside prep stage
     var combinedAssignments = preparationStage.fixedChildAssignments
     for sortedChildID in preparationStage.sortedChildPairs.indices {
       let pair = preparationStage.sortedChildPairs[sortedChildID]
@@ -730,6 +727,10 @@ private func runRestrictedTest(
       let taskID = counter[sortedChildID]
       combinedAssignments[childID] = UInt8(taskID)
     }
+//    combinedAssignments[0] ^= UInt8(combinationID)
+//    combinedAssignments[0] %= 5
+//    combinedAssignments[0] *= UInt8(combinationID)
+//    combinedAssignments[0] %= 3
     
     let taskLatencies = testInput.taskLatencies(
       assignments: combinedAssignments)
@@ -739,7 +740,7 @@ private func runRestrictedTest(
       bestAssignmentLatency = maxTaskLatency
     }
     
-    // estimate: 16% of execution time
+    // estimate: 16% of execution time outside prep stage
     for laneID in 0..<8 {
       counter[laneID] += 1
       if counter[laneID] >= testInput.taskCount {

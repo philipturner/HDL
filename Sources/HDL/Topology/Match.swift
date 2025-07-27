@@ -32,8 +32,7 @@ extension Topology {
         }
       } else {
         let sorter = OctreeSorter(atoms: atoms)
-        let grid = sorter.createGrid()
-        return sorter.mortonReordering(grid: grid)
+        return sorter.mortonReorderingDynamic()
       }
     }
     

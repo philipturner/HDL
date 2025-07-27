@@ -5,55 +5,21 @@
 //  Created by Philip Turner on 7/27/25.
 //
 
-import Atomics
 import Dispatch
-import QuartzCore
-
-// compute ideal task count
-//   retrieve total atom count
-//   retrieve levels remaining (7 @ 4 nm)
-//   compute total latency from 5.0 ns/atom/level
-//     recent optimizations improved overall execution speed regardless of the
-//     algorithm, so this dropped from 7.5 to 5.0
-//   ideal task count = round_to_nearest(total latency / 20 μs)
-//   restrict ideal task count to 1 to 8
-//
-// early returns to disallow work splitting
-//   level size is 1.0 nm or smaller
-//   task count is 1
-//
-// child count = 1 to 8
-// task count ≥ child count
-//   <-- 2.5 μs guard reduces the frequency that this branch is hit
-//   every child gets a distinct task
-//   likely at highest level of tree
-//   likely leaving breadcrumbs
-// task count < child count
-//   continue with algorithm
-
-// prevent breadcrumbs at the highest level, in similar situations that
-// bypass the guard
-// - find the number of children whose latency exceeds 2.5 μs
-// - task count is limited to, at most, this number
 
 // Tasks:
-// - Benchmark the code as-is, with various latency thresholds.
-// - We might need to bring out the nodes that needed to parallelize, then
-//   invoke them in a second pass. This is an attempt to make it more similar
-//   to 'Grid' + 'MultiThreaded'.
+// - Bring out the nodes that need to parallelize, then invoke them in a
+//   second pass. Repeat in an iterative fashion, until no more work spawns.
+//   This is an attempt to make it more similar to 'Grid' + 'MultiThreaded'.
 // - Benchmark again, with a technique that reduces the number of calls to
-//   'DispatchQueue.concurrentPerform'. Cannot yet model how this change
-//   would affect performance, but it would probably unlock smaller latency
-//   thresholds and adversely affect very large problem sizes.
+//   'DispatchQueue.concurrentPerform'. I suspect that there's an issue with
+//   large numbers of concurrent calls to this function. The issue may outweigh
+//   the benefit of asynchrony / decoupling in time.
 
 extension OctreeSorter {
   // Algorithm that adaptively uses multi-threading, when a subset of the
   // octree has enough atoms.
   func mortonReorderingDynamic() -> [UInt32] {
-    let start = CACurrentMediaTime()
-    let threadCount = ManagedAtomic<Int>(1)
-    let callCount = ManagedAtomic<Int>(0)
-    
     @Sendable
     func traverse(
       atomCount: UInt32,
@@ -280,12 +246,6 @@ extension OctreeSorter {
         return
       }
       
-      // Statistics for benchmarking.
-      threadCount.wrappingIncrement(
-        by: workSplitting.taskCount - 1,
-        ordering: .relaxed)
-      callCount.wrappingIncrement(ordering: .relaxed)
-      
       // Make Swift concurrency happy.
       nonisolated(unsafe)
       let inPlaceBufferCopy = inPlaceBuffer
@@ -340,13 +300,6 @@ extension OctreeSorter {
         levelOrigin: levelOrigin,
         levelSize: highestLevelSize)
     }
-    
-    let end = CACurrentMediaTime()
-    print()
-    print("call count:", callCount.load(ordering: .relaxed))
-    print("thread count:", threadCount.load(ordering: .relaxed))
-    debugProfile(start, end, "dynamic")
-    
     return inPlaceBuffer
   }
 }

@@ -128,7 +128,7 @@ final class SortTests: XCTestCase {
     }
     
     // Revert to 0..<4 after any refactorings
-    for trialID in 2...2 {
+    for trialID in 0..<4 {
       let trial = Trial(lattice: lattice, index: trialID)
       
       let startParallel = Profiler.time()
@@ -240,38 +240,6 @@ final class SortTests: XCTestCase {
     // 20     | 129600 |  19932 |  10811 |     6567 | 1.8 -> 3.0
   }
 #endif
-  
-  // This test will prototype the work splitting algorithm, ensuring it
-  // executes in a reasonable amount of time.
-  //
-  // Once the tests are in place, we can try optimizations without causing
-  // correctness regressions.
-  // - Current execution time: ~1.0-3.5 μs, depending on problem size
-  // - Improved execution time: 0.2-0.6 μs
-  //
-  // Next steps: TODO
-  func testWorkSplittingMain() throws {
-    var test = WorkSplittingTest()
-    test.taskCount = 3
-    test.childCount = 8
-    
-    // Set the child latencies to random values.
-    for childID in 0..<test.childCount {
-      var latency = Float.random(in: 1...1000)
-      latency.round(.toNearestOrEven)
-      test.childLatencies[childID] = latency
-    }
-    
-    for _ in 0..<10 {
-      _ = test.run()
-    }
-    do {
-      let start = Profiler.time()
-      _ = test.run()
-      let end = Profiler.time()
-      print("restricted:", Float(end - start))
-    }
-  }
   
   func testWorkSplittingUnit() throws {
     do {

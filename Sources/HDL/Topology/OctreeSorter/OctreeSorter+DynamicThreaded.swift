@@ -270,11 +270,18 @@ extension OctreeSorter {
         return
       }
       
+      // Make Swift concurrency happy.
+      nonisolated(unsafe)
+      let inPlaceBufferCopy = inPlaceBuffer
+      nonisolated(unsafe)
+      let scratchPadCopy = scratchPad
+      
       // Invoke the traversal function recursively.
-      for taskID in 0..<workSplitting.taskCount {
-//      DispatchQueue.concurrentPerform(
-//        iterations: workSplitting.taskCount
-//      ) { taskID in
+//      for taskID in 0..<workSplitting.taskCount {
+      
+      DispatchQueue.concurrentPerform(
+        iterations: workSplitting.taskCount
+      ) { taskID in
         let size = workSplitting.taskSizes[taskID]
         let children = unsafeBitCast(
           workSplitting.taskChildren[taskID], to: SIMD8<UInt8>.self)
@@ -294,8 +301,8 @@ extension OctreeSorter {
           }
           traverse(
             atomCount: childSize,
-            inPlaceBuffer: inPlaceBuffer + Int(childOffset),
-            scratchPad: scratchPad + Int(8 * childOffset),
+            inPlaceBuffer: inPlaceBufferCopy + Int(childOffset),
+            scratchPad: scratchPadCopy + Int(8 * childOffset),
             levelOrigin: createNewOrigin(),
             levelSize: levelSize / 2)
         }

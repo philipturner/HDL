@@ -144,15 +144,21 @@ extension OctreeSorter {
         return Int(exponentForLevel - exponentFor4) + 7
       }
       
+      func createChildLatencies() -> SIMD8<Float> {
+        // 5.0 ns/atom/level
+        var output = SIMD8<Float>(childSizes)
+        output *= Float(5.0e-9)
+        output *= Float(createLevelsRemaining())
+        return output
+      }
+      
       func createTaskCount() -> Int {
         if levelSize <= 1 {
           return 1
         }
         
-        // 5.0 ns/atom/level
-        var totalLatency = Float(5.0e-9)
-        totalLatency *= Float(atomIDs.count)
-        totalLatency *= Float(createLevelsRemaining())
+        let childLatencies = createChildLatencies()
+        let totalLatency = childLatencies.sum()
         
         // 20 μs task size
         var taskCount = totalLatency / Float(20e-6)
@@ -166,9 +172,12 @@ extension OctreeSorter {
       // for implementing the full algorithm.
       do {
         let idealTaskCount = createTaskCount()
-        let actualTaskCount = (idealTaskCount > 1) ? 8 : 1
+        // let actualTaskCount = (idealTaskCount > 1) ? 8 : 1
+        
+        if levelSize >= 2 {
+          print(levelSize, atomIDs.count, createTaskCount())
+        }
       }
-      createTaskCount()
       let assignments: SIMD8<UInt8> = SIMD8(0, 1, 2, 3, 4, 5, 6, 7)
       
       // Organize the children into tasks.

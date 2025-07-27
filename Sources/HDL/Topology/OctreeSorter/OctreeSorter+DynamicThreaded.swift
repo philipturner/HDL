@@ -44,7 +44,7 @@ extension OctreeSorter {
     defer { scratchPad.deallocate() }
     
     func traverse(
-      atomIDs: UnsafeBufferPointer<UInt32>,
+      atomIDs: UnsafeMutableBufferPointer<UInt32>,
       levelOrigin: SIMD3<Float>,
       levelSize: Float
     ) {
@@ -77,10 +77,12 @@ extension OctreeSorter {
       }
       
       // Create the temporary allocation.
-      withUnsafeTemporaryAllocation(
-        of: UInt32.self,
-        capacity: childNodeCounts.wrappedSum()
-      ) { allocationBuffer in
+//      withUnsafeTemporaryAllocation(
+//        of: UInt32.self,
+//        capacity: childNodeCounts.wrappedSum()
+//      ) { allocationBuffer in
+      do {
+        let allocationBuffer = atomIDs
         func allocationPointer() -> UnsafeMutablePointer<UInt32> {
           allocationBuffer.baseAddress.unsafelyUnwrapped
         }
@@ -124,7 +126,7 @@ extension OctreeSorter {
             let floatOffset = SIMD3<Float>(intOffset) * 2 - 1
             return levelOrigin + floatOffset * levelSize / 4
           }
-          let newBufferPointer = UnsafeBufferPointer(
+          let newBufferPointer = UnsafeMutableBufferPointer(
             start: newPointer,
             count: childNodeCount)
           traverse(
@@ -138,8 +140,8 @@ extension OctreeSorter {
     // Invoke the traversal function the first time.
     let levelOrigin = SIMD3<Float>(
       repeating: highestLevelSize / 2)
-    let initialArray = atoms.indices.map(UInt32.init)
-    initialArray.withUnsafeBufferPointer { bufferPointer in
+    var inPlaceArray = atoms.indices.map(UInt32.init)
+    inPlaceArray.withUnsafeMutableBufferPointer { bufferPointer in
       traverse(
         atomIDs: bufferPointer,
         levelOrigin: levelOrigin,

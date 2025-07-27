@@ -8,6 +8,9 @@
 import Dispatch
 import QuartzCore
 
+// Keep this algorithm around for quite a while. That way, we can measure the
+// improved performance of work splitting on tough, sparse geometries.
+
 extension OctreeSorter {
   // Multi-threaded algorithm.
   func mortonReordering(grid: Grid) -> [UInt32] {

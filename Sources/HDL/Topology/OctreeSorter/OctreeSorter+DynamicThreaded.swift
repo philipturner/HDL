@@ -7,9 +7,6 @@
 
 import Dispatch
 
-// TODO: Implement this as just a copy of single threaded for now. Get tests
-// working with the new API call.
-//
 // compute ideal task count
 //   retrieve total atom count
 //   retrieve levels remaining (7 @ 4 nm)

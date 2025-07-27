@@ -136,6 +136,14 @@ extension OctreeSorter {
        the inclusion of work splitting. Eventually, it may prove economical to
        provide an explicit 1-loop branch, earlier up in this function body.
        
+       atoms: 129600
+       dataset    | octree |  grid
+       ---------- | ------ | ------
+       pre-sorted |   7550 |   9793
+       lattice    |   7808 |   9949
+       shuffled   |   9311 |   9992
+       reversed   |   7961 |   9897
+       
        */
       
       func createLevelsRemaining() -> Int {
@@ -143,7 +151,6 @@ extension OctreeSorter {
         let exponentForLevel = levelSize.exponentBitPattern
         return Int(exponentForLevel - exponentFor4) + 7
       }
-      
       func createChildLatencies() -> SIMD8<Float> {
         // 5.0 ns/atom/level
         var output = SIMD8<Float>(childSizes)
@@ -151,6 +158,7 @@ extension OctreeSorter {
         output *= Float(createLevelsRemaining())
         return output
       }
+      let childLatencies = createChildLatencies()
       
       func createMaximumTaskCount() -> Float {
         if levelSize <= 1 {
@@ -158,7 +166,6 @@ extension OctreeSorter {
         }
         
         // 2.5 μs = 20 μs / 8
-        let childLatencies = createChildLatencies()
         var marks: SIMD8<Float> = .zero
         marks.replace(
           with: SIMD8(repeating: 1),
@@ -170,7 +177,6 @@ extension OctreeSorter {
       }
       
       func createTaskCount() -> Int {
-        let childLatencies = createChildLatencies()
         let totalLatency = childLatencies.sum()
         
         // 20 μs task size
@@ -188,7 +194,7 @@ extension OctreeSorter {
         // let actualTaskCount = (idealTaskCount > 1) ? 8 : 1
         
         if levelSize >= 2 {
-//          print(levelSize, atomIDs.count, idealTaskCount)
+          print(levelSize, atomIDs.count, idealTaskCount)
         }
       }
       let assignments: SIMD8<UInt8> = SIMD8(0, 1, 2, 3, 4, 5, 6, 7)

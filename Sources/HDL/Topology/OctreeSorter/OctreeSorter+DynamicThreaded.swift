@@ -41,8 +41,10 @@ extension OctreeSorter {
   // Algorithm that adaptively uses multi-threading, when a subset of the
   // octree has enough atoms.
   func mortonReorderingDynamic() -> [UInt32] {
+    @Sendable
     func traverse(
-      atomIDs: UnsafeMutableBufferPointer<UInt32>,
+      atomCount: UInt32,
+      inPlaceBuffer: UnsafeMutablePointer<UInt32>,
       scratchPad: UnsafeMutablePointer<UInt32>,
       levelOrigin: SIMD3<Float>,
       levelSize: Float
@@ -329,10 +331,10 @@ extension OctreeSorter {
       }
       
       // Invoke the traversal function recursively.
-      // for taskID in 0..<workSplitting.taskCount {
-      DispatchQueue.concurrentPerform(
-        iterations: workSplitting.taskCount
-      ) { taskID in
+      for taskID in 0..<workSplitting.taskCount {
+//      DispatchQueue.concurrentPerform(
+//        iterations: workSplitting.taskCount
+//      ) { taskID in
         let size = taskSizes[taskID]
         let children = unsafeBitCast(
           taskChildren[taskID], to: SIMD8<UInt8>.self)

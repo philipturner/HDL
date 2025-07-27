@@ -160,7 +160,6 @@ extension OctreeSorter {
       }
       let childLatencies = createChildLatencies()
       
-      @inline(__always) @_transparent
       func createMaximumTaskCount() -> Float {
         if levelSize <= 1 {
           return 1
@@ -176,35 +175,45 @@ extension OctreeSorter {
         output = max(output, 1)
         return output
       }
-      let maximumTaskCount = createMaximumTaskCount()
-      
-      @inline(__always) @_transparent
-      func createTaskCount() -> Int {
+      func createTaskCount(maximum: Float) -> Int {
         let totalLatency = childLatencies.sum()
         
         // 20 μs task size
         var output = totalLatency / Float(20e-6)
         output.round(.toNearestOrEven)
         output = max(output, 1)
-        output = min(output, maximumTaskCount)
+        output = min(output, maximum)
         return Int(output)
       }
-      let idealTaskCount = createTaskCount()
-      let actualTaskCount = (idealTaskCount > 1) ? 8 : 1
       
       // Child count is always 8, until we break through the barrier to entry
       // for implementing the full algorithm.
-      var assignments: SIMD8<UInt8> = .zero
-      if actualTaskCount > 1 {
-        assignments = SIMD8(0, 1, 2, 3, 4, 5, 6, 7)
+      struct WorkSplitting {
+        var taskCount: Int = 2
+        var assignments: SIMD8<UInt8> = .zero
       }
+      func createWorkSplitting() -> WorkSplitting {
+        let maximumTaskCount = createMaximumTaskCount()
+        let idealTaskCount = createTaskCount(maximum: maximumTaskCount)
+        
+        var output = WorkSplitting()
+//        if idealTaskCount > 1 {
+//          output.taskCount = 8
+//          output.assignments = SIMD8(0, 1, 2, 3, 4, 5, 6, 7)
+//        } else {
+          output.taskCount = 1
+          output.assignments = SIMD8.zero
+//        }
+        return output
+      }
+      let workSplitting = createWorkSplitting()
       
       // Organize the children into tasks.
       var taskSizes: SIMD8<UInt8> = .zero
       var taskChildren: SIMD8<UInt64> = .zero
       for childID in 0..<8 {
         // taskID per child obtained from work splitting algorithm
-        let taskID = assignments[childID]
+        let taskID = workSplitting.assignments[childID]
         let offset = taskSizes[Int(taskID)]
         taskSizes[Int(taskID)] = offset + 1
         
@@ -216,7 +225,10 @@ extension OctreeSorter {
       }
       
       // Invoke the traversal function recursively.
-      for taskID in 0..<actualTaskCount {
+      guard workSplitting.taskCount == 1 else {
+        fatalError("Unexpected task count: \(workSplitting.taskCount)")
+      }
+      for taskID in 0..<workSplitting.taskCount {
         let size = taskSizes[taskID]
         let children = unsafeBitCast(
           taskChildren[taskID], to: SIMD8<UInt8>.self)

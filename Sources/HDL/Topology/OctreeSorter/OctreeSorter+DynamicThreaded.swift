@@ -123,10 +123,10 @@ extension OctreeSorter {
       }
       
       // Fast-path for smaller cells at the bottom of the tree.
-      if levelSize <= 1 {
-        fastPath()
-        return
-      }
+//      if levelSize <= 1 {
+//        fastPath()
+//        return
+//      }
       
       /*
        1 loop:
@@ -257,92 +257,13 @@ extension OctreeSorter {
       }
       let childLatencies = createChildLatencies()
       
-      func latencyThreshold() -> Float {
-        Float(20e-6)
-      }
-      func createMaximumTaskCount() -> Float {
-        // 2.5 μs = 20 μs / 8
-        let reducedThreshold = latencyThreshold() / 8
-        var marks: SIMD8<Float> = .zero
-        marks.replace(
-          with: SIMD8(repeating: 1),
-          where: childLatencies .> reducedThreshold)
-        
-        var output = marks.sum()
-        output = max(output, 1)
-        return output
-      }
-      func createTaskCount(maximum: Float) -> Int {
-        let totalLatency = childLatencies.sum()
-        
-        // 20 μs task size
-        var output = totalLatency / latencyThreshold()
-        output.round(.toNearestOrEven)
-        output = max(output, 1)
-        output = min(output, maximum)
-        return Int(output)
-      }
-      
-      struct WorkSplitting {
-        var taskCount: Int = .zero
-        var taskSizes: SIMD8<UInt8> = .zero
-        var taskChildren: SIMD8<UInt64> = .zero
-      }
-      func createWorkSplitting() -> WorkSplitting {
-        var output = WorkSplitting()
-        let maximumTaskCount = createMaximumTaskCount()
-        output.taskCount = createTaskCount(maximum: maximumTaskCount)
-        
-        func createAssignments() -> SIMD8<UInt8> {
-          if output.taskCount == 1 {
-            return SIMD8.zero
-          } else if output.taskCount < 8 {
-            var testInput = TestInput()
-            testInput.taskCount = output.taskCount
-            testInput.childCount = 8
-            testInput.childLatencies = childLatencies
-            return runRestrictedTest(testInput: testInput)
-          } else {
-            return SIMD8(0, 1, 2, 3, 4, 5, 6, 7)
-          }
-        }
-        
-        let assignments = createAssignments()
-        for childID in 0..<8 {
-          let taskID = assignments[childID]
-          let workItemOffset = output.taskSizes[Int(taskID)]
-          output.taskSizes[Int(taskID)] = workItemOffset + 1
-          
-          var children = unsafeBitCast(
-            output.taskChildren[Int(taskID)], to: SIMD8<UInt8>.self)
-          children[Int(workItemOffset)] = UInt8(childID)
-          output.taskChildren[Int(taskID)] = unsafeBitCast(
-            children, to: UInt64.self)
-        }
-        return output
-      }
-      let workSplitting = createWorkSplitting()
-      
-      // Organize the children into tasks.
-//      var taskSizes: SIMD8<UInt8> = .zero
-//      var taskChildren: SIMD8<UInt64> = .zero
-//      for childID in 0..<8 {
-//        let taskID = workSplitting.assignments[childID]
-//        let workItemOffset = taskSizes[Int(taskID)]
-//        taskSizes[Int(taskID)] = workItemOffset + 1
-//        
-//        var children = unsafeBitCast(
-//          taskChildren[Int(taskID)], to: SIMD8<UInt8>.self)
-//        children[Int(workItemOffset)] = UInt8(childID)
-//        taskChildren[Int(taskID)] = unsafeBitCast(
-//          children, to: UInt64.self)
-//      }
+      let workSplitting = WorkSplitting(childLatencies: childLatencies)
       
       // Fast-path to avoid overhead of dispatch queue.
-      if workSplitting.taskCount == 1 {
-        fastPath()
-        return
-      }
+//      if workSplitting.taskCount == 1 {
+//        fastPath()
+//        return
+//      }
       
       // Invoke the traversal function recursively.
       for taskID in 0..<workSplitting.taskCount {
@@ -393,3 +314,5 @@ extension OctreeSorter {
     return inPlaceBuffer
   }
 }
+
+

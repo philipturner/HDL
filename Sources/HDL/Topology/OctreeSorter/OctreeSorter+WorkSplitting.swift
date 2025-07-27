@@ -5,6 +5,71 @@
 //  Created by Philip Turner on 7/27/25.
 //
 
+struct WorkSplitting {
+  var taskCount: Int
+  var taskSizes: SIMD8<UInt8> = .zero
+  var taskChildren: SIMD8<UInt64> = .zero
+  
+  init(childLatencies: SIMD8<Float>) {
+    // Utilities for finding the task count.
+    func latencyThreshold() -> Float {
+      Float(20e-6)
+    }
+    func createMaximumTaskCount() -> Float {
+      // 2.5 μs = 20 μs / 8
+      let reducedThreshold = latencyThreshold() / 8
+      var marks: SIMD8<Float> = .zero
+      marks.replace(
+        with: SIMD8(repeating: 1),
+        where: childLatencies .> reducedThreshold)
+      
+      var output = marks.sum()
+      output = max(output, 1)
+      return output
+    }
+    func createTaskCount(maximum: Float) -> Int {
+      let totalLatency = childLatencies.sum()
+      
+      // 20 μs task size
+      var output = totalLatency / latencyThreshold()
+      output.round(.toNearestOrEven)
+      output = max(output, 1)
+      output = min(output, maximum)
+      return Int(output)
+    }
+    
+    let maximumTaskCount = createMaximumTaskCount()
+    self.taskCount = createTaskCount(maximum: maximumTaskCount)
+    
+    func createAssignments() -> SIMD8<UInt8> {
+      if taskCount == 1 {
+        return SIMD8.zero
+      } else if taskCount < 8 {
+        var testInput = TestInput()
+        testInput.taskCount = taskCount
+        testInput.childCount = 8
+        testInput.childLatencies = childLatencies
+        return runRestrictedTest(testInput: testInput)
+      } else {
+        return SIMD8(0, 1, 2, 3, 4, 5, 6, 7)
+      }
+    }
+    
+    let assignments = createAssignments()
+    for childID in 0..<8 {
+      let taskID = assignments[childID]
+      let workItemOffset = taskSizes[Int(taskID)]
+      taskSizes[Int(taskID)] = workItemOffset + 1
+      
+      var children = unsafeBitCast(
+        taskChildren[Int(taskID)], to: SIMD8<UInt8>.self)
+      children[Int(workItemOffset)] = UInt8(childID)
+      taskChildren[Int(taskID)] = unsafeBitCast(
+        children, to: UInt64.self)
+    }
+  }
+}
+
 func runRestrictedTest(
   testInput: TestInput
 ) -> SIMD8<UInt8> {

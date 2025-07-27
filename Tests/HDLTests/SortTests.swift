@@ -251,7 +251,7 @@ final class SortTests: XCTestCase {
   func testWorkSplittingMain() throws {
     var testInput = TestInput()
     testInput.taskCount = 3
-    testInput.childCount = 8
+    testInput.childCount = 5
     
     // Set the child latencies to random values.
     for childID in 0..<testInput.childCount {

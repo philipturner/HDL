@@ -90,22 +90,20 @@ extension OctreeSorter {
       // Transfer the scratch pad to the input buffer.
       var childOffsets: SIMD8<UInt32> = .zero
       do {
-        var cursor: UInt32 = .zero
+        var offset: UInt32 = .zero
         for childID in 0..<UInt32(8) {
           let childSize = childSizes[Int(childID)]
           guard childSize > 0 else {
             continue
           }
           
-          let newPointer = allocationPointer() + Int(cursor)
+          let newPointer = allocationPointer() + Int(offset)
           newPointer.initialize(
             from: scratchPad + Int(childID) * atomIDs.count,
             count: Int(childSize))
           
-          // TODO: Is the code measurably faster when this statement appears
-          // before 'continue'?
-          childOffsets[Int(childID)] = cursor
-          cursor += childSize
+          childOffsets[Int(childID)] = offset
+          offset += childSize
         }
       }
       if (levelSize / 2) <= Float(1 / 32) {
@@ -117,31 +115,26 @@ extension OctreeSorter {
       // var taskChildren
       
       // Invoke the traversal function recursively.
-      do {
-        for childID in 0..<UInt32(8) {
-          let offset = childOffsets[Int(childID)]
-          let newPointer = allocationPointer() + Int(offset)
-          
-          let childSize = childSizes[Int(childID)]
-          if childSize <= 1 {
-            continue
-          }
-          
-          // let offset = ...
-          let newBufferPointer = UnsafeMutableBufferPointer(
-            start: newPointer,
-            count: Int(childSize))
-          
-          func createNewOrigin() -> SIMD3<Float> {
-            let intOffset = (childID &>> SIMD3(0, 1, 2)) & 1
-            let floatOffset = SIMD3<Float>(intOffset) * 2 - 1
-            return levelOrigin + floatOffset * levelSize / 4
-          }
-          traverse(
-            atomIDs: newBufferPointer,
-            levelOrigin: createNewOrigin(),
-            levelSize: levelSize / 2)
+      for childID in 0..<UInt32(8) {
+        let childSize = childSizes[Int(childID)]
+        if childSize <= 1 {
+          continue
         }
+        
+        let offset = childOffsets[Int(childID)]
+        let newBufferPointer = UnsafeMutableBufferPointer(
+          start: allocationPointer() + Int(offset),
+          count: Int(childSize))
+        
+        func createNewOrigin() -> SIMD3<Float> {
+          let intOffset = (childID &>> SIMD3(0, 1, 2)) & 1
+          let floatOffset = SIMD3<Float>(intOffset) * 2 - 1
+          return levelOrigin + floatOffset * levelSize / 4
+        }
+        traverse(
+          atomIDs: newBufferPointer,
+          levelOrigin: createNewOrigin(),
+          levelSize: levelSize / 2)
       }
     }
     

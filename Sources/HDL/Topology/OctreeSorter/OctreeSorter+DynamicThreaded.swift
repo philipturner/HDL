@@ -233,6 +233,16 @@ extension OctreeSorter {
        shuffled   |   9436 |   7044
        reversed   |   7959 |   6964
        
+       first time multi-threading was enabled:
+       
+       atoms: 129600
+       dataset    | octree |  grid
+       ---------- | ------ | ------
+       pre-sorted |   7598 |   5654
+       lattice    |   8199 |   5755
+       shuffled   |   9906 |   5957
+       reversed   |   8301 |   6067
+       
        */
       
       func createLevelsRemaining() -> Int {

@@ -125,7 +125,7 @@ extension OctreeSorter {
             atomIDs: newBufferPointer,
             levelOrigin: createNewOrigin(),
             levelSize: levelSize / 2,
-            parentOffset: parentOffset + 8 * Int(childOffset))
+            parentOffset: parentOffset + 8 * childOffset)
         }
       }
       
@@ -314,7 +314,7 @@ extension OctreeSorter {
         
         var children = unsafeBitCast(
           taskChildren[Int(taskID)], to: SIMD8<UInt8>.self)
-        children[Int(offset)] = UInt8(childID)
+        children[Int(workItemOffset)] = UInt8(childID)
         taskChildren[Int(taskID)] = unsafeBitCast(
           children, to: UInt64.self)
       }
@@ -346,7 +346,7 @@ extension OctreeSorter {
             atomIDs: newBufferPointer,
             levelOrigin: createNewOrigin(),
             levelSize: levelSize / 2,
-            scratchPad: scratchPad + 8 * Int(childOffset))
+            parentOffset: parentOffset + 8 * childOffset)
         }
       }
     }
@@ -360,7 +360,7 @@ extension OctreeSorter {
         atomIDs: bufferPointer,
         levelOrigin: levelOrigin,
         levelSize: highestLevelSize,
-        scratchPad: scratchPad)
+        parentOffset: 0)
     }
     return inPlaceBuffer
   }

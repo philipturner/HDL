@@ -153,6 +153,16 @@ extension OctreeSorter {
        shuffled   |   9427 |   9297
        reversed   |   8025 |   9212
        
+       after computing the true work splittings, when needed:
+       
+       atoms: 129600
+       dataset    | octree |  grid
+       ---------- | ------ | ------
+       pre-sorted |   7514 |   9291
+       lattice    |   7969 |   9687
+       shuffled   |   9458 |   9471
+       reversed   |   8021 |   9389
+       
        Keep this data around to track progress, as performance worsens with
        the inclusion of work splitting. Eventually, it may prove economical to
        provide an explicit 1-loop branch, earlier up in this function body.
@@ -199,8 +209,6 @@ extension OctreeSorter {
         return Int(output)
       }
       
-      // Child count is always 8, until we break through the barrier to entry
-      // for implementing the full algorithm.
       struct WorkSplitting {
         var taskCount: Int = .zero
         var assignments: SIMD8<UInt8> = .zero
@@ -219,23 +227,7 @@ extension OctreeSorter {
           testInput.taskCount = output.taskCount
           testInput.childCount = 8
           testInput.childLatencies = childLatencies
-          
           output.assignments = runRestrictedTest(testInput: testInput)
-          
-          let percentageExpected = 100 / output.taskCount
-          
-          let taskLatencies = testInput.taskLatencies(assignments: output.assignments)
-          let originalLatency = Int(childLatencies.sum() * 1e6)
-          let newLatency = Int(taskLatencies.max() * 1e6)
-          let ratio = taskLatencies.max() / childLatencies.sum()
-          let percentageActual = Int((ratio * 100).rounded(.toNearestOrEven))
-          
-          print(
-            levelSize,
-            atomIDs.count,
-            "parallelism=\(output.taskCount)",
-            "\(originalLatency) -> \(newLatency)",
-            "(\(percentageExpected)% vs \(percentageActual)%)")
         }
         return output
       }
@@ -245,7 +237,6 @@ extension OctreeSorter {
       var taskSizes: SIMD8<UInt8> = .zero
       var taskChildren: SIMD8<UInt64> = .zero
       for childID in 0..<8 {
-        // taskID per child obtained from work splitting algorithm
         let taskID = workSplitting.assignments[childID]
         let offset = taskSizes[Int(taskID)]
         taskSizes[Int(taskID)] = offset + 1

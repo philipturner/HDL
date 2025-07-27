@@ -249,12 +249,16 @@ extension OctreeSorter {
       }
       let childLatencies = createChildLatencies()
       
+      func latencyThreshold() -> Float {
+        Float(20e-6)
+      }
       func createMaximumTaskCount() -> Float {
         // 2.5 μs = 20 μs / 8
+        let reducedThreshold = latencyThreshold() / 8
         var marks: SIMD8<Float> = .zero
         marks.replace(
           with: SIMD8(repeating: 1),
-          where: childLatencies .> 2.5e-6)
+          where: childLatencies .> reducedThreshold)
         
         var output = marks.sum()
         output = max(output, 1)
@@ -264,7 +268,7 @@ extension OctreeSorter {
         let totalLatency = childLatencies.sum()
         
         // 20 μs task size
-        var output = totalLatency / Float(20e-6)
+        var output = totalLatency / latencyThreshold()
         output.round(.toNearestOrEven)
         output = max(output, 1)
         output = min(output, maximum)

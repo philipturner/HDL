@@ -10,7 +10,9 @@ import Dispatch
 // compute ideal task count
 //   retrieve total atom count
 //   retrieve levels remaining (7 @ 4 nm)
-//   compute total latency from 7.5 ns/atom/level
+//   compute total latency from 5.0 ns/atom/level
+//     recent optimizations improved overall execution speed regardless of the
+//     algorithm, so this dropped from 7.5 to 5.0
 //   ideal task count = round_to_nearest(total latency / 20 μs)
 //   restrict ideal task count to 1 to 8
 //

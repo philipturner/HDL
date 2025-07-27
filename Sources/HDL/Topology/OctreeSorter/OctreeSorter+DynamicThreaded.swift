@@ -91,7 +91,7 @@ extension OctreeSorter {
       var childOffsets: SIMD8<UInt32> = .zero
       do {
         var offset: UInt32 = .zero
-        for childID in 0..<UInt32(8) {
+        for childID in 0..<8 {
           let childSize = childSizes[Int(childID)]
           guard childSize > 0 else {
             continue
@@ -111,23 +111,28 @@ extension OctreeSorter {
       }
       
       // Organize the children into tasks.
-      // var taskSizes: SIMD8<UInt8> = .zero
-      // var taskChildren
+//      var taskSizes: SIMD8<UInt8> = .zero
+//      var taskChildren = [SIMD8<UInt8>](
+//        repeating: .zero,
+//        count: 1)
+//      for childID in 0..<8 {
+//        let offset = taskSizes[childID]
+//      }
       
       // Invoke the traversal function recursively.
-      for childID in 0..<UInt32(8) {
-        let childSize = childSizes[Int(childID)]
+      for childID in 0..<8 {
+        let childSize = childSizes[childID]
         if childSize <= 1 {
           continue
         }
         
-        let offset = childOffsets[Int(childID)]
+        let offset = childOffsets[childID]
         let newBufferPointer = UnsafeMutableBufferPointer(
           start: allocationPointer() + Int(offset),
           count: Int(childSize))
         
         func createNewOrigin() -> SIMD3<Float> {
-          let intOffset = (childID &>> SIMD3(0, 1, 2)) & 1
+          let intOffset = (UInt32(childID) &>> SIMD3(0, 1, 2)) & 1
           let floatOffset = SIMD3<Float>(intOffset) * 2 - 1
           return levelOrigin + floatOffset * levelSize / 4
         }

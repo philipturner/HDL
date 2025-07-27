@@ -267,7 +267,7 @@ final class SortTests: XCTestCase {
   
   func testWorkSplittingUnit() throws {
     do {
-      var test = CompleteTestCase()
+      var test = TestCase()
       test.problemSize = (2, 8)
       test.childValues = [
         787.0,
@@ -285,7 +285,7 @@ final class SortTests: XCTestCase {
     }
     
     do {
-      var test = CompleteTestCase()
+      var test = TestCase()
       test.problemSize = (3, 8)
       test.childValues = [
         459.0,
@@ -303,7 +303,7 @@ final class SortTests: XCTestCase {
     }
     
     do {
-      var test = CompleteTestCase()
+      var test = TestCase()
       test.problemSize = (4, 8)
       test.childValues = [
         961.0,
@@ -321,7 +321,7 @@ final class SortTests: XCTestCase {
     }
     
     do {
-      var test = CompleteTestCase()
+      var test = TestCase()
       test.problemSize = (5, 8)
       test.childValues = [
         770.0,
@@ -339,7 +339,7 @@ final class SortTests: XCTestCase {
     }
     
     do {
-      var test = CompleteTestCase()
+      var test = TestCase()
       test.problemSize = (6, 8)
       test.childValues = [
         608.0,
@@ -357,7 +357,7 @@ final class SortTests: XCTestCase {
     }
     
     do {
-      var test = CompleteTestCase()
+      var test = TestCase()
       test.problemSize = (7, 8)
       test.childValues = [
         453.0,
@@ -375,7 +375,7 @@ final class SortTests: XCTestCase {
     }
     
     do {
-      var test = CompleteTestCase()
+      var test = TestCase()
       test.problemSize = (3, 7)
       test.childValues = [
         836.0,
@@ -392,7 +392,7 @@ final class SortTests: XCTestCase {
     }
     
     do {
-      var test = CompleteTestCase()
+      var test = TestCase()
       test.problemSize = (3, 6)
       test.childValues = [
         331.0,
@@ -408,7 +408,7 @@ final class SortTests: XCTestCase {
     }
     
     do {
-      var test = CompleteTestCase()
+      var test = TestCase()
       test.problemSize = (2, 5)
       test.childValues = [
         640.0,
@@ -423,7 +423,7 @@ final class SortTests: XCTestCase {
     }
     
     do {
-      var test = CompleteTestCase()
+      var test = TestCase()
       test.problemSize = (4, 5)
       test.childValues = [
         946.0,
@@ -438,7 +438,7 @@ final class SortTests: XCTestCase {
     }
     
     do {
-      var test = CompleteTestCase()
+      var test = TestCase()
       test.problemSize = (2, 4)
       test.childValues = [
         691.0,
@@ -452,7 +452,7 @@ final class SortTests: XCTestCase {
     }
     
     do {
-      var test = CompleteTestCase()
+      var test = TestCase()
       test.problemSize = (2, 3)
       test.childValues = [
         475.0,
@@ -505,7 +505,7 @@ struct TestInput {
   }
 }
 
-private struct CompleteTestCase {
+private struct TestCase {
   var problemSize: (taskCount: Int, childCount: Int)?
   var childValues: [Float]?
   var resultFull: Float?

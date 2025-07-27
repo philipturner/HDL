@@ -32,6 +32,7 @@
 //   8 children.
 // - Reorder, treating all children as nonzero. Although this is sub-optimal,
 //   it simplifies the implementation for now.
+//   - Situations with just 1 valid child will face horrible breadcrumbs.
 
 extension OctreeSorter {
   // Algorithm that adaptively uses multi-threading, when a subset of the
@@ -131,32 +132,32 @@ extension OctreeSorter {
        
        */
       
+      func createLevelsRemaining() -> Int {
+        let exponentFor4 = Float(4).exponentBitPattern
+        let exponentForLevel = levelSize.exponentBitPattern
+        return Int(exponentForLevel - exponentFor4) + 7
+      }
+      
       func createTaskCount() -> Int {
         if levelSize <= 1 {
           return 1
         }
         
-        let exponentFor4 = Float(4).exponentBitPattern
-        let exponentForLevel = levelSize.exponentBitPattern
-        let levelsRemaining = (exponentForLevel - exponentFor4) + 7
-        
         // 5.0 ns/atom/level
         var totalLatency = Float(5.0e-9)
         totalLatency *= Float(atomIDs.count)
-        totalLatency *= Float(levelsRemaining)
+        totalLatency *= Float(createLevelsRemaining())
         
         // 20 μs task size
         var taskCount = totalLatency / Float(20e-6)
         taskCount.round(.toNearestOrEven)
         taskCount = max(taskCount, 1)
         taskCount = min(taskCount, 8)
-        
-        if levelSize >= 2 {
-          print(levelSize, atomIDs.count, taskCount)
-        }
-        return 0
+        return Int(taskCount)
       }
-//      
+      
+      // Child count is always 8, until we break through the barrier to entry
+      // for implementing the full algorithm.
       createTaskCount()
       let assignments: SIMD8<UInt8> = SIMD8(0, 1, 2, 3, 4, 5, 6, 7)
       

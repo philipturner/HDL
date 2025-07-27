@@ -153,23 +153,32 @@ extension OctreeSorter {
       }
       
       func createTaskCount() -> Int {
-        if levelSize <= 1 {
-          return 1
-        }
-        
         let childLatencies = createChildLatencies()
         let totalLatency = childLatencies.sum()
         
         // 20 μs task size
-        var taskCount = totalLatency / Float(20e-6)
-        taskCount.round(.toNearestOrEven)
-        taskCount = min(taskCount, 8) // eventually incorporate max task count here
-        taskCount = max(taskCount, 1)
-        return Int(taskCount)
+        var output = totalLatency / Float(20e-6)
+        output.round(.toNearestOrEven)
+        output = max(output, 1)
+        output = min(output, 8) // eventually incorporate max task count here
+        return Int(output)
       }
       
-      func createMaximumTaskCount() -> Int {
+      func createMaximumTaskCount() -> Float {
+        if levelSize <= 1 {
+          return 1
+        }
         
+        // 2.5 μs = 20 μs / 8
+        let childLatencies = createChildLatencies()
+        var marks: SIMD8<Float> = .zero
+        marks.replace(
+          with: SIMD8(repeating: 1),
+          where: childLatencies .> 2.5e-6)
+        
+        var output = marks.sum()
+        output = max(output, 1) // TODO: Create intentional bug by omitting this line
+        return output
       }
       
       // Child count is always 8, until we break through the barrier to entry
@@ -178,10 +187,8 @@ extension OctreeSorter {
         let idealTaskCount = createTaskCount()
         // let actualTaskCount = (idealTaskCount > 1) ? 8 : 1
         
-        let childLatencies = createChildLatencies()
-        
         if levelSize >= 2 {
-          print(levelSize, atomIDs.count, idealTaskCount, 8)
+          print(levelSize, atomIDs.count, idealTaskCount, createMaximumTaskCount())
         }
       }
       let assignments: SIMD8<UInt8> = SIMD8(0, 1, 2, 3, 4, 5, 6, 7)

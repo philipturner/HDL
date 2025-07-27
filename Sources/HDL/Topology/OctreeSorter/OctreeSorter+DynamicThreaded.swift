@@ -158,9 +158,9 @@ extension OctreeSorter {
         output *= Float(createLevelsRemaining())
         return output
       }
-      let childLatencies = createChildLatencies()
+//      let childLatencies = createChildLatencies()
       
-      @inline(__always)
+//      @inline(__always)
       func createMaximumTaskCount() -> Float {
         if levelSize <= 1 {
           return 1
@@ -170,7 +170,7 @@ extension OctreeSorter {
         var marks: SIMD8<Float> = .zero
         marks.replace(
           with: SIMD8(repeating: 1),
-          where: childLatencies .> 2.5e-6)
+          where: createChildLatencies() .> 2.5e-6)
         
         var output = marks.sum()
         output = max(output, 1)
@@ -178,7 +178,7 @@ extension OctreeSorter {
       }
       
       func createTaskCount() -> Int {
-        let totalLatency = childLatencies.sum()
+        let totalLatency = createChildLatencies().sum()
         
         // 20 μs task size
         var output = totalLatency / Float(20e-6)

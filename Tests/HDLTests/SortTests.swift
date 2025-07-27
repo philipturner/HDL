@@ -247,11 +247,12 @@ final class SortTests: XCTestCase {
   // - Current execution time: ~1.0-3.5 μs, depending on problem size
   //
   // Tasks:
-  // - Add profiler metrics to the main test ('testWorkSplittingMain')
+  // - Reduce the 59% bottleneck by inlining 'taskLatencies'
+  //   - Measure the performance afterward, compare to data on Google Sheet
   func testWorkSplittingMain() throws {
     var testInput = TestInput()
-    testInput.taskCount = 6
-    testInput.childCount = 7
+    testInput.taskCount = 3
+    testInput.childCount = 8
     
     // Set the child latencies to random values.
     for childID in 0..<testInput.childCount {

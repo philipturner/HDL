@@ -51,7 +51,8 @@ extension OctreeSorter {
     ) {
       // Use the scratch pad.
       var childSizes: SIMD8<UInt32> = .zero
-      for atomID in atomIDs {
+      for inPlaceOffset in 0..<atomCount {
+        let atomID = inPlaceBuffer[Int(inPlaceOffset)]
         func createAtomOffset() -> SIMD3<Float> {
           let atom = atoms[Int(atomID)]
           let position = unsafeBitCast(atom, to: SIMD3<Float>.self)
@@ -67,13 +68,8 @@ extension OctreeSorter {
         let previousSize = childSizes[Int(childID)]
         childSizes[Int(childID)] = previousSize + 1
         
-        let scratchPadSlot = childID * UInt32(atomIDs.count) + previousSize
+        let scratchPadSlot = childID * atomCount + previousSize
         scratchPad[Int(scratchPadSlot)] = atomID
-      }
-      
-      // Retrieve the base pointer of the input buffer.
-      func allocationPointer() -> UnsafeMutablePointer<UInt32> {
-        atomIDs.baseAddress.unsafelyUnwrapped
       }
       
       // Transfer the scratch pad to the input buffer.
@@ -86,9 +82,9 @@ extension OctreeSorter {
             continue
           }
           
-          let newPointer = allocationPointer() + Int(childOffset)
+          let newPointer = inPlaceBuffer + Int(childOffset)
           newPointer.initialize(
-            from: scratchPad + Int(childID) * atomIDs.count,
+            from: scratchPad + childID * Int(atomCount),
             count: Int(childSize))
           
           childOffsets[Int(childID)] = childOffset
@@ -109,17 +105,14 @@ extension OctreeSorter {
           }
           
           let childOffset = childOffsets[Int(childID)]
-          let newBufferPointer = UnsafeMutableBufferPointer(
-            start: allocationPointer() + Int(childOffset),
-            count: Int(childSize))
-          
           func createNewOrigin() -> SIMD3<Float> {
             let intOffset = (UInt8(childID) &>> SIMD3(0, 1, 2)) & 1
             let floatOffset = SIMD3<Float>(intOffset) * 2 - 1
             return levelOrigin + floatOffset * levelSize / 4
           }
           traverse(
-            atomIDs: newBufferPointer,
+            atomCount: childSize,
+            inPlaceBuffer: inPlaceBuffer + Int(childOffset),
             scratchPad: scratchPad + Int(8 * childOffset),
             levelOrigin: createNewOrigin(),
             levelSize: levelSize / 2)
@@ -332,9 +325,6 @@ extension OctreeSorter {
       
       // Invoke the traversal function recursively.
       for taskID in 0..<workSplitting.taskCount {
-//      DispatchQueue.concurrentPerform(
-//        iterations: workSplitting.taskCount
-//      ) { taskID in
         let size = taskSizes[taskID]
         let children = unsafeBitCast(
           taskChildren[taskID], to: SIMD8<UInt8>.self)
@@ -347,17 +337,14 @@ extension OctreeSorter {
           }
           
           let childOffset = childOffsets[Int(childID)]
-          let newBufferPointer = UnsafeMutableBufferPointer(
-            start: allocationPointer() + Int(childOffset),
-            count: Int(childSize))
-          
           func createNewOrigin() -> SIMD3<Float> {
             let intOffset = (UInt8(childID) &>> SIMD3(0, 1, 2)) & 1
             let floatOffset = SIMD3<Float>(intOffset) * 2 - 1
             return levelOrigin + floatOffset * levelSize / 4
           }
           traverse(
-            atomIDs: newBufferPointer,
+            atomCount: childSize,
+            inPlaceBuffer: inPlaceBuffer + Int(childOffset),
             scratchPad: scratchPad + Int(8 * childOffset),
             levelOrigin: createNewOrigin(),
             levelSize: levelSize / 2)
@@ -376,7 +363,8 @@ extension OctreeSorter {
       let levelOrigin = SIMD3<Float>(
         repeating: highestLevelSize / 2)
       traverse(
-        atomIDs: bufferPointer,
+        atomCount: UInt32(atoms.count),
+        inPlaceBuffer: bufferPointer.baseAddress!,
         scratchPad: scratchPad,
         levelOrigin: levelOrigin,
         levelSize: highestLevelSize)

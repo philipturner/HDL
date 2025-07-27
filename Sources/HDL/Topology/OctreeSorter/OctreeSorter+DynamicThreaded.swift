@@ -36,6 +36,9 @@ import Dispatch
 
 // Tasks:
 // - Implement work splitting, but make it single-threaded.
+// - We might need to bring out the nodes that needed to parallelize, then
+//   invoke them in a second pass. This is an attempt to make it more similar
+//   to 'Grid' + 'MultiThreaded'.
 
 extension OctreeSorter {
   // Algorithm that adaptively uses multi-threading, when a subset of the

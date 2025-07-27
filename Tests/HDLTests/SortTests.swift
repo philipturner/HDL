@@ -245,10 +245,9 @@ final class SortTests: XCTestCase {
   // Once the tests are in place, we can try optimizations without causing
   // correctness regressions.
   // - Current execution time: ~1.0-3.5 μs, depending on problem size
+  // - Improved execution time: 0.2-0.6 μs
   //
-  // Tasks:
-  // - Reduce the 59% bottleneck by inlining 'taskLatencies'
-  //   - Measure the performance afterward, compare to data on Google Sheet
+  // Next steps: TODO
   func testWorkSplittingMain() throws {
     var testInput = TestInput()
     testInput.taskCount = 3
@@ -586,8 +585,6 @@ private struct TestCase {
 private func runFullTest(
   testInput: TestInput
 ) -> SIMD8<UInt8> {
-  // total time: 0.00019570813
-  
   // Declare the state variables for the best assignment.
   var bestAssignment: SIMD8<UInt8>?
   var bestAssignmentLatency: Float = .greatestFiniteMagnitude
@@ -604,7 +601,6 @@ private func runFullTest(
       bestAssignmentLatency = maxTaskLatency
     }
     
-    // estimate: 31% of execution time
     for laneID in 0..<8 {
       counter[laneID] += 1
       if counter[laneID] >= testInput.taskCount {
@@ -721,11 +717,6 @@ private struct PreparationStage {
 private func runRestrictedTest(
   testInput: TestInput
 ) -> SIMD8<UInt8> {
-  // total time: 4.1248277e-06 (restricted1)
-  // total time: 1.8328428e-06 (restricted2)
-  
-  // 4.992e-07
-  // estimate: 27% of execution time
   let preparationStage = PreparationStage(testInput: testInput)
   
   // Declare the state variables for the best assignment.
@@ -751,7 +742,6 @@ private func runRestrictedTest(
       bestCounterLatency = maxTaskLatency
     }
     
-    // estimate: 16% of execution time outside prep stage
     for laneID in 0..<8 {
       counter[laneID] += 1
       if counter[laneID] >= testInput.taskCount {

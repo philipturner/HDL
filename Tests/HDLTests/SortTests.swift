@@ -260,16 +260,6 @@ final class SortTests: XCTestCase {
       testInput.childLatencies[childID] = latency
     }
     
-    for _ in 0..<5 {
-      _ = runFullTest(testInput: testInput)
-    }
-    do {
-      let start = Profiler.time()
-      _ = runFullTest(testInput: testInput)
-      let end = Profiler.time()
-      print("full:", Float(end - start))
-    }
-    
     for _ in 0..<10 {
       _ = runRestrictedTest(testInput: testInput)
     }
@@ -295,8 +285,7 @@ final class SortTests: XCTestCase {
         799.0,
         878.0,
       ]
-      test.resultFull = 2862
-      test.resultRestricted = 2974
+      test.result = 2974
       test.run()
     }
     
@@ -313,8 +302,7 @@ final class SortTests: XCTestCase {
         845.0,
         202.0,
       ]
-      test.resultFull = 1461
-      test.resultRestricted = 1517
+      test.result = 1517
       test.run()
     }
     
@@ -331,8 +319,7 @@ final class SortTests: XCTestCase {
         362.0,
         262.0,
       ]
-      test.resultFull = 1040
-      test.resultRestricted = 1104
+      test.result = 1104
       test.run()
     }
     
@@ -349,8 +336,7 @@ final class SortTests: XCTestCase {
         720.0,
         636.0,
       ]
-      test.resultFull = 801
-      test.resultRestricted = 841
+      test.result = 841
       test.run()
     }
     
@@ -367,8 +353,7 @@ final class SortTests: XCTestCase {
         935.0,
         596.0,
       ]
-      test.resultFull = 935
-      test.resultRestricted = 935
+      test.result = 935
       test.run()
     }
     
@@ -385,8 +370,7 @@ final class SortTests: XCTestCase {
         45.0,
         905.0,
       ]
-      test.resultFull = 905
-      test.resultRestricted = 905
+      test.result = 905
       test.run()
     }
     
@@ -402,8 +386,7 @@ final class SortTests: XCTestCase {
         765.0,
         151.0,
       ]
-      test.resultFull = 1380
-      test.resultRestricted = 1422
+      test.result = 1422
       test.run()
     }
     
@@ -418,8 +401,7 @@ final class SortTests: XCTestCase {
         112.0,
         463.0,
       ]
-      test.resultFull = 865
-      test.resultRestricted = 906
+      test.result = 906
       test.run()
     }
     
@@ -433,8 +415,7 @@ final class SortTests: XCTestCase {
         653.0,
         574.0,
       ]
-      test.resultFull = 1227
-      test.resultRestricted = 1229
+      test.result = 1229
       test.run()
     }
     
@@ -448,8 +429,7 @@ final class SortTests: XCTestCase {
         464.0,
         413.0,
       ]
-      test.resultFull = 946
-      test.resultRestricted = 946
+      test.result = 946
       test.run()
     }
     
@@ -462,8 +442,7 @@ final class SortTests: XCTestCase {
         124.0,
         382.0,
       ]
-      test.resultFull = 815
-      test.resultRestricted = 815
+      test.result = 815
       test.run()
     }
     
@@ -475,8 +454,7 @@ final class SortTests: XCTestCase {
         479.0,
         60.0,
       ]
-      test.resultFull = 535
-      test.resultRestricted = 535
+      test.result = 535
       test.run()
     }
   }
@@ -524,14 +502,12 @@ struct TestInput {
 private struct TestCase {
   var problemSize: (taskCount: Int, childCount: Int)?
   var childValues: [Float]?
-  var resultFull: Float?
-  var resultRestricted: Float?
+  var result: Float?
   
   func run() {
     guard let problemSize,
           let childValues,
-          let resultFull,
-          let resultRestricted else {
+          let result else {
       fatalError("Test was not fully specified.")
     }
     
@@ -548,7 +524,7 @@ private struct TestCase {
       testInput.childLatencies[childID] = latency
     }
     
-    
+    // Generate the output.
     let assignment = runRestrictedTest(testInput: testInput)
     
     // Check that each task is filled with ≥1 child.
@@ -562,9 +538,9 @@ private struct TestCase {
         }
       }
     }
-    validate(assignment: assignmentRestricted)
+    validate(assignment: assignment)
     
-    // Check the exact value of the outputs.
+    // Check the exact value of the output.
     func latency(assignment: SIMD8<UInt8>) -> Float {
       let taskLatencies = testInput.taskLatencies(
         assignments: assignment)
@@ -574,7 +550,7 @@ private struct TestCase {
       let latency = latency(assignment: assignment)
       XCTAssertEqual(latency, expected)
     }
-    compare(assignment: assignmentRestricted, expected: resultRestricted)
+    compare(assignment: assignment, expected: result)
   }
 }
 

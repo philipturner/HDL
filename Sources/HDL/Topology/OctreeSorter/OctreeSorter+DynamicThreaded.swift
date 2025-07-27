@@ -34,11 +34,8 @@
 
 // Tasks:
 // - Implement work splitting, but make it single-threaded.
-// - Migrate from either 1 or 8 tasks, to the correct number. Implement the
-//   'restrictedTest' algorithm now.
-// - Reorder, treating all children as nonzero. Although this is sub-optimal,
-//   it simplifies the implementation for now.
-//   - Situations with just 1 valid child will face horrible breadcrumbs.
+// - Try to provide a fastpath to fix the bottleneck introduced for
+//   single-threaded.
 
 extension OctreeSorter {
   // Algorithm that adaptively uses multi-threading, when a subset of the

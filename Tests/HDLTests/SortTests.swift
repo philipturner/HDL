@@ -468,21 +468,6 @@ final class SortTests: XCTestCase {
 
 // MARK: - Utilities
 
-// All latencies and their sums will be 4 digits or less.
-private func format(latency: Float) -> String {
-  let rounded = latency.rounded(.toNearestOrEven)
-  var repr = String(Int(rounded))
-  guard repr.count > 0,
-        repr.count <= 4 else {
-    fatalError("Unexpected character count for latency.")
-  }
-  
-  while repr.count < 4 {
-    repr = " " + repr
-  }
-  return repr
-}
-
 struct TestCase {
   var taskCount: Int = .zero
   var childCount: Int = .zero

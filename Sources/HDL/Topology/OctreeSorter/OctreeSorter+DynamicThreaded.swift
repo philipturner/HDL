@@ -83,11 +83,10 @@ extension OctreeSorter {
           }
           
           let newPointer = allocationPointer() + cursor
-          cursor += childNodeCount
-          
           newPointer.initialize(
             from: scratchPad + Int(key) * atomIDs.count,
             count: childNodeCount)
+          cursor += childNodeCount
         }
       }
       if (levelSize / 2) <= Float(1 / 32) {
@@ -98,15 +97,11 @@ extension OctreeSorter {
       do {
         var cursor = 0
         for key in 0..<UInt32(8) {
-          let childNodeCount = childNodeCounts[Int(key)]
-          guard childNodeCount > 0 else {
-            continue
-          }
-          
           let newPointer = allocationPointer() + cursor
-          cursor += childNodeCount
           
-          if childNodeCount == 1 {
+          let childNodeCount = childNodeCounts[Int(key)]
+          cursor += childNodeCount
+          if childNodeCount <= 1 {
             continue
           }
           

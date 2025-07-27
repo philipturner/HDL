@@ -53,31 +53,35 @@ extension OctreeSorter {
       levelSize: Float
     ) {
       // Use the scratch pad.
-      var childSizes: SIMD8<UInt32> = .zero
-      for inPlaceOffset in 0..<atomCount {
-        let atomID = inPlaceBuffer[Int(inPlaceOffset)]
-        func createAtomOffset() -> SIMD3<Float> {
-          let atom = atoms[Int(atomID)]
-          let position = unsafeBitCast(atom, to: SIMD3<Float>.self)
-          return position - self.origin
+      func createChildSizes() -> SIMD8<UInt32> {
+        var childSizes: SIMD8<UInt32> = .zero
+        for inPlaceOffset in 0..<atomCount {
+          let atomID = inPlaceBuffer[Int(inPlaceOffset)]
+          func createAtomOffset() -> SIMD3<Float> {
+            let atom = atoms[Int(atomID)]
+            let position = unsafeBitCast(atom, to: SIMD3<Float>.self)
+            return position - self.origin
+          }
+          
+          var index = SIMD3<UInt32>(repeating: 1)
+          index.replace(
+            with: SIMD3.zero,
+            where: createAtomOffset() .< levelOrigin)
+          
+          let childID = (index &<< SIMD3(0, 1, 2)).wrappedSum()
+          let previousSize = childSizes[Int(childID)]
+          childSizes[Int(childID)] = previousSize + 1
+          
+          let scratchPadSlot = childID * atomCount + previousSize
+          scratchPad[Int(scratchPadSlot)] = atomID
         }
-        
-        var index = SIMD3<UInt32>(repeating: 1)
-        index.replace(
-          with: SIMD3.zero,
-          where: createAtomOffset() .< levelOrigin)
-        
-        let childID = (index &<< SIMD3(0, 1, 2)).wrappedSum()
-        let previousSize = childSizes[Int(childID)]
-        childSizes[Int(childID)] = previousSize + 1
-        
-        let scratchPadSlot = childID * atomCount + previousSize
-        scratchPad[Int(scratchPadSlot)] = atomID
+        return childSizes
       }
+      let childSizes = createChildSizes()
       
       // Transfer the scratch pad to the input buffer.
-      var childOffsets: SIMD8<UInt32> = .zero
-      do {
+      func createChildOffsets() -> SIMD8<UInt32> {
+        var childOffsets: SIMD8<UInt32> = .zero
         var childOffset: UInt32 = .zero
         for childID in 0..<8 {
           let childSize = childSizes[Int(childID)]
@@ -93,7 +97,9 @@ extension OctreeSorter {
           childOffsets[Int(childID)] = childOffset
           childOffset += childSize
         }
+        return childOffsets
       }
+      let childOffsets = createChildOffsets()
       if (levelSize / 2) <= Float(1.0 / 32) {
         return
       }
@@ -123,10 +129,10 @@ extension OctreeSorter {
       }
       
       // Fast-path for smaller cells at the bottom of the tree.
-//      if levelSize <= 1 {
-//        fastPath()
-//        return
-//      }
+      if levelSize <= 1 {
+        fastPath()
+        return
+      }
       
       /*
        1 loop:
@@ -256,17 +262,19 @@ extension OctreeSorter {
         return output
       }
       let childLatencies = createChildLatencies()
-      
       let workSplitting = WorkSplitting(childLatencies: childLatencies)
       
       // Fast-path to avoid overhead of dispatch queue.
-//      if workSplitting.taskCount == 1 {
-//        fastPath()
-//        return
-//      }
+      if workSplitting.taskCount == 1 {
+        fastPath()
+        return
+      }
       
       // Invoke the traversal function recursively.
       for taskID in 0..<workSplitting.taskCount {
+//      DispatchQueue.concurrentPerform(
+//        iterations: workSplitting.taskCount
+//      ) { taskID in
         let size = workSplitting.taskSizes[taskID]
         let children = unsafeBitCast(
           workSplitting.taskChildren[taskID], to: SIMD8<UInt8>.self)
@@ -314,5 +322,3 @@ extension OctreeSorter {
     return inPlaceBuffer
   }
 }
-
-

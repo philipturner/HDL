@@ -249,20 +249,20 @@ final class SortTests: XCTestCase {
   // Tasks:
   // - Add profiler metrics to the main test ('testWorkSplittingMain')
   func testWorkSplittingMain() throws {
-    var testCase = TestCase()
-    testCase.taskCount = 2
-    testCase.childCount = 3
+    var testInput = TestInput()
+    testInput.taskCount = 2
+    testInput.childCount = 3
     
     // Set the child latencies to random values.
-    for childID in 0..<testCase.childCount {
+    for childID in 0..<testInput.childCount {
       var latency = Float.random(in: 1...1000)
       latency.round(.toNearestOrEven)
-      testCase.childLatencies[childID] = latency
+      testInput.childLatencies[childID] = latency
     }
     
     // Generate assignments from the two algorithm variants.
-    _ = runFullTest(testCase: testCase)
-    _ = runRestrictedTest(testCase: testCase)
+    _ = runFullTest(testInput: testInput)
+    _ = runRestrictedTest(testInput: testInput)
   }
   
   func testWorkSplittingUnit() throws {
@@ -468,7 +468,7 @@ final class SortTests: XCTestCase {
 
 // MARK: - Utilities
 
-struct TestCase {
+struct TestInput {
   var taskCount: Int = .zero
   var childCount: Int = .zero
   var childLatencies: SIMD8<Float> = .zero
@@ -519,28 +519,28 @@ private struct CompleteTestCase {
       fatalError("Test was not fully specified.")
     }
     
-    var testCase = TestCase()
-    testCase.taskCount = problemSize.taskCount
-    testCase.childCount = problemSize.childCount
+    var testInput = TestInput()
+    testInput.taskCount = problemSize.taskCount
+    testInput.childCount = problemSize.childCount
     
     // Assign the child latencies.
-    guard childValues.count == testCase.childCount else {
+    guard childValues.count == testInput.childCount else {
       fatalError("Incorrect number of child values.")
     }
-    for childID in 0..<testCase.childCount {
+    for childID in 0..<testInput.childCount {
       let latency = childValues[childID]
-      testCase.childLatencies[childID] = latency
+      testInput.childLatencies[childID] = latency
     }
     
     // Generate assignments from the two algorithm variants.
-    let assignmentFull = runFullTest(testCase: testCase)
-    let assignmentRestricted = runRestrictedTest(testCase: testCase)
+    let assignmentFull = runFullTest(testInput: testInput)
+    let assignmentRestricted = runRestrictedTest(testInput: testInput)
     
     // Check that restricted algorithms fills each task with ≥1 child.
     func validate(assignment: SIMD8<UInt8>) {
-      let taskLatencies = testCase.taskLatencies(
+      let taskLatencies = testInput.taskLatencies(
         assignments: assignment)
-      for taskID in 0..<testCase.taskCount {
+      for taskID in 0..<testInput.taskCount {
         let latency = taskLatencies[taskID]
         guard latency > 0 else {
           fatalError("Unassigned task.")
@@ -551,7 +551,7 @@ private struct CompleteTestCase {
     
     // Check the exact value of the outputs.
     func latency(assignment: SIMD8<UInt8>) -> Float {
-      let taskLatencies = testCase.taskLatencies(
+      let taskLatencies = testInput.taskLatencies(
         assignments: assignment)
       return taskLatencies.max()
     }
@@ -567,17 +567,17 @@ private struct CompleteTestCase {
 // MARK: - Algorithm Variants
 
 private func runFullTest(
-  testCase: TestCase
+  testInput: TestInput
 ) -> SIMD8<UInt8> {
   var bestAssignment: SIMD8<UInt8>?
   var bestAssignmentLatency: Float = .greatestFiniteMagnitude
   
   // Iterate over all combinations.
   var counter: SIMD8<UInt8> = .zero
-  let combinationCount = testCase.combinationCount(
-    childCount: testCase.childCount)
+  let combinationCount = testInput.combinationCount(
+    childCount: testInput.childCount)
   for combinationID in 0..<combinationCount {
-    let taskLatencies = testCase.taskLatencies(assignments: counter)
+    let taskLatencies = testInput.taskLatencies(assignments: counter)
     let maxTaskLatency = taskLatencies.max()
     if maxTaskLatency < bestAssignmentLatency {
       bestAssignment = counter
@@ -586,7 +586,7 @@ private func runFullTest(
     
     for laneID in 0..<8 {
       counter[laneID] += 1
-      if counter[laneID] >= testCase.taskCount {
+      if counter[laneID] >= testInput.taskCount {
         counter[laneID] = 0
       } else {
         break
@@ -604,26 +604,26 @@ private struct PreparationStage {
   var sortedChildPairs: [SIMD2<Float>]
   var fixedChildAssignments: SIMD8<UInt8>
   
-  init(testCase: TestCase) {
-    sortedChildPairs = Self.createChildPairs(testCase: testCase)
+  init(testInput: TestInput) {
+    sortedChildPairs = Self.createChildPairs(testInput: testInput)
     sortedChildPairs.sort {
       $0[1] < $1[1]
     }
     
     fixedChildAssignments = Self.createFixedAssignments(
-      testCase: testCase,
+      testInput: testInput,
       pairs: sortedChildPairs)
     
-    let fixedChildCount = Self.createFixedChildCount(testCase: testCase)
+    let fixedChildCount = Self.createFixedChildCount(testInput: testInput)
     sortedChildPairs.removeLast(fixedChildCount)
   }
   
   static func createChildPairs(
-    testCase: TestCase
+    testInput: TestInput
   ) -> [SIMD2<Float>] {
     var output: [SIMD2<Float>] = []
-    for childID in 0..<testCase.childCount {
-      let latency = testCase.childLatencies[childID]
+    for childID in 0..<testInput.childCount {
+      let latency = testInput.childLatencies[childID]
       let pair = SIMD2(
         Float(childID),
         latency)
@@ -633,56 +633,56 @@ private struct PreparationStage {
   }
   
   static func createFixedAssignments(
-    testCase: TestCase,
+    testInput: TestInput,
     pairs: [SIMD2<Float>]
   ) -> SIMD8<UInt8> {
     var output = SIMD8<UInt8>(repeating: .max)
-    guard testCase.childCount > testCase.taskCount else {
+    guard testInput.childCount > testInput.taskCount else {
       fatalError("Invalid conditions for the restricted algorithm.")
     }
     
     // Assign the highest-index children to the lowest-index tasks.
-    for taskID in 0..<testCase.taskCount {
-      let sortedChildID = testCase.childCount - 1 - taskID
+    for taskID in 0..<testInput.taskCount {
+      let sortedChildID = testInput.childCount - 1 - taskID
       let pair = pairs[sortedChildID]
       let childID = Int(pair[0])
       output[childID] = UInt8(taskID)
     }
     
     // Assign the largest of the remaining children to the highest-index task.
-    let remainingChildCount = testCase.childCount - testCase.taskCount
-    if testCase.nativeCombinationCount < 20 {
+    let remainingChildCount = testInput.childCount - testInput.taskCount
+    if testInput.nativeCombinationCount < 20 {
       let pair = pairs[remainingChildCount - 1]
       let childID = Int(pair[0])
-      let taskID = testCase.taskCount - 1
+      let taskID = testInput.taskCount - 1
       output[childID] = UInt8(taskID)
     } else {
       let pair0 = pairs[remainingChildCount - 2]
       let pair1 = pairs[remainingChildCount - 1]
       let childID0 = Int(pair0[0])
       let childID1 = Int(pair1[0])
-      output[childID0] = UInt8(testCase.taskCount - 2)
-      output[childID1] = UInt8(testCase.taskCount - 1)
+      output[childID0] = UInt8(testInput.taskCount - 2)
+      output[childID1] = UInt8(testInput.taskCount - 1)
     }
     
     return output
   }
   
   static func createFixedChildCount(
-    testCase: TestCase,
+    testInput: TestInput
   ) -> Int {
-    if testCase.nativeCombinationCount < 20 {
-      return testCase.taskCount + 1
+    if testInput.nativeCombinationCount < 20 {
+      return testInput.taskCount + 1
     } else {
-      return testCase.taskCount + 2
+      return testInput.taskCount + 2
     }
   }
 }
 
 private func runRestrictedTest(
-  testCase: TestCase
+  testInput: TestInput
 ) -> SIMD8<UInt8> {
-  let preparationStage = PreparationStage(testCase: testCase)
+  let preparationStage = PreparationStage(testInput: testInput)
   
   // Declare the state variables for the best assignment.
   var bestAssignment: SIMD8<UInt8>?
@@ -690,7 +690,7 @@ private func runRestrictedTest(
   
   // Iterate over all combinations of variable children.
   var counter: SIMD8<UInt8> = .zero
-  let combinationCount = testCase.combinationCount(
+  let combinationCount = testInput.combinationCount(
     childCount: preparationStage.sortedChildPairs.count)
   for combinationID in 0..<combinationCount {
     // Merge the fixed and variable assignments.
@@ -702,7 +702,7 @@ private func runRestrictedTest(
       combinedAssignments[childID] = UInt8(taskID)
     }
     
-    let taskLatencies = testCase.taskLatencies(
+    let taskLatencies = testInput.taskLatencies(
       assignments: combinedAssignments)
     let maxTaskLatency = taskLatencies.max()
     if maxTaskLatency < bestAssignmentLatency {
@@ -712,7 +712,7 @@ private func runRestrictedTest(
     
     for laneID in 0..<8 {
       counter[laneID] += 1
-      if counter[laneID] >= testCase.taskCount {
+      if counter[laneID] >= testInput.taskCount {
         counter[laneID] = 0
       } else {
         break

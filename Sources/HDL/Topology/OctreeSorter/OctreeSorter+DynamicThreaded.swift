@@ -101,6 +101,32 @@ extension OctreeSorter {
         return
       }
       
+      // Fast-path for smaller cells at the bottom of the tree.
+      if levelSize <= 1 {
+        for childID in 0..<8 {
+          let childSize = childSizes[Int(childID)]
+          if childSize <= 1 {
+            continue
+          }
+          
+          let offset = childOffsets[Int(childID)]
+          let newBufferPointer = UnsafeMutableBufferPointer(
+            start: allocationPointer() + Int(offset),
+            count: Int(childSize))
+          
+          func createNewOrigin() -> SIMD3<Float> {
+            let intOffset = (UInt8(childID) &>> SIMD3(0, 1, 2)) & 1
+            let floatOffset = SIMD3<Float>(intOffset) * 2 - 1
+            return levelOrigin + floatOffset * levelSize / 4
+          }
+          traverse(
+            atomIDs: newBufferPointer,
+            levelOrigin: createNewOrigin(),
+            levelSize: levelSize / 2)
+        }
+        return
+      }
+      
       /*
        1 loop:
        

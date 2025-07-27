@@ -292,24 +292,33 @@ extension OctreeSorter {
         let maximumTaskCount = createMaximumTaskCount()
         output.taskCount = createTaskCount(maximum: maximumTaskCount)
         
-        if output.taskCount == 8 {
-          output.assignments = SIMD8(0, 1, 2, 3, 4, 5, 6, 7)
-        } else if output.taskCount > 1 {
-          var testInput = TestInput()
-          testInput.taskCount = output.taskCount
-          testInput.childCount = 8
-          testInput.childLatencies = childLatencies
-          output.assignments = runRestrictedTest(testInput: testInput)
+        /*
+         dataset    | octree |  grid
+         ---------- | ------ | ------
+         pre-sorted |   8159 |  10352
+         lattice    |   7803 |  10793
+         shuffled   |   9398 |  10528
+         reversed   |   8026 |  10373
+         */
+        
+        func createAssignments() -> SIMD8<UInt8> {
+          if output.taskCount == 1 {
+            return SIMD8.zero
+          } else if output.taskCount < 8 {
+            var testInput = TestInput()
+            testInput.taskCount = output.taskCount
+            testInput.childCount = 8
+            testInput.childLatencies = childLatencies
+            return runRestrictedTest(testInput: testInput)
+          } else {
+            return SIMD8(0, 1, 2, 3, 4, 5, 6, 7)
+          }
         }
+        
+        output.assignments = createAssignments()
         return output
       }
       let workSplitting = createWorkSplitting()
-      
-      // Fast-path to avoid overhead of dispatch queue.
-      if workSplitting.taskCount == 1 {
-        fastPath()
-        return
-      }
       
       // Organize the children into tasks.
       var taskSizes: SIMD8<UInt8> = .zero
@@ -324,6 +333,12 @@ extension OctreeSorter {
         children[Int(workItemOffset)] = UInt8(childID)
         taskChildren[Int(taskID)] = unsafeBitCast(
           children, to: UInt64.self)
+      }
+      
+      // Fast-path to avoid overhead of dispatch queue.
+      if workSplitting.taskCount == 1 {
+        fastPath()
+        return
       }
       
       // Invoke the traversal function recursively.

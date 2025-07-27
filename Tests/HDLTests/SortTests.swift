@@ -79,6 +79,7 @@ final class SortTests: XCTestCase {
     }
   }
   
+#if RELEASE
   func testSortPerformance() throws {
     // Revert to 10 and true after any refactorings
     let latticeScale: Float = 20
@@ -238,6 +239,7 @@ final class SortTests: XCTestCase {
     // 14     |  44688 |   6085 |   3789 |     2160 | 1.6 -> 2.8
     // 20     | 129600 |  19932 |  10811 |     6567 | 1.8 -> 3.0
   }
+#endif
   
   // This test will prototype the work splitting algorithm, ensuring it
   // executes in a reasonable amount of time.

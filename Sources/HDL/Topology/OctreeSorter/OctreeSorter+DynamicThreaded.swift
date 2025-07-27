@@ -206,30 +206,40 @@ extension OctreeSorter {
         var assignments: SIMD8<UInt8> = .zero
       }
       func createWorkSplitting() -> WorkSplitting {
-        let maximumTaskCount = createMaximumTaskCount()
-        let idealTaskCount = createTaskCount(maximum: maximumTaskCount)
-        
         var output = WorkSplitting()
-        if idealTaskCount > 1 {
-          
-          output.taskCount = 8
+        let maximumTaskCount = createMaximumTaskCount()
+        output.taskCount = createTaskCount(maximum: maximumTaskCount)
+        
+        if output.taskCount == 1 {
+          output.assignments = SIMD8.zero
+        } else if output.taskCount == 8 {
           output.assignments = SIMD8(0, 1, 2, 3, 4, 5, 6, 7)
         } else {
-          output.taskCount = 1
-          output.assignments = SIMD8.zero
+          var testInput = TestInput()
+          testInput.taskCount = output.taskCount
+          testInput.childCount = 8
+          testInput.childLatencies = childLatencies
+          
+          output.assignments = runRestrictedTest(testInput: testInput)
+          
+          let percentageExpected = 100 / output.taskCount
+          
+          let taskLatencies = testInput.taskLatencies(assignments: output.assignments)
+          let originalLatency = Int(childLatencies.sum() * 1e6)
+          let newLatency = Int(taskLatencies.max() * 1e6)
+          let ratio = taskLatencies.max() / childLatencies.sum()
+          let percentageActual = Int((ratio * 100).rounded(.toNearestOrEven))
+          
+          print(
+            levelSize,
+            atomIDs.count,
+            "parallelism=\(output.taskCount)",
+            "\(originalLatency) -> \(newLatency)",
+            "(\(percentageExpected)% vs \(percentageActual)%)")
         }
         return output
       }
       let workSplitting = createWorkSplitting()
-      
-      // Testing the impact when invoked on every call.
-      do {
-        var testInput = TestInput()
-        testInput.taskCount = 5
-        testInput.childCount = 8
-        testInput.childLatencies = childLatencies
-        _ = runRestrictedTest(testInput: testInput)
-      }
       
       // Organize the children into tasks.
       var taskSizes: SIMD8<UInt8> = .zero

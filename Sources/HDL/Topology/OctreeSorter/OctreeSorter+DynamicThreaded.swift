@@ -211,6 +211,7 @@ extension OctreeSorter {
         
         var output = WorkSplitting()
         if idealTaskCount > 1 {
+          
           output.taskCount = 8
           output.assignments = SIMD8(0, 1, 2, 3, 4, 5, 6, 7)
         } else {
@@ -220,6 +221,15 @@ extension OctreeSorter {
         return output
       }
       let workSplitting = createWorkSplitting()
+      
+      // Testing the impact when invoked on every call.
+      do {
+        var testInput = TestInput()
+        testInput.taskCount = 3
+        testInput.childCount = 8
+        testInput.childLatencies = childLatencies
+        _ = runRestrictedTest(testInput: testInput)
+      }
       
       // Organize the children into tasks.
       var taskSizes: SIMD8<UInt8> = .zero

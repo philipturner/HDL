@@ -111,13 +111,18 @@ extension OctreeSorter {
       }
       
       // Organize the children into tasks.
-//      var taskSizes: SIMD8<UInt8> = .zero
+      var taskSizes: SIMD8<UInt8> = .zero
 //      var taskChildren = [SIMD8<UInt8>](
 //        repeating: .zero,
 //        count: 1)
-//      for childID in 0..<8 {
-//        let offset = taskSizes[childID]
-//      }
+      var taskChildren: SIMD8<UInt8> = .zero
+      for childID in 0..<8 {
+        let taskID = 0
+        let offset = taskSizes[taskID]
+        taskSizes[taskID] = offset + 1
+        
+        taskChildren[Int(offset)] = UInt8(childID)
+      }
       
       // Invoke the traversal function recursively.
       for childID in 0..<8 {

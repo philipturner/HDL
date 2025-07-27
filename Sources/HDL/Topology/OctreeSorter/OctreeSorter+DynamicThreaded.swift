@@ -198,8 +198,13 @@ extension OctreeSorter {
         let actualTaskCount = (idealTaskCount > 1) ? 8 : 1
         
         var output = WorkSplitting()
-        output.taskCount = 7
-        output.assignments = SIMD8(0, 1, 2, 3, 4, 5, 6, 5)
+//        if idealTaskCount > 1 {
+        output.taskCount = idealTaskCount > 1 ? 8 : 1
+        output.assignments = idealTaskCount > 1 ? SIMD8(0, 1, 2, 3, 4, 5, 6, 7) : SIMD8.zero
+//        } else {
+//          output.taskCount = 1
+//          output.assignments = SIMD8(0, 0, 0, 0, 0, 0, 0, 0)
+//        }
         return output
       }
       let workSplitting = createWorkSplitting()

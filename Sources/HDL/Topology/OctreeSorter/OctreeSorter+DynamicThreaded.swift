@@ -34,7 +34,6 @@ import Dispatch
 //   8 children.
 // - Reorder, treating all children as nonzero. Although this is sub-optimal,
 //   it simplifies the implementation for now.
-// - Rearrange the recursive part into two nested loops.
 
 extension OctreeSorter {
   // Algorithm that adaptively uses multi-threading, when a subset of the

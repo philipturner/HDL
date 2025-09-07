@@ -226,9 +226,9 @@ extension OctreeSorter {
        */
       
       func createRemainingLevels() -> Int {
-        let exponentFor4 = Float(4).exponentBitPattern
-        let exponentForLevel = levelSize.exponentBitPattern
-        return Int(exponentForLevel - exponentFor4) + 7
+        let exponentFor4 = Int(Float(4).exponentBitPattern)
+        let exponentForLevel = Int(levelSize.exponentBitPattern)
+        return (exponentForLevel - exponentFor4) + 7
       }
       func createChildLatencies() -> SIMD8<Float> {
         // 5.0 ns/atom/level

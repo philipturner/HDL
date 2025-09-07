@@ -1,5 +1,5 @@
 //
-//  OctreeSorter+MultiThreaded.swift
+//  OctreeSorter+OldMultiThreaded.swift
 //  HDL
 //
 //  Created by Philip Turner on 7/14/25.
@@ -13,7 +13,7 @@ import QuartzCore
 
 extension OctreeSorter {
   // Multi-threaded algorithm.
-  func mortonReordering(grid: Grid) -> [UInt32] {
+  func oldMortonReordering(grid: OldGrid) -> [UInt32] {
 //    let start = CACurrentMediaTime()
     nonisolated(unsafe)
     var globalOutput = [UInt32](unsafeUninitializedCapacity: atoms.count) {
@@ -21,7 +21,7 @@ extension OctreeSorter {
     }
     
     @Sendable
-    func execute(cell: Cell) {
+    func execute(cell: OldCell) {
       var localOutput: [UInt32] = []
       
       // Create the scratch pad.

@@ -1,5 +1,5 @@
 //
-//  OctreeSorter+Grid.swift
+//  OctreeSorter+OldGrid.swift
 //  HDL
 //
 //  Created by Philip Turner on 7/14/25.
@@ -8,19 +8,19 @@
 import QuartzCore
 
 extension OctreeSorter {
-  struct Cell {
+  struct OldCell {
     var range: Range<Int>
     var origin: SIMD3<Float>
   }
   
-  struct Grid {
+  struct OldGrid {
     var data: [UInt32] = []
-    var cells: [Cell] = []
+    var cells: [OldCell] = []
   }
   
-  func createGrid() -> Grid {
+  func oldCreateGrid() -> OldGrid {
 //    let start = CACurrentMediaTime()
-    var grid = Grid()
+    var grid = OldGrid()
     
     // Create the scratch pad.
     let scratchPad: UnsafeMutablePointer<UInt32> =
@@ -38,7 +38,7 @@ extension OctreeSorter {
         grid.data += atomIDs
         let rangeEnd = grid.data.count
         
-        let cell = Cell(
+        let cell = OldCell(
           range: rangeStart..<rangeEnd,
           origin: levelOrigin)
         grid.cells.append(cell)

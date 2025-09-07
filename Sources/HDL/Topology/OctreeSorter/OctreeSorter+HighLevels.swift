@@ -19,8 +19,12 @@ extension OctreeSorter {
   
   // Pseudocode of traversal algorithm:
   //
-  // each parent thread gets allocated n * 8 child threads, where n is the cell
-  // count in the parent thread
+  // Each parent thread gets allocated n * 8 child threads, where n is the cell
+  // count in the parent thread. Each possible child up to 8 cells allocated.
   //
+  // Each parent thread gets allocated a destination region of n * 8 cells,
+  // where n is the cell count in the parent thread.
   //
+  // All space is allocated upfront in a large array, and written to in a
+  // thread-safe array. The Swift 'Array' data type is never used.
 }

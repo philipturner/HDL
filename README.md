@@ -2,6 +2,7 @@
 
 Remaining goals for this PR:
 - Fully optimize `topology.sort`. Clean up the code after migrating to the new algorithm.
+  - Fully inspect the performance of all known algorithm variants on the sparse geometries.
 - Start a second round of maintanance on `Reconstruction`, measuring and optimizing performance. Use the physical geometries developed to test Sort.
 - Understand and justify/delete the commented out code in `CubicGrid`. Clean up the concurrency warnings.
 - Make sure the library works correctly and efficiently on Windows.

@@ -6,14 +6,24 @@
 //
 
 import Dispatch
+import QuartzCore
 
 extension Topology {
   @discardableResult
   public mutating func sort() -> [UInt32] {
     let sorter = OctreeSorter(atoms: atoms)
-    let state = sorter.traverseHighLevels()
-    let reordering = sorter.traverseLowLevels(state: state)
-//    let reordering = sorter.mortonReorderingDynamic()
+    
+//    let state = sorter.traverseHighLevels()
+//    let reordering = sorter.traverseLowLevels(state: state)
+    
+    let start = CACurrentMediaTime()
+    let reordering = sorter.mortonReorderingDynamic()
+    let end = CACurrentMediaTime()
+    debugProfile(start, end, "dynamic")
+    
+//    let grid = sorter.oldCreateGrid()
+//    let reordering = sorter.oldMortonReordering(grid: grid)
+    
     let previousAtoms = atoms
     
     for i in reordering.indices {

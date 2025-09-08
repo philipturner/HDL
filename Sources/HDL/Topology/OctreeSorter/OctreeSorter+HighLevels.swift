@@ -310,6 +310,11 @@ extension OctreeSorter {
         let childNodeID = children[Int(workItemID)]
         let childNodeSize = Int(childNodeSizes[Int(childNodeID)])
         let inPlaceOffset = Int(childNodeOffsets[Int(childNodeID)])
+        if childNodeSize == 0 {
+          // We ultimately just put 8 children into the work splitting
+          // algorithm, agnostic of their atom count.
+          continue
+        }
         
         func createNewOrigin() -> SIMD3<Float> {
           let intOffset = (UInt8(childNodeID) &>> SIMD3(0, 1, 2)) & 1
@@ -321,6 +326,14 @@ extension OctreeSorter {
         childCell.range = inPlaceOffset..<(inPlaceOffset + childNodeSize)
         childCell.origin = createNewOrigin()
         cells.append(childCell)
+      }
+      
+      guard cells.count > 0 else {
+        // This fatal error will likely be triggered at some point, but I'd
+        // rather check that it's possible before putting in a false
+        // protection measure against the fault.
+        fatalError(
+          "Unexpected behavior: work splitting created a zero-sized task.")
       }
       
       let thread = Thread(cells: cells)

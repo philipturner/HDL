@@ -37,4 +37,14 @@ extension OctreeSorter {
   // the array has count one, it doesn't fork off the parent thread. The
   // overhead of array creation is relatively negligible at the high levels,
   // but vastly simplifies the implementation.
+  //
+  // The in-place atom buffer survives across passes / levels. It is
+  // overwritten in-place by several threads, concurrently. While individual
+  // threads may not access it contiguously, the memory operations should
+  // theoretically be atomic / safe.
+  //
+  // A single task on the dispatch queue will be multiple function calls into
+  // the tree traversal function. However, on first glance, the structure of
+  // the calling loop might make it possible to fully inline. Don't worry
+  // about ensuring it's fully inlined, as the overhead at high levels is low.
 }

@@ -136,8 +136,12 @@ extension OctreeSorter {
       // (scan-compact'd) outputs of a pass.
       nonisolated(unsafe)
       var threads: [Thread] = [createFirstThread()]
-      
-      
+      var levelSize = highestLevelSize
+      while levelSize > 1 {
+        
+        
+        levelSize /= 2
+      }
     }
     
     fatalError("Not implemented.")

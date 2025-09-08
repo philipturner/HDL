@@ -91,7 +91,7 @@ extension OctreeSorter {
   }
   
   struct Thread {
-    var cells: [Cell]
+    var cells: [Cell] = []
   }
   
   struct WorkDistribution {
@@ -103,94 +103,91 @@ extension OctreeSorter {
     // Could wrap this in a 'class' for automatic memory management, while
     // still having decent internal APIs. Perhaps wrap the output of the
     // function for low levels.
-    var inPlaceBuffer: UnsafeMutablePointer<UInt32>
-    var threads: [Thread]
+    var inPlaceBuffer: [UInt32] = []
+    var threads: [Thread] = []
   }
   
   func mortonReorderingHighLevels() -> WorkDistribution {
-    nonisolated(unsafe)
-    let inPlaceBuffer: UnsafeMutablePointer<UInt32> =
-      .allocate(capacity: atoms.count)
     nonisolated(unsafe)
     let scratchBuffer: UnsafeMutablePointer<UInt32> =
       .allocate(capacity: 8 * atoms.count)
     defer { scratchBuffer.deallocate() }
     
-    // Initialize the list of atom IDs.
-    for i in 0..<atoms.count {
-      inPlaceBuffer[i] = UInt32(i)
-    }
-    
     nonisolated(unsafe)
     var threads: [Thread] = [createFirstThread()]
+    
     nonisolated(unsafe)
-    var levelSize = highestLevelSize
-    while levelSize > 1 {
-      // Perform a prefix sum, to allocate memory for outputs.
-      let threadCellOffsets = Self.cellOffsets(threads: threads)
-      let inputCellCount = threads.map(\.cells.count).reduce(0, +)
-      
-      // Thread-safe buffers for storing results.
+    var inPlaceBuffer = atoms.indices.map(UInt32.init)
+    inPlaceBuffer.withUnsafeMutableBufferPointer { inPlaceBufferPointer in
       nonisolated(unsafe)
-      var results = LevelResults(
-        threadCount: threads.count,
-        inputCellCount: inputCellCount)
-      
-      DispatchQueue.concurrentPerform(
-        iterations: threads.count
-      ) { threadID in
-        let thread = threads[threadID]
-        let inputPrefixSum = Int(threadCellOffsets[threadID])
+      var levelSize = highestLevelSize
+      while levelSize > 1 {
+        // Perform a prefix sum, to allocate memory for outputs.
+        let threadCellOffsets = Self.cellOffsets(threads: threads)
+        let inputCellCount = threads.map(\.cells.count).reduce(0, +)
         
-        var parentCells: [Cell] = []
-        var children: [Thread] = []
-        for cell in thread.cells {
-          let output = Self.traverseHighLevel(
-            inPlaceBuffer: inPlaceBuffer,
-            scratchBuffer: scratchBuffer,
-            cell: cell,
-            levelSize: levelSize)
-          guard output.count > 0 else {
-            fatalError("Unexpected output cell count.")
+        // Thread-safe buffers for storing results.
+        nonisolated(unsafe)
+        var results = LevelResults(
+          threadCount: threads.count,
+          inputCellCount: inputCellCount)
+        
+        DispatchQueue.concurrentPerform(
+          iterations: threads.count
+        ) { threadID in
+          let thread = threads[threadID]
+          let inputPrefixSum = Int(threadCellOffsets[threadID])
+          
+          var parentCells: [Cell] = []
+          var children: [Thread] = []
+          for cell in thread.cells {
+            let output = Self.traverseHighLevel(
+              inPlaceBuffer: inPlaceBufferPointer.baseAddress!,
+              scratchBuffer: scratchBuffer,
+              cell: cell,
+              levelSize: levelSize)
+            guard output.count > 0 else {
+              fatalError("Unexpected output cell count.")
+            }
+            
+            if output.count == 1 {
+              parentCells += output[0].cells
+            } else {
+              children += output
+            }
           }
           
-          if output.count == 1 {
-            parentCells += output[0].cells
-          } else {
-            children += output
+          // Write the parent cells into the results.
+          results.outputCellsPerParent[threadID] = UInt32(parentCells.count)
+          for cellID in parentCells.indices {
+            let cell = parentCells[cellID]
+            let cellOffset = inputPrefixSum * 8 + cellID
+            results.outputParentCells[cellOffset] = cell
           }
-        }
-        
-        // Write the parent cells into the results.
-        results.outputCellsPerParent[threadID] = UInt32(parentCells.count)
-        for cellID in parentCells.indices {
-          let cell = parentCells[cellID]
-          let cellOffset = inputPrefixSum * 8 + cellID
-          results.outputParentCells[cellOffset] = cell
-        }
-        
-        // Write the children into the results.
-        results.childrenPerParent[threadID] = UInt32(children.count)
-        var childPrefixSum: Int = .zero
-        for childID in children.indices {
-          let child = children[childID]
-          let childOffset = inputPrefixSum * 8 + childID
-          let cellCount = child.cells.count
-          results.outputCellsPerChild[childOffset] = UInt32(cellCount)
           
-          for cellID in child.cells.indices {
-            let cell = child.cells[cellID]
-            let cellOffset = inputPrefixSum * 8 + childPrefixSum + cellID
-            results.outputChildCells[cellOffset] = cell
+          // Write the children into the results.
+          results.childrenPerParent[threadID] = UInt32(children.count)
+          var childPrefixSum: Int = .zero
+          for childID in children.indices {
+            let child = children[childID]
+            let childOffset = inputPrefixSum * 8 + childID
+            let cellCount = child.cells.count
+            results.outputCellsPerChild[childOffset] = UInt32(cellCount)
+            
+            for cellID in child.cells.indices {
+              let cell = child.cells[cellID]
+              let cellOffset = inputPrefixSum * 8 + childPrefixSum + cellID
+              results.outputChildCells[cellOffset] = cell
+            }
+            childPrefixSum += cellCount
           }
-          childPrefixSum += cellCount
         }
+        
+        // Reconstruct 'parentCells' and 'children', scan-compact the list.
+        threads = results.nextLevel(
+          threadCellOffsets: threadCellOffsets)
+        levelSize /= 2
       }
-      
-      // Reconstruct 'parentCells' and 'children', scan-compact the list.
-      threads = results.nextLevel(
-        threadCellOffsets: threadCellOffsets)
-      levelSize /= 2
     }
     
     fatalError("Not implemented.")

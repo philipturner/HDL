@@ -95,6 +95,10 @@ extension OctreeSorter {
   }
   
   struct WorkDistribution {
+    // WARNING: Receiving function must explicitly deallocate this buffer,
+    // otherwise there will be a memory leak. It appears that in all use cases,
+    // we can theoretically get by without ever spawning a separate Array.
+    // Keep this in mind and eventually implement this optimization.
     var inPlaceBuffer: UnsafeMutablePointer<UInt32>
     var threads: [Thread]
   }

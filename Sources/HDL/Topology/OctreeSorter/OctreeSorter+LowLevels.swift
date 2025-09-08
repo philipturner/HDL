@@ -10,6 +10,26 @@
 // to 0.5 nm iterations, if a 1 nm cell has just 1 atom.
 
 extension OctreeSorter {
+  func traverseLowLevels(
+    state: TraversalState
+  ) -> [UInt32] {
+    nonisolated(unsafe)
+    let inPlaceBuffer: UnsafeMutablePointer<UInt32> =
+      .allocate(capacity: atoms.count)
+    nonisolated(unsafe)
+    let scratchBuffer: UnsafeMutablePointer<UInt32> =
+      .allocate(capacity: 8 * atoms.count)
+    defer { scratchBuffer.deallocate() }
+    
+    // Initialize the list of atom IDs.
+    for i in 0..<atoms.count {
+      let atomID = state.atomIDs[i]
+      inPlaceBuffer[i] = atomID
+    }
+    
+    fatalError("Not implemented.")
+  }
+  
   @Sendable
   private func traverseLowLevel(
     inPlaceBuffer: UnsafeMutablePointer<UInt32>,

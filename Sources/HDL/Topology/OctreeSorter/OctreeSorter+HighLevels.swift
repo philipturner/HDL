@@ -27,7 +27,7 @@ extension OctreeSorter {
     var threads: [Thread] = []
   }
   
-  func mortonReorderingHighLevels() -> TraversalState {
+  func traverseHighLevels() -> TraversalState {
     nonisolated(unsafe)
     let inPlaceBuffer: UnsafeMutablePointer<UInt32> =
       .allocate(capacity: atoms.count)

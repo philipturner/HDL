@@ -47,4 +47,12 @@ extension OctreeSorter {
   // the tree traversal function. However, on first glance, the structure of
   // the calling loop might make it possible to fully inline. Don't worry
   // about ensuring it's fully inlined, as the overhead at high levels is low.
+  
+  // Instead of passing an offset'd pointer into each child function call, as
+  // with previous algorithms (and likely the lower levels), we retain a
+  // reference to the global base address. Instead, we identify the location
+  // by a range. This range can recalculate the atom count too, simplifying the
+  // amount of data passed between functions.
+  //
+  // 'Cell' owns the range.
 }

@@ -150,6 +150,10 @@ extension OctreeSorter {
         var outputChildCells = [Cell](
           repeating: Cell(), count: 8 * inputCellCount)
         
+        // TODO: Perform an octree iteration and write results into buffers.
+        
+        // Scan-compact the results.
+        
         levelSize /= 2
       }
     }

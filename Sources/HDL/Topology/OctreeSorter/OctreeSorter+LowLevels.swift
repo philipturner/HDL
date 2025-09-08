@@ -32,11 +32,25 @@ extension OctreeSorter {
     ) { threadID in
       let thread = state.threads[threadID]
       for cell in thread.cells {
-        
+        traverseLowLevel(
+          inPlaceBuffer: inPlaceBuffer,
+          scratchBuffer: scratchBuffer,
+          cellRange: cell.range,
+          cellOrigin: cell.origin,
+          levelSize: state.levelSize)
       }
     }
     
-    fatalError("Not implemented.")
+    // Migrate the pointer's contents to an array, then deallocate.
+    let atomIDs = [UInt32](unsafeUninitializedCapacity: atoms.count) {
+      let baseAddress = $0.baseAddress!
+      baseAddress.initialize(
+        from: inPlaceBuffer, count: atoms.count)
+      $1 = atoms.count
+    }
+    inPlaceBuffer.deallocate()
+    
+    return atomIDs
   }
   
   @Sendable

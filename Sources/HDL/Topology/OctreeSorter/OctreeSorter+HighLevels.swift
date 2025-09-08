@@ -122,11 +122,9 @@ extension OctreeSorter {
     }
     
     do {
-      // Fill this with the threads at the start of a pass, and the cleaned-up
-      // (scan-compact'd) outputs of a pass.
       nonisolated(unsafe)
       var threads: [Thread] = [createFirstThread()]
-      
+      nonisolated(unsafe)
       var levelSize = highestLevelSize
       while levelSize > 1 {
         // Perform a prefix sum, to allocate memory for outputs.
@@ -135,14 +133,33 @@ extension OctreeSorter {
         
         // Thread-safe buffers for storing results.
         var results = LevelResults(inputCellCount: inputCellCount)
-        
-        // TODO: Perform an octree iteration and write results into buffers.
+        DispatchQueue.concurrentPerform(
+          iterations: threads.count
+        ) { threadID in
+          let thread = threads[threadID]
+          let cellOffset = threadCellOffsets[threadID]
+          
+          var parentCells: [Cell] = []
+          var children: [Thread] = []
+          for cell in thread.cells {
+            let output = traverse(cell: cell, levelSize: levelSize)
+            
+          }
+        }
         
         // Scan-compact the results.
         // Abstract this away into a helper function.
         
         levelSize /= 2
       }
+    }
+    
+    @Sendable
+    func traverse(
+      cell: Cell,
+      levelSize: Float
+    ) -> [Thread] {
+      fatalError("Not implemented.")
     }
     
     fatalError("Not implemented.")

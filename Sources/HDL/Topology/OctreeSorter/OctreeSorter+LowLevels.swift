@@ -5,9 +5,7 @@
 //  Created by Philip Turner on 9/8/25.
 //
 
-// Reminder: If a cell has just 1 atom at any point, leave the function
-// immediately. It should not have too much overhead to defer this choice
-// to 0.5 nm iterations, if a 1 nm cell has just 1 atom.
+import Dispatch
 
 extension OctreeSorter {
   func traverseLowLevels(
@@ -25,6 +23,17 @@ extension OctreeSorter {
     for i in 0..<atoms.count {
       let atomID = state.atomIDs[i]
       inPlaceBuffer[i] = atomID
+    }
+    
+    // Iterate over the threads (via concurrent dispatch).
+    // Iterate over the cells within the threads.
+    DispatchQueue.concurrentPerform(
+      iterations: state.threads.count
+    ) { threadID in
+      let thread = state.threads[threadID]
+      for cell in thread.cells {
+        
+      }
     }
     
     fatalError("Not implemented.")

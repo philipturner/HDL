@@ -268,8 +268,13 @@ extension OctreeSorter {
           var childCells: [Cell] = []
           for cellID in 0..<cellCount {
             let cellOffset = inputPrefixSum * 8 + childPrefixSum + cellID
+            let cell = outputChildCells[cellOffset]
+            childCells.append(cell)
           }
           childPrefixSum += cellCount
+          
+          let child = Thread(cells: childCells)
+          children.append(child)
         }
         
         // Compact the vacant list entries.

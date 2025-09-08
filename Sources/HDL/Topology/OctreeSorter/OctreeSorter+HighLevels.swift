@@ -32,4 +32,9 @@ extension OctreeSorter {
   // must be deleted. In the low levels, the source thread doesn't perish
   // because we just directly recurse all remaining levels of the octree in
   // order.
+  //
+  // A function takes a single cell in, and returns an array of threads. If
+  // the array has count one, it doesn't fork off the parent thread. The
+  // overhead of array creation is relatively negligible at the high levels,
+  // but vastly simplifies the implementation.
 }

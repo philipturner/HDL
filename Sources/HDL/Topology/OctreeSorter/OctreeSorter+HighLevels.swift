@@ -27,4 +27,9 @@ extension OctreeSorter {
   //
   // All space is allocated upfront in a large array, and written to in a
   // thread-safe manner. The Swift 'Array' data type is never used.
+  
+  // After a pass in the high levels, the source thread and source cell objects
+  // must be deleted. In the low levels, the source thread doesn't perish
+  // because we just directly recurse all remaining levels of the octree in
+  // order.
 }

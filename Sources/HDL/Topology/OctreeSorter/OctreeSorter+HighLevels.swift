@@ -132,12 +132,16 @@ extension OctreeSorter {
         let inputCellCount = threads.map(\.cells.count).reduce(0, +)
         
         // Thread-safe buffers for storing results.
-        var results = LevelResults(inputCellCount: inputCellCount)
+        nonisolated(unsafe)
+        var results = LevelResults(
+          threadCount: threads.count,
+          inputCellCount: inputCellCount)
+        
         DispatchQueue.concurrentPerform(
           iterations: threads.count
         ) { threadID in
           let thread = threads[threadID]
-          let cellOffset = threadCellOffsets[threadID]
+          let prefixSumOffset = threadCellOffsets[threadID]
           
           var parentCells: [Cell] = []
           var children: [Thread] = []
@@ -154,11 +158,17 @@ extension OctreeSorter {
             }
           }
           
-          // TODO: Write the parent cells and children into the results.
+          // Write the parent cells into the results.
+          results.outputCellsPerParent[threadID] = UInt32(parentCells.count)
+          for cellID in parentCells.indices {
+            let cell = parentCells[cellID]
+            let cellID = prefixSumOffset * 8 + UInt32(cellID)
+            
+          }
         }
         
-        // Scan-compact the results.
-        // Abstract this away into a helper function.
+        // Reconstruct 'parentCells' and 'children', scan-compact the list.
+        // TODO
         
         levelSize /= 2
       }
@@ -204,11 +214,14 @@ extension OctreeSorter {
     var outputParentCells: [Cell]
     var outputChildCells: [Cell]
     
-    init(inputCellCount: Int) {
+    init(
+      threadCount: Int,
+      inputCellCount: Int
+    ) {
       outputCellsPerParent = [UInt32](
-        repeating: 0, count: inputCellCount)
+        repeating: 0, count: threadCount)
       childrenPerParent = [UInt32](
-        repeating: 0, count: inputCellCount)
+        repeating: 0, count: threadCount)
       outputCellsPerChild = [UInt32](
         repeating: 0, count: 8 * inputCellCount)
       outputParentCells = [Cell](

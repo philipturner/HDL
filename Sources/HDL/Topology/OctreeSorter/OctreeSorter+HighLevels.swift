@@ -283,6 +283,23 @@ extension OctreeSorter {
       return childNodeOffsets
     }
     
+    func createRemainingLevels() -> Int {
+      let exponentFor4 = Int(Float(4).exponentBitPattern)
+      let exponentForLevel = Int(levelSize.exponentBitPattern)
+      return (exponentForLevel - exponentFor4) + 7
+    }
+    func createChildLatencies() -> SIMD8<Float> {
+      // 5.0 ns/atom/level
+      var output = SIMD8<Float>(childNodeSizes)
+      output *= Float(5.0e-9)
+      output *= Float(createRemainingLevels())
+      return output
+    }
+    let childLatencies = createChildLatencies()
+    let workSplitting = WorkSplitting(childLatencies: childLatencies)
+    
+    
+    
     fatalError("Not implemented.")
   }
 }

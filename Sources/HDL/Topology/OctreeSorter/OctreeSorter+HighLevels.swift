@@ -126,33 +126,20 @@ extension OctreeSorter {
       // (scan-compact'd) outputs of a pass.
       nonisolated(unsafe)
       var threads: [Thread] = [createFirstThread()]
+      
       var levelSize = highestLevelSize
       while levelSize > 1 {
         // Perform a prefix sum, to allocate memory for outputs.
-        nonisolated(unsafe)
-        var threadCellOffsets = Self.cellOffsets(threads: threads)
+        let threadCellOffsets = Self.cellOffsets(threads: threads)
         let inputCellCount = threads.map(\.cells.count).reduce(0, +)
         
         // Thread-safe buffers for storing results.
-        nonisolated(unsafe)
-        var outputCellsPerThread = [UInt32](
-          repeating: 0, count: inputCellCount)
-        nonisolated(unsafe)
-        var childrenPerThread = [UInt32](
-          repeating: 0, count: inputCellCount)
-        nonisolated(unsafe)
-        var outputCellsPerChild = [UInt32](
-          repeating: 0, count: 8 * inputCellCount)
-        nonisolated(unsafe)
-        var outputParentCells = [Cell](
-          repeating: Cell(), count: 8 * inputCellCount)
-        nonisolated(unsafe)
-        var outputChildCells = [Cell](
-          repeating: Cell(), count: 8 * inputCellCount)
+        var results = LevelResults(inputCellCount: inputCellCount)
         
         // TODO: Perform an octree iteration and write results into buffers.
         
         // Scan-compact the results.
+        // Abstract this away into a helper function.
         
         levelSize /= 2
       }
@@ -160,7 +147,9 @@ extension OctreeSorter {
     
     fatalError("Not implemented.")
   }
-  
+}
+
+extension OctreeSorter {
   private func createFirstThread() -> Thread {
     var cell = Cell()
     cell.range = atoms.indices
@@ -179,5 +168,29 @@ extension OctreeSorter {
       counter += UInt32(thread.cells.count)
     }
     return output
+  }
+  
+  private struct LevelResults {
+    var outputCellsPerParent: [UInt32]
+    var childrenPerParent: [UInt32]
+    var outputCellsPerChild: [UInt32]
+    var outputParentCells: [Cell]
+    var outputChildCells: [Cell]
+    
+    init(inputCellCount: Int) {
+      outputCellsPerParent = [UInt32](
+        repeating: 0, count: inputCellCount)
+      childrenPerParent = [UInt32](
+        repeating: 0, count: inputCellCount)
+      outputCellsPerChild = [UInt32](
+        repeating: 0, count: 8 * inputCellCount)
+      outputParentCells = [Cell](
+        repeating: Cell(), count: 8 * inputCellCount)
+      outputChildCells = [Cell](
+        repeating: Cell(), count: 8 * inputCellCount)
+    }
+    
+    // Helper function takes the contents of this, and transforms them into a
+    // fresh array of Thread.
   }
 }

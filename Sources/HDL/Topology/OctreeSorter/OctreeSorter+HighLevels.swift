@@ -121,83 +121,74 @@ extension OctreeSorter {
       inPlaceBuffer[i] = UInt32(i)
     }
     
-    do {
+    nonisolated(unsafe)
+    var threads: [Thread] = [createFirstThread()]
+    nonisolated(unsafe)
+    var levelSize = highestLevelSize
+    while levelSize > 1 {
+      // Perform a prefix sum, to allocate memory for outputs.
+      let threadCellOffsets = Self.cellOffsets(threads: threads)
+      let inputCellCount = threads.map(\.cells.count).reduce(0, +)
+      
+      // Thread-safe buffers for storing results.
       nonisolated(unsafe)
-      var threads: [Thread] = [createFirstThread()]
-      nonisolated(unsafe)
-      var levelSize = highestLevelSize
-      while levelSize > 1 {
-        // Perform a prefix sum, to allocate memory for outputs.
-        let threadCellOffsets = Self.cellOffsets(threads: threads)
-        let inputCellCount = threads.map(\.cells.count).reduce(0, +)
+      var results = LevelResults(
+        threadCount: threads.count,
+        inputCellCount: inputCellCount)
+      
+      DispatchQueue.concurrentPerform(
+        iterations: threads.count
+      ) { threadID in
+        let thread = threads[threadID]
+        let inputPrefixSum = threadCellOffsets[threadID]
         
-        // Thread-safe buffers for storing results.
-        nonisolated(unsafe)
-        var results = LevelResults(
-          threadCount: threads.count,
-          inputCellCount: inputCellCount)
-        
-        DispatchQueue.concurrentPerform(
-          iterations: threads.count
-        ) { threadID in
-          let thread = threads[threadID]
-          let inputPrefixSum = threadCellOffsets[threadID]
-          
-          var parentCells: [Cell] = []
-          var children: [Thread] = []
-          for cell in thread.cells {
-            let output = traverse(cell: cell, levelSize: levelSize)
-            guard output.count > 0 else {
-              fatalError("Unexpected output cell count.")
-            }
-            
-            if output.count == 1 {
-              parentCells += output[0].cells
-            } else {
-              children += output
-            }
+        var parentCells: [Cell] = []
+        var children: [Thread] = []
+        for cell in thread.cells {
+          let output = Self.traverseHighLevel(
+            inPlaceBuffer: inPlaceBuffer,
+            scratchBuffer: scratchBuffer,
+            cell: cell,
+            levelSize: levelSize)
+          guard output.count > 0 else {
+            fatalError("Unexpected output cell count.")
           }
           
-          // Write the parent cells into the results.
-          results.outputCellsPerParent[threadID] = UInt32(parentCells.count)
-          for cellID in parentCells.indices {
-            let cell = parentCells[cellID]
-            let cellOffset = inputPrefixSum * 8 + cellID
-            results.outputParentCells[cellOffset] = cell
-          }
-          
-          // Write the children into the results.
-          results.childrenPerParent[threadID] = UInt32(children.count)
-          var childPrefixSum: Int = .zero
-          for childID in children.indices {
-            let child = children[childID]
-            let childOffset = inputPrefixSum * 8 + childID
-            let cellCount = child.cells.count
-            results.outputCellsPerChild[childOffset] = UInt32(cellCount)
-            
-            for cellID in child.cells.indices {
-              let cell = child.cells[cellID]
-            }
-            childPrefixSum += cellCount
+          if output.count == 1 {
+            parentCells += output[0].cells
+          } else {
+            children += output
           }
         }
         
-        // Reconstruct 'parentCells' and 'children', scan-compact the list.
-        // TODO
+        // Write the parent cells into the results.
+        results.outputCellsPerParent[threadID] = UInt32(parentCells.count)
+        for cellID in parentCells.indices {
+          let cell = parentCells[cellID]
+          let cellOffset = inputPrefixSum * 8 + cellID
+          results.outputParentCells[cellOffset] = cell
+        }
         
-        levelSize /= 2
+        // Write the children into the results.
+        results.childrenPerParent[threadID] = UInt32(children.count)
+        var childPrefixSum: Int = .zero
+        for childID in children.indices {
+          let child = children[childID]
+          let childOffset = inputPrefixSum * 8 + childID
+          let cellCount = child.cells.count
+          results.outputCellsPerChild[childOffset] = UInt32(cellCount)
+          
+          for cellID in child.cells.indices {
+            let cell = child.cells[cellID]
+          }
+          childPrefixSum += cellCount
+        }
       }
-    }
-    
-    // Make inPlaceBuffer and scratchBuffer into arguments. That improves
-    // encapulsation (allowing abstraction outside the current function body)
-    // and removes the need for a 'do' statement enclosing the main loop.
-    @Sendable
-    func traverse(
-      cell: Cell,
-      levelSize: Float
-    ) -> [Thread] {
-      fatalError("Not implemented.")
+      
+      // Reconstruct 'parentCells' and 'children', scan-compact the list.
+      // TODO
+      
+      levelSize /= 2
     }
     
     fatalError("Not implemented.")
@@ -250,5 +241,15 @@ extension OctreeSorter {
     
     // Helper function takes the contents of this, and transforms them into a
     // fresh array of Thread.
+  }
+  
+  @Sendable
+  private static func traverseHighLevel(
+    inPlaceBuffer: UnsafeMutablePointer<UInt32>,
+    scratchBuffer: UnsafeMutablePointer<UInt32>,
+    cell: Cell,
+    levelSize: Float
+  ) -> [Thread] {
+    fatalError("Not implemented.")
   }
 }

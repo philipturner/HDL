@@ -265,7 +265,7 @@ extension OctreeSorter {
       let scratchStart = UInt32(cell.range.startIndex * 8)
       let scratchStride = UInt32(cell.range.count)
       
-      var prefixSum: Int = .zero
+      var inPlaceOffset = cell.range.startIndex
       for childNodeID in 0..<UInt32(8) {
         let childNodeSize = childNodeSizes[Int(childNodeID)]
         guard childNodeSize > 0 else {
@@ -273,12 +273,12 @@ extension OctreeSorter {
         }
         
         let scratchOffset = scratchStart + childNodeID * scratchStride
-        (inPlaceBuffer + prefixSum).initialize(
+        (inPlaceBuffer + inPlaceOffset).initialize(
           from: scratchBuffer + Int(scratchOffset),
           count: Int(childNodeSize))
         
-        childNodeOffsets[Int(childNodeID)] = UInt32(prefixSum)
-        prefixSum += Int(childNodeSize)
+        childNodeOffsets[Int(childNodeID)] = UInt32(inPlaceOffset)
+        inPlaceOffset += Int(childNodeSize)
       }
       return childNodeOffsets
     }
@@ -298,7 +298,17 @@ extension OctreeSorter {
     let childLatencies = createChildLatencies()
     let workSplitting = WorkSplitting(childLatencies: childLatencies)
     
-    
+    var output: [Thread] = []
+    for taskID in 0..<workSplitting.taskCount {
+      let size = workSplitting.taskSizes[taskID]
+      let children = unsafeBitCast(
+        workSplitting.taskChildren[taskID], to: SIMD8<UInt8>.self)
+      
+      var cells: [Cell] = []
+      for cellID in 0..<size {
+        
+      }
+    }
     
     fatalError("Not implemented.")
   }

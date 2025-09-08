@@ -188,8 +188,8 @@ extension OctreeSorter {
       }
       
       // Reconstruct 'parentCells' and 'children', scan-compact the list.
-      // TODO
-      
+      threads = results.nextLevel(
+        threadCellOffsets: threadCellOffsets)
       levelSize /= 2
     }
     
@@ -278,9 +278,13 @@ extension OctreeSorter {
         }
         
         // Compact the vacant list entries.
+        if parentCells.count > 0 {
+          let parent = Thread(cells: parentCells)
+          output.append(parent)
+        }
+        output += children
       }
-      
-      fatalError("Not implemented.")
+      return output
     }
   }
   

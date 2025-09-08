@@ -100,6 +100,18 @@ extension OctreeSorter {
   }
   
   func mortonReorderingHighLevels() -> WorkDistribution {
+    nonisolated(unsafe)
+    let inPlaceBuffer: UnsafeMutablePointer<UInt32> =
+      .allocate(capacity: atoms.count)
+    nonisolated(unsafe)
+    let scratchBuffer: UnsafeMutablePointer<UInt32> =
+      .allocate(capacity: 8 * atoms.count)
+    
+    // Initialize the list of atom IDs.
+    for i in 0..<atoms.count {
+      inPlaceBuffer[i] = UInt32(i)
+    }
+    
     fatalError("Not implemented.")
   }
 }

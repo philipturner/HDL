@@ -243,8 +243,27 @@ extension OctreeSorter {
         repeating: Cell(), count: 8 * inputCellCount)
     }
     
-    // Helper function takes the contents of this, and transforms them into a
-    // fresh array of Thread.
+    func nextLevel(threadCellOffsets: [Int]) -> [Thread] {
+      var output: [Thread] = []
+      for threadID in outputCellsPerParent.indices {
+        let inputPrefixSum = threadCellOffsets[threadID]
+        
+        // Reconstruct 'parentCells'.
+        let parentCellCount = Int(outputCellsPerParent[threadID])
+        var parentCells: [Cell] = []
+        for cellID in 0..<parentCellCount {
+          let cellOffset = inputPrefixSum * 8 + cellID
+          let cell = outputParentCells[cellOffset]
+          parentCells.append(cell)
+        }
+        
+        // Reconstruct 'children'.
+        
+        // Compact the vacant list entries.
+      }
+      
+      fatalError("Not implemented.")
+    }
   }
   
   @Sendable

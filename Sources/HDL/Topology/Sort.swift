@@ -13,6 +13,7 @@ extension Topology {
     let sorter = OctreeSorter(atoms: atoms)
     let state = sorter.traverseHighLevels()
     let reordering = sorter.traverseLowLevels(state: state)
+//    let reordering = sorter.mortonReorderingDynamic()
     let previousAtoms = atoms
     
     for i in reordering.indices {

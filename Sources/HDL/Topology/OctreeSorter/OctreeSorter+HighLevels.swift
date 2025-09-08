@@ -180,6 +180,8 @@ extension OctreeSorter {
           
           for cellID in child.cells.indices {
             let cell = child.cells[cellID]
+            let cellOffset = inputPrefixSum * 8 + childPrefixSum + cellID
+            results.outputChildCells[cellOffset] = cell
           }
           childPrefixSum += cellCount
         }
@@ -218,9 +220,10 @@ extension OctreeSorter {
   
   private struct LevelResults {
     var outputCellsPerParent: [UInt32]
+    var outputParentCells: [Cell]
+    
     var childrenPerParent: [UInt32]
     var outputCellsPerChild: [UInt32]
-    var outputParentCells: [Cell]
     var outputChildCells: [Cell]
     
     init(
@@ -229,12 +232,13 @@ extension OctreeSorter {
     ) {
       outputCellsPerParent = [UInt32](
         repeating: 0, count: threadCount)
+      outputParentCells = [Cell](
+        repeating: Cell(), count: 8 * inputCellCount)
+      
       childrenPerParent = [UInt32](
         repeating: 0, count: threadCount)
       outputCellsPerChild = [UInt32](
         repeating: 0, count: 8 * inputCellCount)
-      outputParentCells = [Cell](
-        repeating: Cell(), count: 8 * inputCellCount)
       outputChildCells = [Cell](
         repeating: Cell(), count: 8 * inputCellCount)
     }

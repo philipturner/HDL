@@ -308,11 +308,24 @@ extension OctreeSorter {
       var cells: [Cell] = []
       for workItemID in 0..<size {
         let childNodeID = children[Int(workItemID)]
-        let childNodeSize = childNodeSizes[Int(childNodeID)]
-        let inPlaceOffset = childNodeOffsets[Int(childNodeID)]
+        let childNodeSize = Int(childNodeSizes[Int(childNodeID)])
+        let inPlaceOffset = Int(childNodeOffsets[Int(childNodeID)])
+        
+        func createNewOrigin() -> SIMD3<Float> {
+          let intOffset = (UInt8(childNodeID) &>> SIMD3(0, 1, 2)) & 1
+          let floatOffset = SIMD3<Float>(intOffset) * 2 - 1
+          return cell.origin + floatOffset * levelSize / 4
+        }
+        
+        var childCell = Cell()
+        childCell.range = inPlaceOffset..<(inPlaceOffset + childNodeSize)
+        childCell.origin = createNewOrigin()
+        cells.append(childCell)
       }
+      
+      let thread = Thread(cells: cells)
+      output.append(thread)
     }
-    
-    fatalError("Not implemented.")
+    return output
   }
 }

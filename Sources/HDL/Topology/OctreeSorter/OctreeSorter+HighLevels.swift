@@ -141,7 +141,7 @@ extension OctreeSorter {
           iterations: threads.count
         ) { threadID in
           let thread = threads[threadID]
-          let prefixSumOffset = threadCellOffsets[threadID]
+          let inputPrefixSum = threadCellOffsets[threadID]
           
           var parentCells: [Cell] = []
           var children: [Thread] = []
@@ -162,21 +162,23 @@ extension OctreeSorter {
           results.outputCellsPerParent[threadID] = UInt32(parentCells.count)
           for cellID in parentCells.indices {
             let cell = parentCells[cellID]
-            let cellOffset = Int(prefixSumOffset) * 8 + cellID
+            let cellOffset = inputPrefixSum * 8 + cellID
             results.outputParentCells[cellOffset] = cell
           }
           
           // Write the children into the results.
           results.childrenPerParent[threadID] = UInt32(children.count)
+          var childPrefixSum: Int = .zero
           for childID in children.indices {
             let child = children[childID]
-            let childOffset = Int(prefixSumOffset) * 8 + childID
+            let childOffset = inputPrefixSum * 8 + childID
             let cellCount = child.cells.count
             results.outputCellsPerChild[childOffset] = UInt32(cellCount)
             
             for cellID in child.cells.indices {
-              // TODO
+              let cell = child.cells[cellID]
             }
+            childPrefixSum += cellCount
           }
         }
         
@@ -187,6 +189,9 @@ extension OctreeSorter {
       }
     }
     
+    // Make inPlaceBuffer and scratchBuffer into arguments. That improves
+    // encapulsation (allowing abstraction outside the current function body)
+    // and removes the need for a 'do' statement enclosing the main loop.
     @Sendable
     func traverse(
       cell: Cell,
@@ -210,12 +215,12 @@ extension OctreeSorter {
     return thread
   }
   
-  private static func cellOffsets(threads: [Thread]) -> [UInt32] {
-    var output: [UInt32] = []
-    var counter: UInt32 = .zero
+  private static func cellOffsets(threads: [Thread]) -> [Int] {
+    var output: [Int] = []
+    var counter: Int = .zero
     for thread in threads {
       output.append(counter)
-      counter += UInt32(thread.cells.count)
+      counter += thread.cells.count
     }
     return output
   }

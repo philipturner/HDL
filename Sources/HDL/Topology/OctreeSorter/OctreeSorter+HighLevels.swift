@@ -121,29 +121,42 @@ extension OctreeSorter {
     }
     
     do {
-      func createFirstThread() -> Thread {
-        let origin = SIMD3<Float>(
-          repeating: highestLevelSize / 2)
-        let cell = Cell(
-          range: atoms.indices,
-          origin: origin)
-        
-        let thread = Thread(cells: [cell])
-        return thread
-      }
-      
       // Fill this with the threads at the start of a pass, and the cleaned-up
       // (scan-compact'd) outputs of a pass.
       nonisolated(unsafe)
       var threads: [Thread] = [createFirstThread()]
       var levelSize = highestLevelSize
       while levelSize > 1 {
-        
+        // Perform a prefix sum, to allocate memory for outputs.
+        nonisolated(unsafe)
+        var threadCellOffsets = Self.cellOffsets(threads: threads)
+        let inputCellCount = threads.map(\.cells.count).reduce(0, +)
         
         levelSize /= 2
       }
     }
     
     fatalError("Not implemented.")
+  }
+  
+  private func createFirstThread() -> Thread {
+    let origin = SIMD3<Float>(
+      repeating: highestLevelSize / 2)
+    let cell = Cell(
+      range: atoms.indices,
+      origin: origin)
+    
+    let thread = Thread(cells: [cell])
+    return thread
+  }
+  
+  private static func cellOffsets(threads: [Thread]) -> [UInt32] {
+    var output: [UInt32] = []
+    var counter: UInt32 = .zero
+    for thread in threads {
+      output.append(counter)
+      counter += UInt32(thread.cells.count)
+    }
+    return output
   }
 }

@@ -99,6 +99,10 @@ extension OctreeSorter {
     // otherwise there will be a memory leak. It appears that in all use cases,
     // we can theoretically get by without ever spawning a separate Array.
     // Keep this in mind and eventually implement this optimization.
+    //
+    // Could wrap this in a 'class' for automatic memory management, while
+    // still having decent internal APIs. Perhaps wrap the output of the
+    // function for low levels.
     var inPlaceBuffer: UnsafeMutablePointer<UInt32>
     var threads: [Thread]
   }

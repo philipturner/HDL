@@ -143,8 +143,18 @@ extension OctreeSorter {
           var children: [Thread] = []
           for cell in thread.cells {
             let output = traverse(cell: cell, levelSize: levelSize)
+            guard output.count > 0 else {
+              fatalError("Unexpected output cell count.")
+            }
             
+            if output.count == 1 {
+              parentCells += output[0].cells
+            } else {
+              children += output
+            }
           }
+          
+          // TODO: Write the parent cells and children into the results.
         }
         
         // Scan-compact the results.

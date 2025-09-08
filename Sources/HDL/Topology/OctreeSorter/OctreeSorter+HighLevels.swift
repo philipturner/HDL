@@ -45,7 +45,7 @@ extension OctreeSorter {
     var threads: [Thread] = [createFirstThread()]
     nonisolated(unsafe)
     var levelSize = highestLevelSize
-    while levelSize > 1 {
+    while levelSize > 4 {
       // Perform a prefix sum, to allocate memory for outputs.
       let threadCellOffsets = Self.cellOffsets(threads: threads)
       let inputCellCount = threads.map(\.cells.count).reduce(0, +)
@@ -126,7 +126,7 @@ extension OctreeSorter {
     
     var output = TraversalState()
     output.atomIDs = atomIDs
-    output.levelSize = 1
+    output.levelSize = min(4, highestLevelSize)
     output.threads = threads
     return output
   }

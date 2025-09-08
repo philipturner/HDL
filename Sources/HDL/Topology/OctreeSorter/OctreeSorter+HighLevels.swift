@@ -259,6 +259,30 @@ extension OctreeSorter {
     }
     let childNodeSizes = createChildNodeSizes()
     
+    // Transfer the scratch buffer to the input buffer.
+    func createChildNodeOffsets() -> SIMD8<UInt32> {
+      var childNodeOffsets: SIMD8<UInt32> = .zero
+      let scratchStart = UInt32(cell.range.startIndex * 8)
+      let scratchStride = UInt32(cell.range.count)
+      
+      var prefixSum: Int = .zero
+      for childNodeID in 0..<UInt32(8) {
+        let childNodeSize = childNodeSizes[Int(childNodeID)]
+        guard childNodeSize > 0 else {
+          continue
+        }
+        
+        let scratchOffset = scratchStart + childNodeID * scratchStride
+        (inPlaceBuffer + prefixSum).initialize(
+          from: scratchBuffer + Int(scratchOffset),
+          count: Int(childNodeSize))
+        
+        childNodeOffsets[Int(childNodeID)] = UInt32(prefixSum)
+        prefixSum += Int(childNodeSize)
+      }
+      return childNodeOffsets
+    }
+    
     fatalError("Not implemented.")
   }
 }

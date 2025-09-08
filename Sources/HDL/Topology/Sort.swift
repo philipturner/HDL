@@ -11,7 +11,8 @@ extension Topology {
   @discardableResult
   public mutating func sort() -> [UInt32] {
     let sorter = OctreeSorter(atoms: atoms)
-    let reordering = sorter.mortonReorderingDynamic()
+    let state = sorter.traverseHighLevels()
+    let reordering = sorter.traverseLowLevels(state: state)
     let previousAtoms = atoms
     
     for i in reordering.indices {

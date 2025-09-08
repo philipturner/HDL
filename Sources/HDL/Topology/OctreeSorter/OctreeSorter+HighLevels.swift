@@ -86,8 +86,8 @@ import Dispatch
 
 extension OctreeSorter {
   struct Cell {
-    var range: Range<Int>
-    var origin: SIMD3<Float>
+    var range: Range<Int> = 0..<0
+    var origin: SIMD3<Float> = .zero
   }
   
   struct Thread {
@@ -114,6 +114,7 @@ extension OctreeSorter {
     nonisolated(unsafe)
     let scratchBuffer: UnsafeMutablePointer<UInt32> =
       .allocate(capacity: 8 * atoms.count)
+    defer { scratchBuffer.deallocate() }
     
     // Initialize the list of atom IDs.
     for i in 0..<atoms.count {
@@ -132,6 +133,23 @@ extension OctreeSorter {
         var threadCellOffsets = Self.cellOffsets(threads: threads)
         let inputCellCount = threads.map(\.cells.count).reduce(0, +)
         
+        // Thread-safe buffers for storing results.
+        nonisolated(unsafe)
+        var outputCellsPerThread = [UInt32](
+          repeating: 0, count: inputCellCount)
+        nonisolated(unsafe)
+        var childrenPerThread = [UInt32](
+          repeating: 0, count: inputCellCount)
+        nonisolated(unsafe)
+        var outputCellsPerChild = [UInt32](
+          repeating: 0, count: 8 * inputCellCount)
+        nonisolated(unsafe)
+        var outputParentCells = [Cell](
+          repeating: Cell(), count: 8 * inputCellCount)
+        nonisolated(unsafe)
+        var outputChildCells = [Cell](
+          repeating: Cell(), count: 8 * inputCellCount)
+        
         levelSize /= 2
       }
     }
@@ -140,11 +158,10 @@ extension OctreeSorter {
   }
   
   private func createFirstThread() -> Thread {
-    let origin = SIMD3<Float>(
+    var cell = Cell()
+    cell.range = atoms.indices
+    cell.origin = SIMD3<Float>(
       repeating: highestLevelSize / 2)
-    let cell = Cell(
-      range: atoms.indices,
-      origin: origin)
     
     let thread = Thread(cells: [cell])
     return thread

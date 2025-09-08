@@ -282,6 +282,7 @@ extension OctreeSorter {
       }
       return childNodeOffsets
     }
+    let childNodeOffsets = createChildNodeOffsets()
     
     func createRemainingLevels() -> Int {
       let exponentFor4 = Int(Float(4).exponentBitPattern)
@@ -305,8 +306,10 @@ extension OctreeSorter {
         workSplitting.taskChildren[taskID], to: SIMD8<UInt8>.self)
       
       var cells: [Cell] = []
-      for cellID in 0..<size {
-        
+      for workItemID in 0..<size {
+        let childNodeID = children[Int(workItemID)]
+        let childNodeSize = childNodeSizes[Int(childNodeID)]
+        let inPlaceOffset = childNodeOffsets[Int(childNodeID)]
       }
     }
     

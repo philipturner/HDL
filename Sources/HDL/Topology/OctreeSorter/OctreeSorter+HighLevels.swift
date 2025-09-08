@@ -162,8 +162,21 @@ extension OctreeSorter {
           results.outputCellsPerParent[threadID] = UInt32(parentCells.count)
           for cellID in parentCells.indices {
             let cell = parentCells[cellID]
-            let cellOffset = prefixSumOffset * 8 + UInt32(cellID)
+            let cellOffset = Int(prefixSumOffset) * 8 + cellID
+            results.outputParentCells[cellOffset] = cell
+          }
+          
+          // Write the children into the results.
+          results.childrenPerParent[threadID] = UInt32(children.count)
+          for childID in children.indices {
+            let child = children[childID]
+            let childOffset = Int(prefixSumOffset) * 8 + childID
+            let cellCount = child.cells.count
+            results.outputCellsPerChild[childOffset] = UInt32(cellCount)
             
+            for cellID in child.cells.indices {
+              // TODO
+            }
           }
         }
         

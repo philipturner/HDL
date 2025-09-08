@@ -13,13 +13,13 @@ extension Topology {
   public mutating func sort() -> [UInt32] {
     let sorter = OctreeSorter(atoms: atoms)
     
-//    let state = sorter.traverseHighLevels()
-//    let reordering = sorter.traverseLowLevels(state: state)
-    
     let start = CACurrentMediaTime()
-    let reordering = sorter.mortonReorderingDynamic()
+    let state = sorter.traverseHighLevels()
+    let reordering = sorter.traverseLowLevels(state: state)
     let end = CACurrentMediaTime()
-    debugProfile(start, end, "dynamic")
+    debugProfile(start, end, "final")
+    
+//    let reordering = sorter.mortonReorderingDynamic()
     
 //    let grid = sorter.oldCreateGrid()
 //    let reordering = sorter.oldMortonReordering(grid: grid)

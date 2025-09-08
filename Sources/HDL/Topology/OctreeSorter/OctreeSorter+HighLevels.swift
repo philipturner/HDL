@@ -120,6 +120,26 @@ extension OctreeSorter {
       inPlaceBuffer[i] = UInt32(i)
     }
     
+    do {
+      func createFirstThread() -> Thread {
+        let origin = SIMD3<Float>(
+          repeating: highestLevelSize / 2)
+        let cell = Cell(
+          range: atoms.indices,
+          origin: origin)
+        
+        let thread = Thread(cells: [cell])
+        return thread
+      }
+      
+      // Fill this with the threads at the start of a pass, and the cleaned-up
+      // (scan-compact'd) outputs of a pass.
+      nonisolated(unsafe)
+      var threads: [Thread] = [createFirstThread()]
+      
+      
+    }
+    
     fatalError("Not implemented.")
   }
 }

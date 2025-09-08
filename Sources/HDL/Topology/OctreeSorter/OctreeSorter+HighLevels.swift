@@ -140,7 +140,7 @@ extension OctreeSorter {
         iterations: threads.count
       ) { threadID in
         let thread = threads[threadID]
-        let inputPrefixSum = threadCellOffsets[threadID]
+        let inputPrefixSum = Int(threadCellOffsets[threadID])
         
         var parentCells: [Cell] = []
         var children: [Thread] = []
@@ -208,12 +208,12 @@ extension OctreeSorter {
     return thread
   }
   
-  private static func cellOffsets(threads: [Thread]) -> [Int] {
-    var output: [Int] = []
-    var counter: Int = .zero
+  private static func cellOffsets(threads: [Thread]) -> [UInt32] {
+    var output: [UInt32] = []
+    var counter: UInt32 = .zero
     for thread in threads {
       output.append(counter)
-      counter += thread.cells.count
+      counter += UInt32(thread.cells.count)
     }
     return output
   }
@@ -243,10 +243,10 @@ extension OctreeSorter {
         repeating: Cell(), count: 8 * inputCellCount)
     }
     
-    func nextLevel(threadCellOffsets: [Int]) -> [Thread] {
+    func nextLevel(threadCellOffsets: [UInt32]) -> [Thread] {
       var output: [Thread] = []
       for threadID in outputCellsPerParent.indices {
-        let inputPrefixSum = threadCellOffsets[threadID]
+        let inputPrefixSum = Int(threadCellOffsets[threadID])
         
         // Reconstruct 'parentCells'.
         let parentCellCount = Int(outputCellsPerParent[threadID])
@@ -258,6 +258,19 @@ extension OctreeSorter {
         }
         
         // Reconstruct 'children'.
+        let childCount = Int(childrenPerParent[threadID])
+        var children: [Thread] = []
+        var childPrefixSum: Int = .zero
+        for childID in 0..<childCount {
+          let childOffset = inputPrefixSum * 8 + childID
+          let cellCount = Int(outputCellsPerChild[childOffset])
+          
+          var childCells: [Cell] = []
+          for cellID in 0..<cellCount {
+            let cellOffset = inputPrefixSum * 8 + childPrefixSum + cellID
+          }
+          childPrefixSum += cellCount
+        }
         
         // Compact the vacant list entries.
       }

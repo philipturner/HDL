@@ -55,4 +55,42 @@ extension OctreeSorter {
   // amount of data passed between functions.
   //
   // 'Cell' owns the range.
+  
+  // ## Loop Over Levels of the Tree
+  //
+  // levelSize specified in this loop, which is the source of truth. No
+  // division by 2 for child functions. This is a point of divergence with the
+  // lower levels. The 'traverse' function should accept levelSize as an
+  // argument.
+  //
+  // High-level data structure containing [Thread]:
+  //
+  // Start with a single Thread, and a single Cell scoped to the entire octree.
+  // Invoke this thread with DispatchQueue.concurrentPerform, to simplify the
+  // code. All passes now use concurrent dispatch.
+  //
+  // Inside each dispatch task, the number of cells is unpacked. Create a new
+  // list of output cells. Sort them into ones belonging to the parent thread,
+  // and a separate array of child Thread objects. Write the results to a
+  // global buffer in a thread-safe way.
+  //
+  // In a post-processing part of the code, after the concurrent dispatch,
+  // scan the global buffer of threads and cells. Eliminate any parent threads
+  // that now have zero cells. Eliminate any allocated child threads that were
+  // never materialized.
+  //
+  // Thread-safe data structure for results:
+  //
+  // Order of cells in a cell buffer could be inconsequential. A cell's range
+  // always points to the same atoms, no matter where you store the cell in
+  // memory. What's important is the Thread, which must reference the cell
+  // objects.
+  //
+  // This process is especially tricky, because one thread could reference many
+  // non-contiguous patches of atoms in the list. Does this mean many
+  // non-contiguous patches of Cell objects? Not exactly.
+  //
+  // We can probably use a simple sequential scan-compact algorithm. Process
+  // each thread in order from first to last. Update the thread based on some
+  // running counters. Forget the current Thread object and move on to the next.
 }

@@ -2,8 +2,6 @@
 import XCTest
 
 final class SortTests: XCTestCase {
-  static let printPerformanceSummary = true
-  
   func testDiagonalOrder() throws {
     func createLattice() -> Lattice<Cubic> {
       Lattice<Cubic> { h, k, l in

@@ -19,11 +19,6 @@ extension Topology {
 //    let end = CACurrentMediaTime()
 //    debugProfile(start, end, "final")
     
-//    let reordering = sorter.mortonReorderingDynamic()
-    
-//    let grid = sorter.oldCreateGrid()
-//    let reordering = sorter.oldMortonReordering(grid: grid)
-    
     let previousAtoms = atoms
     
     for i in reordering.indices {

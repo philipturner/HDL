@@ -27,14 +27,12 @@ extension OctreeSorter {
   // Perhaps an OctreeSorter 'class' should own the scratch memory,
   // TraversalState owns everything else, and LowLevels converts the output to
   // Array for ease of use.
-  struct TraversalState {
-    var atomIDs: [UInt32] = []
+  class TraversalState {
+    var atomIDs: [UInt32]?
     
-    // Allows the lowest level size to be changed at will, without needing
-    // to modify the function for low levels.
-    var levelSize: Float = .zero
+    var levelSize: Float?
     
-    var threads: [Thread] = []
+    var threads: [Thread]?
   }
   
   func traverseHighLevels() -> TraversalState {
@@ -144,11 +142,11 @@ extension OctreeSorter {
     }
     inPlaceBuffer.deallocate()
     
-    var output = TraversalState()
-    output.atomIDs = atomIDs
-    output.levelSize = min(levelThreshold, highestLevelSize)
-    output.threads = threads
-    return output
+    let state = TraversalState()
+    state.atomIDs = atomIDs
+    state.levelSize = min(levelThreshold, highestLevelSize)
+    state.threads = threads
+    return state
   }
 }
 

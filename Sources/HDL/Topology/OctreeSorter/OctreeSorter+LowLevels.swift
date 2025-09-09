@@ -8,9 +8,13 @@
 import Dispatch
 
 extension OctreeSorter {
-  func traverseLowLevels(
-    state: TraversalState
-  ) -> [UInt32] {
+  func traverseLowLevels(state: TraversalState) -> [UInt32] {
+    guard let atomIDs = state.atomIDs,
+          let levelSize = state.levelSize,
+          let threads = state.threads else {
+      fatalError("State was not fully specified.")
+    }
+    
     nonisolated(unsafe)
     let inPlaceBuffer: UnsafeMutablePointer<UInt32> =
       .allocate(capacity: atoms.count)
@@ -21,42 +25,42 @@ extension OctreeSorter {
     
     // Initialize the list of atom IDs.
     for i in 0..<atoms.count {
-      let atomID = state.atomIDs[i]
+      let atomID = atomIDs[i]
       inPlaceBuffer[i] = atomID
     }
     
     // Iterate over the threads (via concurrent dispatch).
     // Iterate over the cells within the threads.
-    if state.threads.count == 0 {
+    if threads.count == 0 {
       fatalError("This should never happen.")
-    } else if state.threads.count == 1 {
-      let thread = state.threads[0]
+    } else if threads.count == 1 {
+      let thread = threads[0]
       for cell in thread.cells {
         traverseLowLevel(
           inPlaceBuffer: inPlaceBuffer,
           scratchBuffer: scratchBuffer,
           cellRange: cell.range,
           cellOrigin: cell.origin,
-          levelSize: state.levelSize)
+          levelSize: levelSize)
       }
     } else {
       DispatchQueue.concurrentPerform(
-        iterations: state.threads.count
+        iterations: threads.count
       ) { threadID in
-        let thread = state.threads[threadID]
+        let thread = threads[threadID]
         for cell in thread.cells {
           traverseLowLevel(
             inPlaceBuffer: inPlaceBuffer,
             scratchBuffer: scratchBuffer,
             cellRange: cell.range,
             cellOrigin: cell.origin,
-            levelSize: state.levelSize)
+            levelSize: levelSize)
         }
       }
     }
     
     // Migrate the pointer's contents to an array, then deallocate.
-    let atomIDs = [UInt32](unsafeUninitializedCapacity: atoms.count) {
+    let output = [UInt32](unsafeUninitializedCapacity: atoms.count) {
       let baseAddress = $0.baseAddress!
       baseAddress.initialize(
         from: inPlaceBuffer, count: atoms.count)
@@ -64,7 +68,7 @@ extension OctreeSorter {
     }
     inPlaceBuffer.deallocate()
     
-    return atomIDs
+    return output
   }
   
   @Sendable

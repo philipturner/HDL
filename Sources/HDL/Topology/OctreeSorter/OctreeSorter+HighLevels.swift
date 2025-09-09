@@ -45,7 +45,7 @@ extension OctreeSorter {
     var threads: [Thread] = [createFirstThread()]
     nonisolated(unsafe)
     var levelSize = highestLevelSize
-    let levelThreshold: Float = 4
+    let levelThreshold: Float = 2
     while levelSize > levelThreshold {
       // Perform a prefix sum, to allocate memory for outputs.
       let threadCellOffsets = Self.cellOffsets(threads: threads)

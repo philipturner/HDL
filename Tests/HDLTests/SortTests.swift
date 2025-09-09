@@ -83,7 +83,7 @@ final class SortTests: XCTestCase {
   func testSortPerformance() throws {
     // Revert to 10 and true after any refactorings
     // Default for this benchmarking period is 20 and false
-    let latticeScale: Float = 20
+    let latticeScale: Float = 25
     let testParallel = Bool.random() ? false : false
     let lattice = Lattice<Hexagonal> { h, k, l in
       let h2k = h + 2 * k

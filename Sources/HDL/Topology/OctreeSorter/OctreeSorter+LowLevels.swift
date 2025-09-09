@@ -27,10 +27,10 @@ extension OctreeSorter {
     
     // Iterate over the threads (via concurrent dispatch).
     // Iterate over the cells within the threads.
-    DispatchQueue.concurrentPerform(
-      iterations: state.threads.count
-    ) { threadID in
-      let thread = state.threads[threadID]
+    if state.threads.count == 0 {
+      fatalError("This should never happen.")
+    } else if state.threads.count == 1 {
+      let thread = state.threads[0]
       for cell in thread.cells {
         traverseLowLevel(
           inPlaceBuffer: inPlaceBuffer,
@@ -38,6 +38,20 @@ extension OctreeSorter {
           cellRange: cell.range,
           cellOrigin: cell.origin,
           levelSize: state.levelSize)
+      }
+    } else {
+      DispatchQueue.concurrentPerform(
+        iterations: state.threads.count
+      ) { threadID in
+        let thread = state.threads[threadID]
+        for cell in thread.cells {
+          traverseLowLevel(
+            inPlaceBuffer: inPlaceBuffer,
+            scratchBuffer: scratchBuffer,
+            cellRange: cell.range,
+            cellOrigin: cell.origin,
+            levelSize: state.levelSize)
+        }
       }
     }
     

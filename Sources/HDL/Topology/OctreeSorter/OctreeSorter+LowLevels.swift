@@ -64,7 +64,6 @@ extension OctreeSorter {
     return output
   }
   
-  @Sendable
   private func traverseLowLevel(
     inPlaceBuffer: UnsafeMutablePointer<UInt32>,
     scratchBuffer: UnsafeMutablePointer<UInt32>,

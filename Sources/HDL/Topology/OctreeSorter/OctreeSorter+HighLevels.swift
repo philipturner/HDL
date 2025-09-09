@@ -24,16 +24,12 @@ extension OctreeSorter {
     var threads: [Thread]?
     
     deinit {
-      print("deallocating")
       guard let inPlaceBuffer,
             let scratchBuffer else {
         fatalError("State was not fully specified.")
       }
       inPlaceBuffer.deallocate()
       scratchBuffer.deallocate()
-//      free(inPlaceBuffer)
-//      free(scratchBuffer)
-      print("deallocated")
     }
   }
   
@@ -234,7 +230,6 @@ extension OctreeSorter {
     }
   }
   
-  @Sendable
   private func traverseHighLevel(
     inPlaceBuffer: UnsafeMutablePointer<UInt32>,
     scratchBuffer: UnsafeMutablePointer<UInt32>,

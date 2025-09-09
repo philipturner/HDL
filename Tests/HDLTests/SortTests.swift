@@ -53,7 +53,7 @@ final class SortTests: XCTestCase {
   
 #if RELEASE
   func testSortPerformance() throws {
-    let latticeScale: Float = 20
+    let latticeScale: Float = 10
     let lattice = Lattice<Hexagonal> { h, k, l in
       let h2k = h + 2 * k
       Bounds { latticeScale * (2 * h + h2k + l) }
@@ -88,7 +88,7 @@ final class SortTests: XCTestCase {
       }
     }
     
-    for trialID in 2...2 {
+    for trialID in 0..<4 {
       let trial = Trial(lattice: lattice, index: trialID)
       
       var resultGrid: [UInt32]

@@ -5,17 +5,6 @@
 //  Created by Philip Turner on 7/14/25.
 //
 
-func debugProfile(
-  _ start: Double,
-  _ end: Double,
-  _ name: String
-) {
-  let elapsedTime = end - start
-  let elapsedMilliseconds = elapsedTime * 1000
-  let formatted = String(format: "%.2f", elapsedMilliseconds)
-  print(name, formatted)
-}
-
 struct OctreeSorter {
   var atoms: [Atom] = []
   

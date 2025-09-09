@@ -12,15 +12,10 @@ extension Topology {
   @discardableResult
   public mutating func sort() -> [UInt32] {
     let sorter = OctreeSorter(atoms: atoms)
-    
-//    let start = CACurrentMediaTime()
     let state = sorter.traverseHighLevels()
     let reordering = sorter.traverseLowLevels(state: state)
-//    let end = CACurrentMediaTime()
-//    debugProfile(start, end, "final")
     
     let previousAtoms = atoms
-    
     for i in reordering.indices {
       let mortonIndex = reordering[i]
       atoms[i] = previousAtoms[Int(mortonIndex)]

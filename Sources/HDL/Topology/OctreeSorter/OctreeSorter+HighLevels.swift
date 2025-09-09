@@ -46,11 +46,17 @@ extension OctreeSorter {
       inPlaceBuffer[i] = UInt32(i)
     }
     
+    // 2 nm was chosen as the optimum after extensive data collection.
+    // Other contenders were 1 nm and 4 nm.
+    //
+    // Publicly available record of the entire investigation:
+    // https://docs.google.com/spreadsheets/d/1M_QCs9GhoDQC06XNDTVT4sVvM6QuKxVyM-RwK3yNjtw/edit?usp=sharing
+    let levelThreshold: Float = 2
+    
     nonisolated(unsafe)
     var threads: [Thread] = [createFirstThread()]
     nonisolated(unsafe)
     var levelSize = highestLevelSize
-    let levelThreshold: Float = 1
     while levelSize > levelThreshold {
       // Perform a prefix sum, to allocate memory for outputs.
       let threadCellOffsets = Self.cellOffsets(threads: threads)

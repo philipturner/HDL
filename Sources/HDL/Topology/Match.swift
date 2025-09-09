@@ -53,9 +53,7 @@ extension Topology {
     @Sendable
     func reorder(_ atoms: [Atom]) -> [UInt32] {
       if rmsAtomCount < 10_000 {
-        return atoms.indices.map {
-          UInt32(truncatingIfNeeded: $0)
-        }
+        return atoms.indices.map(UInt32.init)
       } else {
         let sorter = OctreeSorter(atoms: atoms)
         let state = sorter.traverseHighLevels()

@@ -1,7 +1,6 @@
 # Hardware Description Language
 
 Remaining goals for this PR:
-- Fully optimize `topology.sort`. Clean up the code after migrating to the new algorithm.
 - Fix the problem with bounds of a hexagonal grid.
   - Command-line text rendering might be the easiest option, provided this is restricted to 2D.
 - Search for unexpected latency bottlenecks in `Reconstruction` regarding `nonbondingOrbitals`.

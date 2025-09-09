@@ -83,12 +83,12 @@ final class SortTests: XCTestCase {
   func testSortPerformance() throws {
     // Revert to 10 and true after any refactorings
     // Default for this benchmarking period is 20 and false
-    let latticeScale: Float = 7
+    let latticeScale: Float = 20
     let testParallel = Bool.random() ? false : false
     let lattice = Lattice<Hexagonal> { h, k, l in
       let h2k = h + 2 * k
       Bounds { latticeScale * (2 * h + h2k + l) }
-      Material { .elemental(.silicon) }
+      Material { .elemental(.carbon) }
     }
     
     var output: [String] = []
@@ -129,7 +129,7 @@ final class SortTests: XCTestCase {
     }
     
     // Revert to 0..<4 after any refactorings
-    for trialID in 2...2 {
+    for trialID in 0..<4 {
       let trial = Trial(lattice: lattice, index: trialID)
       
       let startParallel = Profiler.time()

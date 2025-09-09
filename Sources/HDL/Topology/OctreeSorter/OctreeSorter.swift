@@ -12,7 +12,7 @@ func debugProfile(
 ) {
   let elapsedTime = end - start
   let elapsedMilliseconds = elapsedTime * 1000
-  let formatted = String(format: "%.3f", elapsedMilliseconds)
+  let formatted = String(format: "%.2f", elapsedMilliseconds)
   print(name, formatted)
 }
 

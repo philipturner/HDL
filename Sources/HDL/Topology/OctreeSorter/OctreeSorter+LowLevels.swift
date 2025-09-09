@@ -30,9 +30,9 @@ extension OctreeSorter {
       let thread = threads[0]
       for cell in thread.cells {
         traverseLowLevel(
-          inPlaceBuffer: inPlaceBuffer,
-          scratchBuffer: scratchBuffer,
-          cellRange: cell.range,
+          inPlaceBuffer: inPlaceBuffer + cell.range.startIndex,
+          scratchBuffer: scratchBuffer + cell.range.startIndex * 8,
+          cellAtomCount: cell.range.count,
           cellOrigin: cell.origin,
           levelSize: levelSize)
       }
@@ -43,9 +43,9 @@ extension OctreeSorter {
         let thread = threads[threadID]
         for cell in thread.cells {
           traverseLowLevel(
-            inPlaceBuffer: inPlaceBuffer,
-            scratchBuffer: scratchBuffer,
-            cellRange: cell.range,
+            inPlaceBuffer: inPlaceBuffer + cell.range.startIndex,
+            scratchBuffer: scratchBuffer + cell.range.startIndex * 8,
+            cellAtomCount: cell.range.count,
             cellOrigin: cell.origin,
             levelSize: levelSize)
         }
@@ -67,17 +67,15 @@ extension OctreeSorter {
   private func traverseLowLevel(
     inPlaceBuffer: UnsafeMutablePointer<UInt32>,
     scratchBuffer: UnsafeMutablePointer<UInt32>,
-    cellRange: Range<Int>,
+    cellAtomCount: Int,
     cellOrigin: SIMD3<Float>,
     levelSize: Float
   ) {
     // Use the scratch buffer.
     func createChildNodeSizes() -> SIMD8<UInt32> {
       var childNodeSizes: SIMD8<UInt32> = .zero
-      let scratchStart = UInt32(cellRange.startIndex * 8)
-      let scratchStride = UInt32(cellRange.count)
       
-      for inPlaceOffset in cellRange {
+      for inPlaceOffset in 0..<cellAtomCount {
         let atomID = inPlaceBuffer[inPlaceOffset]
         func createAtomOffset() -> SIMD3<Float> {
           let atom = atoms[Int(atomID)]
@@ -94,7 +92,7 @@ extension OctreeSorter {
         let previousSize = childNodeSizes[Int(childNodeID)]
         childNodeSizes[Int(childNodeID)] = previousSize + 1
         
-        var scratchOffset = scratchStart + childNodeID * scratchStride
+        var scratchOffset = childNodeID * UInt32(cellAtomCount)
         scratchOffset += previousSize
         scratchBuffer[Int(scratchOffset)] = atomID
       }
@@ -105,17 +103,15 @@ extension OctreeSorter {
     // Transfer the scratch buffer to the input buffer.
     func createChildNodeOffsets() -> SIMD8<UInt32> {
       var childNodeOffsets: SIMD8<UInt32> = .zero
-      let scratchStart = UInt32(cellRange.startIndex * 8)
-      let scratchStride = UInt32(cellRange.count)
       
-      var inPlaceOffset = cellRange.startIndex
+      var inPlaceOffset: Int = .zero
       for childNodeID in 0..<UInt32(8) {
         let childNodeSize = childNodeSizes[Int(childNodeID)]
         guard childNodeSize > 0 else {
           continue
         }
         
-        let scratchOffset = scratchStart + childNodeID * scratchStride
+        let scratchOffset = childNodeID * UInt32(cellAtomCount)
         (inPlaceBuffer + inPlaceOffset).initialize(
           from: scratchBuffer + Int(scratchOffset),
           count: Int(childNodeSize))
@@ -144,9 +140,9 @@ extension OctreeSorter {
       }
       
       traverseLowLevel(
-        inPlaceBuffer: inPlaceBuffer,
-        scratchBuffer: scratchBuffer,
-        cellRange: inPlaceOffset..<(inPlaceOffset + childNodeSize),
+        inPlaceBuffer: inPlaceBuffer + inPlaceOffset,
+        scratchBuffer: scratchBuffer + inPlaceOffset * 8,
+        cellAtomCount: childNodeSize,
         cellOrigin: createNewOrigin(),
         levelSize: levelSize / 2)
     }

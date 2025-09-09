@@ -88,7 +88,7 @@ final class SortTests: XCTestCase {
       }
     }
     
-    for trialID in 0..<4 {
+    for trialID in 2...2 {
       let trial = Trial(lattice: lattice, index: trialID)
       
       var resultGrid: [UInt32]

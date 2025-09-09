@@ -31,6 +31,7 @@ extension Topology {
           UInt32(truncatingIfNeeded: $0)
         }
       } else {
+        // TODO: Migrate this to the new algorithm.
         let sorter = OctreeSorter(atoms: atoms)
         return sorter.mortonReorderingDynamic()
       }

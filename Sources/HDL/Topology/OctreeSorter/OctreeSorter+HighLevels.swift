@@ -17,6 +17,16 @@ extension OctreeSorter {
     var cells: [Cell]
   }
   
+  // TODO: Revise this to become a 'class' that manages the intermediate
+  // array allocations, large scratch memory allocations, and forwarding to
+  // 'invertOrder'.
+  //
+  // Remove the alternative algorithms, migrate the remaining single-threaded
+  // version to this new 'class', and retain the messy 'testSortPerformance'.
+  //
+  // Perhaps an OctreeSorter 'class' should own the scratch memory,
+  // TraversalState owns everything else, and LowLevels converts the output to
+  // Array for ease of use.
   struct TraversalState {
     var atomIDs: [UInt32] = []
     

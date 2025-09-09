@@ -71,16 +71,14 @@ extension OctreeSorter {
             scratchBuffer: scratchBuffer,
             cell: cell,
             levelSize: levelSize)
-          if atoms.count > 0 {
-            guard output.count > 0 else {
-              fatalError("Unexpected output cell count.")
-            }
-            
-            if output.count == 1 {
-              parentCells += output[0].cells
-            } else {
-              children += output
-            }
+          
+          guard output.count > 0 else {
+            fatalError("Unexpected output cell count.")
+          }
+          if output.count == 1 {
+            parentCells += output[0].cells
+          } else {
+            children += output
           }
         }
         
@@ -331,18 +329,12 @@ extension OctreeSorter {
         cells.append(childCell)
       }
       
-      if atoms.count > 0 {
-        guard cells.count > 0 else {
-          // This fatal error will likely be triggered at some point, but I'd
-          // rather check that it's possible before putting in a false
-          // protection measure against the fault.
-          fatalError(
-            "Unexpected behavior: work splitting created a zero-sized task.")
-        }
-        
-        let thread = Thread(cells: cells)
-        output.append(thread)
+      // Create a child thread with at least one cell.
+      guard cells.count > 0 else {
+        fatalError("Work splitting created a zero-sized task.")
       }
+      let thread = Thread(cells: cells)
+      output.append(thread)
     }
     return output
   }

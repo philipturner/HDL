@@ -230,7 +230,7 @@ extension OctreeSorter {
       fatalError("Dimensions must be integers.")
     }
     
-    var output: Float = 4
+    var output: Float = 1
     for _ in 0..<100 {
       if output < dimensions.max() {
         output = 2 * output

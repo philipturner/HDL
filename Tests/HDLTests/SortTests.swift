@@ -60,10 +60,6 @@ final class SortTests: XCTestCase {
       Material { .elemental(.carbon) }
     }
     
-    var output: [String] = []
-    output.append("dataset    | octree |  grid ")
-    output.append("---------- | ------ | ------")
-    
     struct Trial {
       var atoms: [Atom] = []
       var name: String = ""
@@ -92,48 +88,23 @@ final class SortTests: XCTestCase {
       }
     }
     
-    // Revert to 0..<4 after any refactorings
     for trialID in 0..<4 {
       let trial = Trial(lattice: lattice, index: trialID)
       
-      let startGrid = Profiler.time()
       var resultGrid: [UInt32]
       do {
         var topology = Topology()
         topology.atoms = trial.atoms
         resultGrid = topology.sort()
       }
-      let endGrid = Profiler.time()
       
-      let startOctree = Profiler.time()
       var resultOctree: [UInt32]
       do {
         let sorter = OctreeSorter(atoms: trial.atoms)
         let reordering = sorter.mortonReordering()
         resultOctree = OctreeSorter.invertOrder(reordering)
       }
-      let endOctree = Profiler.time()
       XCTAssertEqual(resultGrid, resultOctree)
-      
-      let usGrid = Int((endGrid - startGrid) * 1e6)
-      let usOctree = Int((endOctree - startOctree) * 1e6)
-      var reprGrid = "\(usGrid)"
-      var reprOctree = "\(usOctree)"
-      while reprGrid.count < 6 {
-        reprGrid = " \(reprGrid)"
-      }
-      while reprOctree.count < 6 {
-        reprOctree = " \(reprOctree)"
-      }
-      output.append("\(trial.name) | \(reprOctree) | \(reprGrid)")
-    }
-    
-    if Self.printPerformanceSummary {
-      print()
-      print("atoms:", lattice.atoms.count)
-      for line in output {
-        print(line)
-      }
     }
   }
 #endif

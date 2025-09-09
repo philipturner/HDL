@@ -13,7 +13,10 @@ struct WorkSplitting {
   init(childLatencies: SIMD8<Float>) {
     // Utilities for finding the task count.
     func latencyThreshold() -> Float {
-      Float(100e-6)
+      // Gathered data for (25 μs, 50 μs, 100 μs, 200 μs, 400 μs, 800 μs).
+      // Concluded that 25 μs was not measurably worse than the others.
+      // Sticking with 25 μs, even though the original first guess was 20 μs.
+      Float(25e-6)
     }
     func createMaximumTaskCount() -> Float {
       // 2.5 μs = 20 μs / 8

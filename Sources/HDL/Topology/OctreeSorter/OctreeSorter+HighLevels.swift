@@ -17,22 +17,24 @@ extension OctreeSorter {
     var cells: [Cell]
   }
   
-  // TODO: Revise this to become a 'class' that manages the intermediate
-  // array allocations, large scratch memory allocations, and forwarding to
-  // 'invertOrder'.
-  //
-  // Remove the alternative algorithms, migrate the remaining single-threaded
-  // version to this new 'class', and retain the messy 'testSortPerformance'.
-  //
-  // Perhaps an OctreeSorter 'class' should own the scratch memory,
-  // TraversalState owns everything else, and LowLevels converts the output to
-  // Array for ease of use.
   class TraversalState {
-    var atomIDs: [UInt32]?
-    
+    var inPlaceBuffer: UnsafeMutablePointer<UInt32>?
     var levelSize: Float?
-    
+    var scratchBuffer: UnsafeMutablePointer<UInt32>?
     var threads: [Thread]?
+    
+    deinit {
+      print("deallocating")
+      guard let inPlaceBuffer,
+            let scratchBuffer else {
+        fatalError("State was not fully specified.")
+      }
+      inPlaceBuffer.deallocate()
+      scratchBuffer.deallocate()
+//      free(inPlaceBuffer)
+//      free(scratchBuffer)
+      print("deallocated")
+    }
   }
   
   func traverseHighLevels() -> TraversalState {
@@ -42,7 +44,6 @@ extension OctreeSorter {
     nonisolated(unsafe)
     let scratchBuffer: UnsafeMutablePointer<UInt32> =
       .allocate(capacity: 8 * atoms.count)
-    defer { scratchBuffer.deallocate() }
     
     // Initialize the list of atom IDs.
     for i in 0..<atoms.count {
@@ -133,18 +134,10 @@ extension OctreeSorter {
       levelSize /= 2
     }
     
-    // Migrate the pointer's contents to an array, then deallocate.
-    let atomIDs = [UInt32](unsafeUninitializedCapacity: atoms.count) {
-      let baseAddress = $0.baseAddress!
-      baseAddress.initialize(
-        from: inPlaceBuffer, count: atoms.count)
-      $1 = atoms.count
-    }
-    inPlaceBuffer.deallocate()
-    
     let state = TraversalState()
-    state.atomIDs = atomIDs
+    state.inPlaceBuffer = inPlaceBuffer
     state.levelSize = min(levelThreshold, highestLevelSize)
+    state.scratchBuffer = scratchBuffer
     state.threads = threads
     return state
   }

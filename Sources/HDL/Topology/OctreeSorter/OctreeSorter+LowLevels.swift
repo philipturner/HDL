@@ -9,25 +9,18 @@ import Dispatch
 
 extension OctreeSorter {
   func traverseLowLevels(state: TraversalState) -> [UInt32] {
-    guard let atomIDs = state.atomIDs,
+    guard let inPlaceBuffer_bypass = state.inPlaceBuffer,
           let levelSize = state.levelSize,
+          let scratchBuffer_bypass = state.scratchBuffer,
           let threads = state.threads else {
       fatalError("State was not fully specified.")
     }
     
+    // Bypass the annoying Swift concurrency warning.
     nonisolated(unsafe)
-    let inPlaceBuffer: UnsafeMutablePointer<UInt32> =
-      .allocate(capacity: atoms.count)
+    let inPlaceBuffer = inPlaceBuffer_bypass
     nonisolated(unsafe)
-    let scratchBuffer: UnsafeMutablePointer<UInt32> =
-      .allocate(capacity: 8 * atoms.count)
-    defer { scratchBuffer.deallocate() }
-    
-    // Initialize the list of atom IDs.
-    for i in 0..<atoms.count {
-      let atomID = atomIDs[i]
-      inPlaceBuffer[i] = atomID
-    }
+    let scratchBuffer = scratchBuffer_bypass
     
     // Iterate over the threads (via concurrent dispatch).
     // Iterate over the cells within the threads.
@@ -66,8 +59,8 @@ extension OctreeSorter {
         from: inPlaceBuffer, count: atoms.count)
       $1 = atoms.count
     }
-    inPlaceBuffer.deallocate()
     
+    withExtendedLifetime(state) { }
     return output
   }
   

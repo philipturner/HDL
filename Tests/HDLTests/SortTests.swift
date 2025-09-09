@@ -81,10 +81,7 @@ final class SortTests: XCTestCase {
   
 #if RELEASE
   func testSortPerformance() throws {
-    // Revert to 10 and true after any refactorings
-    // Default for this benchmarking period is 20 and false
     let latticeScale: Float = 20
-    let testParallel = Bool.random() ? false : false
     let lattice = Lattice<Hexagonal> { h, k, l in
       let h2k = h + 2 * k
       Bounds { latticeScale * (2 * h + h2k + l) }
@@ -92,13 +89,8 @@ final class SortTests: XCTestCase {
     }
     
     var output: [String] = []
-    if testParallel {
-      output.append("dataset    | octree | serial | parallel")
-      output.append("---------- | ------ | ------ | --------")
-    } else {
-      output.append("dataset    | octree |  grid ")
-      output.append("---------- | ------ | ------")
-    }
+    output.append("dataset    | octree |  grid ")
+    output.append("---------- | ------ | ------")
     
     struct Trial {
       var atoms: [Atom] = []
@@ -132,33 +124,12 @@ final class SortTests: XCTestCase {
     for trialID in 0..<4 {
       let trial = Trial(lattice: lattice, index: trialID)
       
-      let startParallel = Profiler.time()
-      nonisolated(unsafe)
-      var resultGrid1: [UInt32] = []
-      nonisolated(unsafe)
-      var resultGrid2: [UInt32] = []
-      if testParallel {
-        DispatchQueue.concurrentPerform(iterations: 2) { z in
-          var topology = Topology()
-          topology.atoms = trial.atoms
-          let resultGrid = topology.sort()
-          if z == 0 {
-            resultGrid1 = resultGrid
-          } else {
-            resultGrid2 = resultGrid
-          }
-        }
-      }
-      let endParallel = Profiler.time()
-      
       let startGrid = Profiler.time()
-      var topology = Topology()
-      topology.atoms = trial.atoms
-      let resultGrid = topology.sort()
-      if testParallel {
+      var resultGrid: [UInt32]
+      do {
         var topology = Topology()
         topology.atoms = trial.atoms
-        _ = topology.sort()
+        resultGrid = topology.sort()
       }
       let endGrid = Profiler.time()
       
@@ -169,41 +140,20 @@ final class SortTests: XCTestCase {
         let reordering = sorter.mortonReordering()
         resultOctree = OctreeSorter.invertOrder(reordering)
       }
-      if testParallel {
-        let sorter = OctreeSorter(atoms: trial.atoms)
-        let reordering = sorter.mortonReordering()
-        _ = OctreeSorter.invertOrder(reordering)
-      }
       let endOctree = Profiler.time()
-      
       XCTAssertEqual(resultGrid, resultOctree)
-      if testParallel {
-        XCTAssertEqual(resultGrid1, resultOctree)
-        XCTAssertEqual(resultGrid2, resultOctree)
-      }
       
-      let usParallel = Int((endParallel - startParallel) * 1e6)
       let usGrid = Int((endGrid - startGrid) * 1e6)
       let usOctree = Int((endOctree - startOctree) * 1e6)
-      
-      var reprParallel = "\(usParallel)"
       var reprGrid = "\(usGrid)"
       var reprOctree = "\(usOctree)"
-      
-      while reprParallel.count < 6 {
-        reprParallel = " \(reprParallel)"
-      }
       while reprGrid.count < 6 {
         reprGrid = " \(reprGrid)"
       }
       while reprOctree.count < 6 {
         reprOctree = " \(reprOctree)"
       }
-      if testParallel {
-        output.append("\(trial.name) | \(reprOctree) | \(reprGrid) | \(reprParallel)")
-      } else {
-        output.append("\(trial.name) | \(reprOctree) | \(reprGrid)")
-      }
+      output.append("\(trial.name) | \(reprOctree) | \(reprGrid)")
     }
     
     if Self.printPerformanceSummary {

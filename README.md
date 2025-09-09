@@ -2,12 +2,8 @@
 
 Remaining goals for this PR:
 - Fully optimize `topology.sort`. Clean up the code after migrating to the new algorithm.
-  - Fully inspect the performance of all known algorithm variants on the sparse geometries.
-- Start a second round of maintanance on `Reconstruction`, measuring and optimizing performance. Use the physical geometries developed to test Sort.
 - Understand and justify/delete the commented out code in `CubicGrid`. Clean up the concurrency warnings.
 - Make sure the library works correctly and efficiently on Windows.
-
-> TODO: Complete the above goals, as a prerequisite to any other work on CAD software. Accept that this will take a couple more weeks.
 
 Domain-specific language for molecular nanotechnology. This repository includes a geometry and bond topology compiler.
 

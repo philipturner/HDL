@@ -4,32 +4,6 @@ import XCTest
 final class SortTests: XCTestCase {
   static let printPerformanceSummary = true
   
-  // Expected performance on original benchmarked computer (M1 Max):
-  //
-  // bounds | atoms  | octree | serial | parallel | speedup
-  // ------ | ------ | ------ | ------ | -------- | ----------
-  // 10     |  16400 |   2370 |   1555 |      905 | 1.5 -> 2.6
-  
-  // With latest version of the code base (2 years later) + Swift 5.8:
-  //
-  // atoms: 16400
-  // dataset    | octree | serial | parallel
-  // ---------- | ------ | ------ | --------
-  // pre-sorted |   2060 |   1597 |    872
-  // lattice    |   2072 |   1571 |    907
-  // shuffled   |   2341 |   1697 |    898
-  // reversed   |   2069 |   1590 |    830
-  
-  // After removing inlining bottlenecks from Sort:
-  //
-  // atoms: 16400
-  // dataset    | octree | serial | parallel
-  // ---------- | ------ | ------ | --------
-  // pre-sorted |   1864 |   1070 |    728
-  // lattice    |   1808 |   1073 |    719
-  // shuffled   |   2192 |   1234 |    676
-  // reversed   |   1899 |   1017 |    711
-  
   func testDiagonalOrder() throws {
     func createLattice() -> Lattice<Cubic> {
       Lattice<Cubic> { h, k, l in
@@ -163,32 +137,6 @@ final class SortTests: XCTestCase {
         print(line)
       }
     }
-    
-    // During Topology.match, there are some situations where two similarly
-    // sized grids will be constructed. They might be the exact same, although
-    // the program can't detect that fact in a generalizable/robust manner.
-    // Parallelization offers a simpler alternative that, based on the data
-    // below, provides about the same speedup as eliding the compute work.
-    
-    // 'lattice' configuration, serial
-    //
-    // bounds | atoms  | octree |  0.25 |  0.5 |    1 |    2 |    4 | optimized
-    // ------ | ------ | ------ | ----- | ---- | ---- | ---- | ---- | ----------
-    // 5      |   2100 |    136 |   286 |  142 |  146 |      |      |  174
-    // 7      |   5684 |    411 |   472 |  299 |  315 |  508 |      |  293
-    // 10     |  16400 |   1168 |  2345 |  866 |  698 |  686 | 1276 |  887
-    // 14     |  44688 |   3333 |  3447 | 2122 | 1863 | 1775 | 3512 | 1891
-    // 20     | 129600 |   9245 | 19899 | 6695 | 5882 | 5332 | 4959 | 5403
-    
-    // 'lattice' configuration, 2x duplicated
-    //
-    // bounds | atoms  | octree | serial | parallel | speedup
-    // ------ | ------ | ------ | ------ | -------- | ----------
-    // 5      |   2100 |    314 |    298 |      186 | 1.1 -> 1.7
-    // 7      |   5684 |    750 |    562 |      344 | 1.3 -> 2.2
-    // 10     |  16400 |   2370 |   1555 |      905 | 1.5 -> 2.6
-    // 14     |  44688 |   6085 |   3789 |     2160 | 1.6 -> 2.8
-    // 20     | 129600 |  19932 |  10811 |     6567 | 1.8 -> 3.0
   }
 #endif
   

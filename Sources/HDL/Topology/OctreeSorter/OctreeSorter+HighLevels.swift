@@ -57,9 +57,8 @@ extension OctreeSorter {
         threadCount: threads.count,
         inputCellCount: inputCellCount)
       
-      DispatchQueue.concurrentPerform(
-        iterations: threads.count
-      ) { threadID in
+      @Sendable
+      func execute(threadID: Int) {
         let thread = threads[threadID]
         let inputPrefixSum = Int(threadCellOffsets[threadID])
         
@@ -105,6 +104,18 @@ extension OctreeSorter {
             results.outputChildCells[cellOffset] = cell
           }
           childPrefixSum += cellCount
+        }
+      }
+      
+      if threads.count == 0 {
+        fatalError("This should never happen.")
+      } else if threads.count == 1 {
+        execute(threadID: 0)
+      } else {
+        DispatchQueue.concurrentPerform(
+          iterations: threads.count
+        ) { threadID in
+          execute(threadID: threadID)
         }
       }
       

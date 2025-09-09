@@ -45,7 +45,7 @@ extension OctreeSorter {
     var threads: [Thread] = [createFirstThread()]
     nonisolated(unsafe)
     var levelSize = highestLevelSize
-    let levelThreshold: Float = 2
+    let levelThreshold: Float = 4
     while levelSize > levelThreshold {
       // Perform a prefix sum, to allocate memory for outputs.
       let threadCellOffsets = Self.cellOffsets(threads: threads)
@@ -336,13 +336,8 @@ extension OctreeSorter {
           // This fatal error will likely be triggered at some point, but I'd
           // rather check that it's possible before putting in a false
           // protection measure against the fault.
-          fatalError("""
-            Unexpected behavior: work splitting created a zero-sized task.
-            task count: \(workSplitting.taskCount)
-            task ID: \(taskID)
-            size: \(size)
-            atom count: \(atoms.count)
-            """)
+          fatalError(
+            "Unexpected behavior: work splitting created a zero-sized task.")
         }
         
         let thread = Thread(cells: cells)

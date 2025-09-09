@@ -52,7 +52,7 @@ extension OctreeSorter {
       }
     }
     
-    // Migrate the pointer's contents to an array, then deallocate.
+    // Migrate the pointer's contents to an array, then release the reference.
     let output = [UInt32](unsafeUninitializedCapacity: atoms.count) {
       let baseAddress = $0.baseAddress!
       baseAddress.initialize(

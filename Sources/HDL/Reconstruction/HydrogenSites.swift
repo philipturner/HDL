@@ -5,6 +5,8 @@
 //  Created by Philip Turner on 7/4/25.
 //
 
+import QuartzCore
+
 struct HydrogenSiteMap {
   var atomsToHydrogensMap: [[UInt32]] = []
   var hydrogensToAtomsMap: [[UInt32]] = []
@@ -16,15 +18,27 @@ extension Compilation {
     i: Int,
     bonds: [SIMD2<UInt32>]
   ) -> HydrogenSiteMap {
+    let checkpoint0 = CACurrentMediaTime()
     let orbitalLists = createOrbitalLists(
       bonds: bonds)
+    let checkpoint1 = CACurrentMediaTime()
+    display(checkpoint0, checkpoint1, "\(i) - createHydrogenSites/createOrbitalLists")
+    
     let hydrogenData = createHydrogenData(
       orbitalLists: orbitalLists)
+    let checkpoint2 = CACurrentMediaTime()
+    display(checkpoint1, checkpoint2, "\(i) - createHydrogenSites/createHydrogenData")
+    
     let rawMatches = Self.createMatches(
       hydrogenData: hydrogenData)
+    let checkpoint3 = CACurrentMediaTime()
+    display(checkpoint2, checkpoint3, "\(i) - createHydrogenSites/createMatches")
+    
     let filteredMatches = Self.filter(
       matches: rawMatches,
       hydrogenData: hydrogenData)
+    let checkpoint4 = CACurrentMediaTime()
+    display(checkpoint3, checkpoint4, "\(i) - createHydrogenSites/filter")
     
     var output = HydrogenSiteMap()
     output.atomsToHydrogensMap = Array(
@@ -51,11 +65,16 @@ extension Compilation {
         output.atomsToHydrogensMap[Int(j)].append(hydrogenID)
       }
     }
+    let checkpoint5 = CACurrentMediaTime()
+    display(checkpoint4, checkpoint5, "\(i) - createHydrogenSites/HydrogenSiteMap")
     
     // Sort each hydrogen list, in place.
     for j in atoms.indices {
       output.atomsToHydrogensMap[Int(j)].sort()
     }
+    let checkpoint6 = CACurrentMediaTime()
+    display(checkpoint5, checkpoint6, "\(i) - createHydrogenSites/sort")
+    
     return output
   }
   

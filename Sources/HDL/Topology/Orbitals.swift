@@ -33,12 +33,13 @@ extension Topology {
   // the worst parts. Now this is definitely out of scope for the current focus
   // on Topology.sort.
   public struct OrbitalStorage: Collection, Equatable, Sendable {
-    // TODO: Make the storage public?
-    @usableFromInline var storage: SIMD8<Float>
-    
     public typealias Index = Int
-    
     public typealias Element = SIMD3<Float>
+    
+    // Make it easier to go all the way when optimizing, accessing the
+    // underlying storage directly instead of relying on compiler-generated
+    // functions from the Sequence protocol.
+    public var storage: SIMD8<Float>
     
     @_transparent
     public var startIndex: Int { 0 }

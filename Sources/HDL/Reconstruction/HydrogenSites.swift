@@ -181,6 +181,8 @@ extension Compilation {
     hydrogenData: [SIMD4<Float>]
   ) -> [UInt32] {
     var atomList: [UInt32] = []
+    atomList.reserveCapacity(3)
+    
     for j in match {
       let data = hydrogenData[Int(j)]
       let atomID = data.w.bitPattern

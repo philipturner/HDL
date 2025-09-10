@@ -8,10 +8,10 @@ final class WorkspaceTests: XCTestCase {
     // 40 / 4 -  16281 atoms, ~3 ms
     // 80 / 8 - 122225 atoms, ~9 ms
     let lattice = Lattice<Cubic> { h, k, l in
-      Bounds { 80 * (h + k + l) }
+      Bounds { 40 * (h + k + l) }
       Material { .checkerboard(.silicon, .carbon) }
       
-      let beamWidth: Float = 8
+      let beamWidth: Float = 4
       
       Volume {
         Concave {

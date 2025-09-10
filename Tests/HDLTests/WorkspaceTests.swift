@@ -7,9 +7,14 @@ final class WorkspaceTests: XCTestCase {
   func testWorkspace() throws {
     let lattice = Lattice<Hexagonal> { h, k, l in
       let h2k = h + 2 * k
-      Bounds { 2 * h + 2 * h2k + 3 * l }
+      Bounds { 0 * h + 2 * h2k + 3 * l }
       Material { .elemental(.carbon) }
     }
+    
+//    let lattice = Lattice<Cubic> { h, k, l in
+//      Bounds { 0 * h + 2 * k + 0 * l }
+//      Material { .elemental(.carbon) }
+//    }
     
     // Specify the screen parameters.
     let binSizes = SIMD2<Float>(0.025, 0.05)

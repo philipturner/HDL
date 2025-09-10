@@ -14,7 +14,7 @@ final class ZeroTests: XCTestCase {
   }
   
   func testLatticeBounds() throws {
-    // Test cubic lattices.
+    // Cubic
     do {
       let lattice = Lattice<Cubic> { h, k, l in
         Bounds { 1 * h + 1 * k + 1 * l }
@@ -44,7 +44,7 @@ final class ZeroTests: XCTestCase {
       XCTAssertEqual(lattice.atoms.count, 1)
     }
     
-    // Test hexagonal lattices.
+    // Hexagonal, l = 1
     do {
       let lattice = Lattice<Hexagonal> { h, k, l in
         let h2k = h + 2 * k
@@ -72,6 +72,16 @@ final class ZeroTests: XCTestCase {
     do {
       let lattice = Lattice<Hexagonal> { h, k, l in
         let h2k = h + 2 * k
+        Bounds { 0 * h + 0 * h2k + 1 * l }
+        Material { .checkerboard(.silicon, .carbon) }
+      }
+      XCTAssertEqual(lattice.atoms.count, 0)
+    }
+    
+    // Hexagonal, l = 0
+    do {
+      let lattice = Lattice<Hexagonal> { h, k, l in
+        let h2k = h + 2 * k
         Bounds { 1 * h + 1 * h2k + 0 * l }
         Material { .checkerboard(.silicon, .carbon) }
       }
@@ -93,14 +103,18 @@ final class ZeroTests: XCTestCase {
       }
       XCTAssertEqual(lattice.atoms.count, 0)
     }
-    // crasher:
-    //   0 * h + 0 * h2k + 1 * l
-    // explicitly forbidden right now:
-    //   0 * h + 0 * h2k + 0 * l
+    do {
+      let lattice = Lattice<Hexagonal> { h, k, l in
+        let h2k = h + 2 * k
+        Bounds { 0 * h + 0 * h2k + 0 * l }
+        Material { .checkerboard(.silicon, .carbon) }
+      }
+      XCTAssertEqual(lattice.atoms.count, 0)
+    }
   }
   
   func testLatticeBoundsPlane() throws {
-    // Test cubic lattices.
+    // Cubic
     do {
       // 1, 1, 1
       let lattice = Lattice<Cubic> { h, k, l in
@@ -158,7 +172,7 @@ final class ZeroTests: XCTestCase {
       XCTAssertEqual(lattice.atoms.count, 1)
     }
     
-    // Test hexagonal lattices.
+    // Hexagonal, l = 1
     do {
       // 1, 1, 1
       let lattice = Lattice<Hexagonal> { h, k, l in
@@ -204,6 +218,23 @@ final class ZeroTests: XCTestCase {
       }
       XCTAssertEqual(lattice.atoms.count, 0)
     }
+    do {
+      // 0, 0, 1
+      let lattice = Lattice<Hexagonal> { h, k, l in
+        let h2k = h + 2 * k
+        Bounds { 0 * h + 0 * h2k + 1 * l }
+        Material { .checkerboard(.silicon, .carbon) }
+        
+        Volume {
+          Origin { 0.5 * h + 0.5 * h2k + 0.5 * l }
+          Plane { h + h2k + l }
+          Replace { .empty }
+        }
+      }
+      XCTAssertEqual(lattice.atoms.count, 0)
+    }
+    
+    // Hexagonal, l = 0
     do {
       // 1, 1, 0
       let lattice = Lattice<Hexagonal> { h, k, l in

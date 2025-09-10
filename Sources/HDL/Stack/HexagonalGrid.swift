@@ -272,7 +272,7 @@ struct HexagonalGrid: LatticeGrid {
        bounds.y <= 0 {
       // This crash may be intertwined with the TODO above, so we're not
       // implementing the proper solution yet.
-      fatalError("Hexagonal does not support zero h/k bounds at the moment.")
+//      fatalError("Hexagonal does not support zero h/k bounds at the moment.")
     }
     let transformedBounds = SIMD3<Float>(
       createBoundsX(),

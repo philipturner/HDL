@@ -53,7 +53,7 @@ final class WorkspaceTests: XCTestCase {
     print(lattice.atoms.count)
     
     // 40 / 4 -  15806 atoms, ~14 ms
-    // 80 / 8 - 121270 atoms, ~94 ms
+    // 80 / 8 - 121270 atoms, ~94 ms -> ~91 ms
     var reconstruction = Reconstruction()
     reconstruction.atoms = lattice.atoms
     reconstruction.material = .checkerboard(.silicon, .carbon)

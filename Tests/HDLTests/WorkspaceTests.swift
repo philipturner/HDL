@@ -5,11 +5,13 @@ import XCTest
 
 final class WorkspaceTests: XCTestCase {
   func testWorkspace() throws {
+    // 40 / 4 - 16281 atoms
+    // 80 / 8 - 122225 atoms
     let lattice = Lattice<Cubic> { h, k, l in
-      Bounds { 20 * (h + k + l) }
+      Bounds { 80 * (h + k + l) }
       Material { .checkerboard(.silicon, .carbon) }
       
-      let beamWidth: Float = 2
+      let beamWidth: Float = 8
       
       Volume {
         Concave {

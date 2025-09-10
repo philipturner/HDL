@@ -9,10 +9,10 @@ Domain-specific language for molecular nanotechnology. This repository includes 
 Table of Contents
 - [Overview](#overview)
 - [API](#)
-    - [Lattice](./Documentation/API/Lattice.md)
-    - [Reconstruction](./Documentation/API/Reconstruction.md)
-    - [Topology](./Documentation/API/Topology.md)
-    - [Volume](./Documentation/API/Volume.md)
+  - [Lattice](./Documentation/API/Lattice.md)
+  - [Reconstruction](./Documentation/API/Reconstruction.md)
+  - [Topology](./Documentation/API/Topology.md)
+  - [Volume](./Documentation/API/Volume.md)
 - [Testing](#testing)
 
 ## Overview

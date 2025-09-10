@@ -7,6 +7,13 @@
 
 import QuartzCore
 
+private func display(_ start: Double, _ end: Double, _ name: String)  {
+  let seconds = end - start
+  let milliseconds = seconds * 1e3
+  let repr = String(format: "%.3f", milliseconds)
+  print("\(name):", repr, "ms")
+}
+
 struct Compilation {
   var atoms: [SIMD4<Float>]
   let material: MaterialType
@@ -15,7 +22,7 @@ struct Compilation {
     let start = CACurrentMediaTime()
     removeMethylSites()
     let end = CACurrentMediaTime()
-    let time = 
+    display(start, end, "removeMethylSites")
     
     // Loop over this a few times (typically less than 10).
     for i in 0..<100 {

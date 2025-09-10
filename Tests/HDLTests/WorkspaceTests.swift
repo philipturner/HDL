@@ -12,7 +12,7 @@ final class WorkspaceTests: XCTestCase {
       SIMD4(0.00, 0.00, 0.50, 6),
     ]
     
-    // Objective: render these atoms in a 2D command-line render.
+    // Specify the screen parameters.
     let binSize: Float = 0.1
     let binCount: Int = 10
     let origin = SIMD2<Float>(0.0, 0.0)
@@ -20,6 +20,7 @@ final class WorkspaceTests: XCTestCase {
       repeating: true,
       count: binCount * binCount)
     
+    // Mark the atoms on the screen.
     for atom in atoms {
       let coordsXY = SIMD2(atom.x, atom.y) - origin
       let bin = (coordsXY / binSize).rounded(.down)
@@ -27,6 +28,12 @@ final class WorkspaceTests: XCTestCase {
       if any(binInt .< 0) || any(binInt .>= binCount) {
         fatalError("Atom \(atom) was outside of bounds: \(bin)")
       }
+      
+      let binMemoryIndex = binInt.y * binCount + binInt.x
+      pixelArray[binMemoryIndex] = true
     }
+    
+    // Display the screen.
+    
   }
 }

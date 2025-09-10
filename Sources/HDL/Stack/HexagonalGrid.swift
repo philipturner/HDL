@@ -150,7 +150,7 @@ struct HexagonalMask: LatticeMask {
         // actual floating-point value should start at -0.5.
         for y in start.y..<min(end.y, dimensions.y) {
           let parityOffset: Float = (y & 1 == 0) ? 1.5 : 0.0
-          let loopOffset: Int32 = (y & 1 == 0) ? -1 : 0
+          let loopOffset: Int32 = (y & 1 == 0) ? 0 : 0
           var baseAddress = (z &* dimensions.y &+ y)
           baseAddress = baseAddress &* dimensions.x
           
@@ -289,8 +289,6 @@ struct HexagonalGrid: LatticeGrid {
     hexagonSideLength = Constant(.hexagon) { materialType }
     prismHeight = Constant(.prism) { materialType }
     
-    print("Hexagonal grid dimensions:", dimensions)
-    
     // Intersect the lattice with some h/h + 2k/l planes.
     let hMinus = transformHH2KLtoHKL(SIMD3<Float>(-1, 0, 0))
     let hPlus = transformHH2KLtoHKL(SIMD3<Float>(1, 0, 0))
@@ -328,7 +326,7 @@ struct HexagonalGrid: LatticeGrid {
     for z in 0..<dimensions.z {
       for y in 0..<dimensions.y {
         let parityOffset: Float = (y & 1 == 0) ? 1.5 : 0.0
-        let loopOffset: Int32 = (y & 1 == 0) ? -1 : 0
+        let loopOffset: Int32 = (y & 1 == 0) ? 0 : 0
         var baseAddress = (z &* dimensions.y &+ y)
         baseAddress = baseAddress &* dimensions.x
         

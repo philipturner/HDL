@@ -289,6 +289,8 @@ struct HexagonalGrid: LatticeGrid {
     hexagonSideLength = Constant(.hexagon) { materialType }
     prismHeight = Constant(.prism) { materialType }
     
+    print("Hexagonal grid dimensions:", dimensions)
+    
     // Intersect the lattice with some h/h + 2k/l planes.
     let hMinus = transformHH2KLtoHKL(SIMD3<Float>(-1, 0, 0))
     let hPlus = transformHH2KLtoHKL(SIMD3<Float>(1, 0, 0))

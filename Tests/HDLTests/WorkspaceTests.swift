@@ -5,9 +5,34 @@ import XCTest
 
 final class WorkspaceTests: XCTestCase {
   func testWorkspace() throws {
+    // Hexagonal grid dimensions:
+    //
+    // 0,0,3 ->
+    // 0,1,3 ->
+    // 0,2,3 ->
+    // 0,3,3 ->
+    // 0,4,3 ->
+    // 0,5,3 ->
+    // 0,6,3 ->
+    //
+    // 1,0,3 ->
+    // 1,1,3 ->
+    // 1,2,3 ->
+    // 1,3,3 ->
+    // 1,4,3 ->
+    // 1,5,3 ->
+    // 1,6,3 ->
+    //
+    // 2,0,3 ->
+    // 2,1,3 ->
+    // 2,2,3 ->
+    // 2,3,3 ->
+    // 2,4,3 ->
+    // 2,5,3 ->
+    // 2,6,3 ->
     let lattice = Lattice<Hexagonal> { h, k, l in
       let h2k = h + 2 * k
-      Bounds { 2 * h + 4 * h2k + 3 * l }
+      Bounds { 2 * h + 3 * h2k + 3 * l }
       Material { .elemental(.carbon) }
     }
     

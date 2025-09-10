@@ -10,8 +10,12 @@ import QuartzCore
 func display(_ start: Double, _ end: Double, _ name: String)  {
   let seconds = end - start
   let milliseconds = seconds * 1e3
-  let repr = String(format: "%.3f", milliseconds)
-  print("\(name):", repr, "ms")
+  var repr = String(format: "%.3f", milliseconds)
+  while repr.count < "xxxx.xxx".count {
+    repr = " " + repr
+  }
+  
+  print(repr, "ms", "|", name)
 }
 
 struct Compilation {

@@ -16,7 +16,10 @@ struct HydrogenSiteMap {
 extension Compilation {
   // Before the change:
   //    0.289 ms | 1 - createHydrogenSites/createHydrogenData
+  //    0.044 ms | 1 - createHydrogenSites/createHydrogenData
+  //
   //    1.386 ms | 0 - createHydrogenSites/createHydrogenData
+  //    0.323 ms | 1 - createHydrogenSites/createHydrogenData
   func createHydrogenSites(
     i: Int,
     bonds: [SIMD2<UInt32>]
@@ -104,10 +107,26 @@ extension Compilation {
     for i in atoms.indices {
       let atom = atoms[i]
       let orbitalList = orbitalLists[i]
-      for orbital in orbitalList {
-        let atomPosition = unsafeBitCast(atom, to: SIMD3<Float>.self)
+//      for orbital in orbitalList {
+//        let atomPosition = unsafeBitCast(atom, to: SIMD3<Float>.self)
+//        let hydrogenPosition = atomPosition + bondLength * orbital
+//        let encodedID = Float(bitPattern: UInt32(i))
+//        output.append(SIMD4(hydrogenPosition, encodedID))
+//      }
+      
+      let storage = unsafeBitCast(orbitalList, to: SIMD8<Float>.self)
+      let atomPosition = unsafeBitCast(atom, to: SIMD3<Float>.self)
+      let encodedID = Float(bitPattern: UInt32(i))
+      
+      if storage[7] >= 1 {
+        let orbital = unsafeBitCast(storage.lowHalf, to: SIMD3<Float>.self)
         let hydrogenPosition = atomPosition + bondLength * orbital
-        let encodedID = Float(bitPattern: UInt32(i))
+        output.append(SIMD4(hydrogenPosition, encodedID))
+      }
+      
+      if storage[7] == 2 {
+        let orbital = unsafeBitCast(storage.highHalf, to: SIMD3<Float>.self)
+        let hydrogenPosition = atomPosition + bondLength * orbital
         output.append(SIMD4(hydrogenPosition, encodedID))
       }
     }

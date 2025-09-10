@@ -195,53 +195,7 @@ struct CubicMask: LatticeMask {
           }
         }
       }
-      
-      #if false
-      let sectorsX = (dimensions.x &+ 7) / 8
-      let sectorsY = (dimensions.y &+ 7) / 8
-      let sectorsZ = (dimensions.z &+ 7) / 8
-      for sectorZ in 0..<sectorsZ {
-        for sectorY in 0..<sectorsY {
-          for sectorX in 0..<sectorsX {
-            let permX = SIMD8<UInt8>(0, 0, 0, 0, 1, 1, 1, 1)
-            let permY = SIMD8<UInt8>(0, 0, 1, 1, 0, 0, 1, 1)
-            let permZ = SIMD8<UInt8>(0, 1, 0, 1, 0, 1, 0, 1)
-            var trialX = SIMD8(repeating: Float(sectorX) * 8 - origin.x)
-            var trialY = SIMD8(repeating: Float(sectorY) * 8 - origin.y)
-            var trialZ = SIMD8(repeating: Float(sectorZ) * 8 - origin.z)
-            trialX += SIMD8<Float>(permX) * 8
-            trialY += SIMD8<Float>(permY) * 8
-            trialZ += SIMD8<Float>(permZ) * 8
             
-            var dotProduct = trialX * normal.x
-            dotProduct += trialY * normal.y
-            dotProduct += trialZ * normal.z
-            let allNegative = all(dotProduct .< 0)
-            let allPositive = all(dotProduct .> 0)
-            
-            let sector = SIMD3(sectorX, sectorY, sectorZ) &* 8
-            if allPositive {
-              // already initialized to 1111_1111
-            } else if allNegative {
-              let xFirst = sector.x / 4
-              let xSecond = min(dims.x &- 4, sector.x &+ 4) / 4
-              for z in sector.z..<min(dims.z, sector.z &+ 8) {
-                for y in sector.y..<min(dims.y, sector.y &+ 8) {
-                  let base = z &* dims.y &+ y
-                  let address1 = base &* (dims.x / 4) &+ xFirst
-                  let address2 = base &* (dims.x / 4) &+ xSecond
-                  mask32[Int(address1)] = .zero
-                  mask32[Int(address2)] = .zero
-                }
-              }
-            } else {
-              intersect4(sector: sector)
-            }
-          }
-        }
-      }
-      #else
-      
       let largeBlockSize: Int32 = 32
       let boundsBlock = (dimensions &+ largeBlockSize &- 1) / largeBlockSize
       
@@ -318,7 +272,6 @@ struct CubicMask: LatticeMask {
           execute(block: tasks[z])
         }
       }
-      #endif
     }
     #endif
   }

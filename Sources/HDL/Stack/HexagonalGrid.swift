@@ -67,9 +67,12 @@ struct HexagonalCell {
     dotProduct1 += delta_z1 * scaledNormal.z
     
     var mask: SIMD16<Int32> = .zero
-    mask.lowHalf.replace(with: SIMD8(repeating: .max), where: dotProduct0 .> 0)
-    mask.highHalf.lowHalf
-      .replace(with: SIMD4(repeating: .max), where: dotProduct1 .> 0)
+    mask.lowHalf.replace(
+      with: SIMD8(repeating: .max),
+      where: dotProduct0 .> 0)
+    mask.highHalf.lowHalf.replace(
+      with: SIMD4(repeating: .max),
+      where: dotProduct1 .> 0)
     let compressed = SIMD16<UInt16>(truncatingIfNeeded: mask)
     return (compressed & HexagonalCell.flags).wrappedSum()
   }
@@ -89,15 +92,15 @@ struct HexagonalMask: LatticeMask {
     origin: SIMD3<Float>,
     normal untransformedNormal0: SIMD3<Float>
   ) {
-    var normal0 = unsafeBitCast(
-      (untransformedNormal0), to: SIMD4<Float>.self)
-    normal0.lowHalf -= 0.5 * SIMD2(normal0[1], normal0[0])
-    let normal = unsafeBitCast(normal0, to: SIMD3<Float>.self)
+    var normal0 = untransformedNormal0
     
+    let subtractedVector = 0.5 * SIMD2(normal0.y, normal0.x)
+    normal0.x -= subtractedVector.x
+    normal0.y -= subtractedVector.y
     mask = Self.createMask(
       dimensions: dimensions,
       origin: origin,
-      normal: normal)
+      normal: normal0)
   }
   
   private static func createMask(

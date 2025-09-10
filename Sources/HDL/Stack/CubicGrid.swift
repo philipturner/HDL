@@ -35,7 +35,9 @@ struct CubicCell {
     dotProduct0 += delta_z0 * scaledNormal.z
     
     var mask0: SIMD8<Int32> = .zero
-    mask0.replace(with: SIMD8(repeating: .max), where: dotProduct0 .> 0)
+    mask0.replace(
+      with: SIMD8(repeating: .max),
+      where: dotProduct0 .> 0)
     let compressed = SIMD8<UInt8>(truncatingIfNeeded: mask0)
     return (compressed & CubicCell.flags).wrappedSum()
   }

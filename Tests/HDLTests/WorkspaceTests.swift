@@ -5,15 +5,10 @@ import XCTest
 
 final class WorkspaceTests: XCTestCase {
   func testWorkspace() throws {
-    let lattice = Lattice<Cubic> { h, k, l in
-      Bounds { 3 * h + 3 * k + 3 * l }
+    let lattice = Lattice<Hexagonal> { h, k, l in
+      let h2k = h + 2 * k
+      Bounds { 2 * h + 4 * h2k + 3 * l }
       Material { .elemental(.carbon) }
-      
-      Volume {
-        Origin { 0.3 * l }
-        Plane { l }
-        Replace { .empty }
-      }
     }
     
     // Specify the screen parameters.

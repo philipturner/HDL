@@ -26,15 +26,26 @@ struct Compilation {
     
     // Loop over this a few times (typically less than 10).
     for i in 0..<100 {
+      let checkpoint0 = CACurrentMediaTime()
       let carbonSites = createCarbonSites()
+      let checkpoint1 = CACurrentMediaTime()
+      display(checkpoint0, checkpoint1, "\(i) - createCarbonSites")
+      
       let hydrogenSites = createHydrogenSites(
         bonds: carbonSites.bonds)
+      let checkpoint2 = CACurrentMediaTime()
+      display(checkpoint1, checkpoint2, "\(i) - createHydrogenSites")
       
       // Check whether there are still 3-way collisions.
       if hydrogenSites.hydrogensToAtomsMap.contains(where: { $0.count > 2 }) {
         let plugs = plugThreeWayCollisions(
           siteMap: hydrogenSites)
+        let checkpoint3 = CACurrentMediaTime()
+        display(checkpoint2, checkpoint3, "\(i) - plugThreeWayCollisions")
+        
         self.atoms += plugs
+        let checkpoint4 = CACurrentMediaTime()
+        display(checkpoint3, checkpoint4, "\(i) - self.atoms += plugs")
       } else {
         var dimerProcessor = DimerProcessor()
         dimerProcessor.atomsToHydrogensMap = hydrogenSites.atomsToHydrogensMap
@@ -42,9 +53,19 @@ struct Compilation {
         
         let hydrogenChains = dimerProcessor.createHydrogenChains(
           centerTypes: carbonSites.centerTypes)
+        let checkpoint5 = CACurrentMediaTime()
+        display(checkpoint2, checkpoint5, "\(i) - createHydrogenChains")
+        
         let dimerBonds = dimerProcessor.destroyCollisions(
           hydrogenChains: hydrogenChains)
-        return carbonSites.bonds + dimerBonds
+        let checkpoint6 = CACurrentMediaTime()
+        display(checkpoint5, checkpoint6, "\(i) - destroyCollisions")
+        
+        let output = carbonSites.bonds + dimerBonds
+        let checkpoint7 = CACurrentMediaTime()
+        display(checkpoint6, checkpoint7, "\(i) - carbonSites.bonds + dimerBonds")
+        
+        return output
       }
     }
     

@@ -150,11 +150,10 @@ struct HexagonalMask: LatticeMask {
         // actual floating-point value should start at -0.5.
         for y in start.y..<min(end.y, dimensions.y) {
           let parityOffset: Float = (y & 1 == 0) ? 1.5 : 0.0
-          let loopOffset: Int32 = (y & 1 == 0) ? 0 : 0
           var baseAddress = (z &* dimensions.y &+ y)
           baseAddress = baseAddress &* dimensions.x
           
-          for x in start.x..<min(end.x, dimensions.x + loopOffset) {
+          for x in start.x..<min(end.x, dimensions.x) {
             var lowerCorner = SIMD3(Float(x) * 3 + parityOffset,
                                     Float(y) - 1,
                                     Float(z))
@@ -326,11 +325,10 @@ struct HexagonalGrid: LatticeGrid {
     for z in 0..<dimensions.z {
       for y in 0..<dimensions.y {
         let parityOffset: Float = (y & 1 == 0) ? 1.5 : 0.0
-        let loopOffset: Int32 = (y & 1 == 0) ? 0 : 0
         var baseAddress = (z &* dimensions.y &+ y)
         baseAddress = baseAddress &* dimensions.x
         
-        for x in 0..<dimensions.x + loopOffset {
+        for x in 0..<dimensions.x {
           var lowerCorner = SIMD3<Float>(SIMD3(x, y, z))
           lowerCorner.x *= 3
           lowerCorner.x += parityOffset

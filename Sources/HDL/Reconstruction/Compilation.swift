@@ -7,7 +7,7 @@
 
 import QuartzCore
 
-private func display(_ start: Double, _ end: Double, _ name: String)  {
+func display(_ start: Double, _ end: Double, _ name: String)  {
   let seconds = end - start
   let milliseconds = seconds * 1e3
   let repr = String(format: "%.3f", milliseconds)
@@ -19,10 +19,7 @@ struct Compilation {
   let material: MaterialType
   
   mutating func compile() -> [SIMD2<UInt32>] {
-    let start = CACurrentMediaTime()
     removeMethylSites()
-    let end = CACurrentMediaTime()
-    display(start, end, "removeMethylSites")
     
     // Loop over this a few times (typically less than 10).
     for i in 0..<100 {

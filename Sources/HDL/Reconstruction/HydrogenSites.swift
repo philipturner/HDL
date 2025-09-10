@@ -13,6 +13,7 @@ struct HydrogenSiteMap {
 
 extension Compilation {
   func createHydrogenSites(
+    i: Int,
     bonds: [SIMD2<UInt32>]
   ) -> HydrogenSiteMap {
     let orbitalLists = createOrbitalLists(

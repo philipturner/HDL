@@ -81,11 +81,15 @@ struct CubicMask: LatticeMask {
     #else
     mask.withUnsafeMutableBufferPointer { buffer in
       let opaque = OpaquePointer(buffer.baseAddress.unsafelyUnwrapped)
+      nonisolated(unsafe)
       let mask8 = UnsafeMutablePointer<UInt8>(opaque)
+      nonisolated(unsafe)
       let mask16 = UnsafeMutablePointer<UInt16>(opaque)
+      nonisolated(unsafe)
       let mask32 = UnsafeMutablePointer<UInt32>(opaque)
       let dims = dimensions
       
+      @Sendable
       @inline(__always)
       func intersect1(sector: SIMD3<Int32>) {
         let floatX = Float(sector.x)
@@ -108,6 +112,7 @@ struct CubicMask: LatticeMask {
         }
       }
       
+      @Sendable
       @inline(__always)
       func intersect2(sector: SIMD3<Int32>) {
         var loopBounds = (dimensions &- sector &+ 1) / 2
@@ -152,6 +157,7 @@ struct CubicMask: LatticeMask {
         }
       }
       
+      @Sendable
       @inline(__always)
       func intersect4(sector: SIMD3<Int32>) {
         var loopBounds = (dimensions &- sector &+ 3) / 4
@@ -198,8 +204,7 @@ struct CubicMask: LatticeMask {
       
       let largeBlockSize: Int32 = 32
       
-      // TODO: Fix the multiple errors that spawn when marking this function
-      // as @Sendable.
+      @Sendable
       @inline(never)
       func execute(block: SIMD3<Int32>) {
         let start = block &* (largeBlockSize / 8)
@@ -266,8 +271,6 @@ struct CubicMask: LatticeMask {
       
       let tasks = createTasks()
       if tasks.count < 4 {
-        // Fall back to this if the multithreaded version is slow on a
-        // particular platform (e.g. Windows).
         for task in tasks {
           execute(block: task)
         }

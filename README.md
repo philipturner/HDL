@@ -1,7 +1,6 @@
 # Hardware Description Language
 
 Remaining goals for this PR:
-- Understand and justify/delete the commented out code in `CubicGrid`. Clean up the concurrency warnings.
 - Search for unexpected latency bottlenecks in `Reconstruction` regarding `nonbondingOrbitals`.
 - Make sure the library works correctly and efficiently on Windows.
 

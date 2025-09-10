@@ -262,18 +262,6 @@ struct HexagonalGrid: LatticeGrid {
       return Float(divided)
     }
     
-    // TODO: If possible, revise the API, so the number of hexagons chopped off
-    // corresponds to the integer value for the 'h' dimension. Perhaps this
-    // can be accomplished in the 'atoms' getter. Try improving the handling
-    // of the 'h2k' dimension as well.
-    //
-    // Do this when you have a functioning renderer that supports Windows.
-    if bounds.x <= 0,
-       bounds.y <= 0 {
-      // This crash may be intertwined with the TODO above, so we're not
-      // implementing the proper solution yet.
-//      fatalError("Hexagonal does not support zero h/k bounds at the moment.")
-    }
     let transformedBounds = SIMD3<Float>(
       createBoundsX(),
       bounds.y + 1,

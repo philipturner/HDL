@@ -1,10 +1,8 @@
 # Hardware Description Language
 
 Remaining goals for this PR:
-- Fix the problem with bounds of a hexagonal grid.
-  - Command-line text rendering might be the easiest option, provided this is restricted to 2D.
-- Search for unexpected latency bottlenecks in `Reconstruction` regarding `nonbondingOrbitals`.
 - Understand and justify/delete the commented out code in `CubicGrid`. Clean up the concurrency warnings.
+- Search for unexpected latency bottlenecks in `Reconstruction` regarding `nonbondingOrbitals`.
 - Make sure the library works correctly and efficiently on Windows.
 
 Domain-specific language for molecular nanotechnology. This repository includes a geometry and bond topology compiler.

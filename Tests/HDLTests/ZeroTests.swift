@@ -280,10 +280,21 @@ final class ZeroTests: XCTestCase {
       }
       XCTAssertEqual(lattice.atoms.count, 0)
     }
-    // crasher:
-    //   0 * h + 0 * h2k + 1 * l
-    // explicitly forbidden right now:
-    //   0 * h + 0 * h2k + 0 * l
+    do {
+      // 0, 0, 0
+      let lattice = Lattice<Hexagonal> { h, k, l in
+        let h2k = h + 2 * k
+        Bounds { 0 * h + 0 * h2k + 0 * l }
+        Material { .checkerboard(.silicon, .carbon) }
+        
+        Volume {
+          Origin { 0.5 * h + 0.5 * h2k + 0.5 * l }
+          Plane { h + h2k + l }
+          Replace { .empty }
+        }
+      }
+      XCTAssertEqual(lattice.atoms.count, 0)
+    }
   }
   
   func testTopologyMap() throws {

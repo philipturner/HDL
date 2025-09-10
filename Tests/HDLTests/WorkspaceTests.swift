@@ -5,23 +5,27 @@ import XCTest
 
 final class WorkspaceTests: XCTestCase {
   func testWorkspace() throws {
-    let atoms: [SIMD4<Float>] = [
-      SIMD4(0.00, 0.00, 0.00, 6),
-      SIMD4(0.50, 0.00, 0.00, 6),
-      SIMD4(0.00, 0.50, 0.00, 6),
-      SIMD4(0.00, 0.00, 0.50, 6),
-    ]
+    let lattice = Lattice<Cubic> { h, k, l in
+      Bounds { 3 * h + 3 * k + 3 * l }
+      Material { .elemental(.carbon) }
+      
+      Volume {
+        Origin { 0.3 * l }
+        Plane { l }
+        Replace { .empty }
+      }
+    }
     
     // Specify the screen parameters.
-    let binSizes = SIMD2<Float>(0.05, 0.1)
-    let binCounts = SIMD2<Int>(20, 10)
+    let binSizes = SIMD2<Float>(0.025, 0.05)
+    let binCounts = SIMD2<Int>(80, 40)
     let origin = SIMD2<Float>(0.0, 0.0)
     var pixelArray = [Bool](
       repeating: false,
       count: binCounts.x * binCounts.y)
     
     // Mark the atoms on the screen.
-    for atom in atoms {
+    for atom in lattice.atoms {
       let coordsXY = SIMD2(atom.x, atom.y) - origin
       let bin = (coordsXY / binSizes).rounded(.down)
       let binInt = SIMD2<Int>(bin)

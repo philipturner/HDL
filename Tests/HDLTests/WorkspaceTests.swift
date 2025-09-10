@@ -5,13 +5,13 @@ import XCTest
 
 final class WorkspaceTests: XCTestCase {
   func testWorkspace() throws {
-    // 40 / 4 - 16281 atoms
-    // 80 / 8 - 122225 atoms
+    // 40 / 4 -  16281 atoms, ~3 ms
+    // 80 / 8 - 122225 atoms, ~9 ms
     let lattice = Lattice<Cubic> { h, k, l in
-      Bounds { 80 * (h + k + l) }
+      Bounds { 40 * (h + k + l) }
       Material { .checkerboard(.silicon, .carbon) }
       
-      let beamWidth: Float = 8
+      let beamWidth: Float = 4
       
       Volume {
         Concave {
@@ -51,5 +51,13 @@ final class WorkspaceTests: XCTestCase {
       }
     }
     print(lattice.atoms.count)
+    
+    // 40 / 4 -  15806 atoms, ~14 ms
+    // 80 / 8 - 121270 atoms, ~94 ms
+    var reconstruction = Reconstruction()
+    reconstruction.atoms = lattice.atoms
+    reconstruction.material = .checkerboard(.silicon, .carbon)
+    let topology = reconstruction.compile()
+    print(topology.atoms.count)
   }
 }

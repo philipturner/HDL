@@ -107,28 +107,44 @@ extension Compilation {
     for i in atoms.indices {
       let atom = atoms[i]
       let orbitalList = orbitalLists[i]
-//      for orbital in orbitalList {
-//        let atomPosition = unsafeBitCast(atom, to: SIMD3<Float>.self)
-//        let hydrogenPosition = atomPosition + bondLength * orbital
-//        let encodedID = Float(bitPattern: UInt32(i))
-//        output.append(SIMD4(hydrogenPosition, encodedID))
-//      }
-      
       let storage = unsafeBitCast(orbitalList, to: SIMD8<Float>.self)
+      
       let atomPosition = unsafeBitCast(atom, to: SIMD3<Float>.self)
       let encodedID = Float(bitPattern: UInt32(i))
       
-      if storage[7] >= 1 {
-        let orbital = unsafeBitCast(storage.lowHalf, to: SIMD3<Float>.self)
+      for orbitalID in 0..<orbitalList.endIndex {
+//        var vec4: SIMD4<Float>
+//        switch orbitalID {
+//        case 0:
+//          vec4 = storage.lowHalf
+//        case 1:
+//          vec4 = storage.highHalf
+//        default:
+//          fatalError("Invalid position: \(orbitalID)")
+//        }
+//        
+//        let orbital = unsafeBitCast(vec4, to: SIMD3<Float>.self)
+        
+        let orbital = orbitalList[orbitalID]
         let hydrogenPosition = atomPosition + bondLength * orbital
         output.append(SIMD4(hydrogenPosition, encodedID))
       }
       
-      if storage[7] == 2 {
-        let orbital = unsafeBitCast(storage.highHalf, to: SIMD3<Float>.self)
-        let hydrogenPosition = atomPosition + bondLength * orbital
-        output.append(SIMD4(hydrogenPosition, encodedID))
-      }
+//      let storage = unsafeBitCast(orbitalList, to: SIMD8<Float>.self)
+//      let atomPosition = unsafeBitCast(atom, to: SIMD3<Float>.self)
+//      let encodedID = Float(bitPattern: UInt32(i))
+//      
+//      if storage[7] >= 1 {
+//        let orbital = unsafeBitCast(storage.lowHalf, to: SIMD3<Float>.self)
+//        let hydrogenPosition = atomPosition + bondLength * orbital
+//        output.append(SIMD4(hydrogenPosition, encodedID))
+//      }
+//      
+//      if storage[7] == 2 {
+//        let orbital = unsafeBitCast(storage.highHalf, to: SIMD3<Float>.self)
+//        let hydrogenPosition = atomPosition + bondLength * orbital
+//        output.append(SIMD4(hydrogenPosition, encodedID))
+//      }
     }
     
     return output

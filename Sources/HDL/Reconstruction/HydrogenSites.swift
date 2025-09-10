@@ -14,6 +14,9 @@ struct HydrogenSiteMap {
 }
 
 extension Compilation {
+  // Before the change:
+  //    0.289 ms | 1 - createHydrogenSites/createHydrogenData
+  //    1.386 ms | 0 - createHydrogenSites/createHydrogenData
   func createHydrogenSites(
     i: Int,
     bonds: [SIMD2<UInt32>]

@@ -5,15 +5,20 @@
 //  Created by Philip Turner on 7/2/25.
 //
 
+import QuartzCore
+
 struct Compilation {
   var atoms: [SIMD4<Float>]
   let material: MaterialType
   
   mutating func compile() -> [SIMD2<UInt32>] {
+    let start = CACurrentMediaTime()
     removeMethylSites()
+    let end = CACurrentMediaTime()
+    let time = 
     
     // Loop over this a few times (typically less than 10).
-    for _ in 0..<100 {
+    for i in 0..<100 {
       let carbonSites = createCarbonSites()
       let hydrogenSites = createHydrogenSites(
         bonds: carbonSites.bonds)

@@ -5,6 +5,13 @@ import XCTest
 
 final class WorkspaceTests: XCTestCase {
   func testWorkspace() throws {
-    print("Hello, world.")
+    let atoms: [SIMD4<Float>] = [
+      SIMD4(0.00, 0.00, 0.00, 6),
+      SIMD4(0.50, 0.00, 0.00, 6),
+      SIMD4(0.00, 0.50, 0.00, 6),
+      SIMD4(0.00, 0.00, 0.50, 6),
+    ]
+    
+    // Objective: render these atoms in a 2D command-line render.
   }
 }

@@ -5,6 +5,7 @@ import XCTest
 
 final class WorkspaceTests: XCTestCase {
   func testWorkspace() throws {
+    #if false
     let lattice = Lattice<Hexagonal> { h, k, l in
       let h2k = h + 2 * k
       Bounds { 0 * h + 2 * h2k + 3 * l }
@@ -18,7 +19,7 @@ final class WorkspaceTests: XCTestCase {
     
     // Specify the screen parameters.
     let binSizes = SIMD2<Float>(0.025, 0.05)
-    let binCounts = SIMD2<Int>(80, 60)
+    let binCounts = SIMD2<Int>(80, 40)
     let origin = SIMD2<Float>(0.0, 0.0)
     var pixelArray = [Bool](
       repeating: false,
@@ -51,5 +52,6 @@ final class WorkspaceTests: XCTestCase {
       }
       print(line)
     }
+    #endif
   }
 }

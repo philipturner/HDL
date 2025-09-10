@@ -195,9 +195,8 @@ struct CubicMask: LatticeMask {
           }
         }
       }
-            
+      
       let largeBlockSize: Int32 = 32
-      let boundsBlock = (dimensions &+ largeBlockSize &- 1) / largeBlockSize
       
       // TODO: Fix the multiple errors that spawn when marking this function
       // as @Sendable.
@@ -250,17 +249,22 @@ struct CubicMask: LatticeMask {
         }
       }
       
-      let start: SIMD3<Int32> = .zero
-      let end = boundsBlock
-      var tasks: [SIMD3<Int32>] = []
-      for sectorZ in start.z..<end.z {
-        for sectorY in start.y..<end.y {
-          for sectorX in start.x..<end.x {
-            tasks.append(SIMD3(sectorX, sectorY, sectorZ))
+      func createTasks() -> [SIMD3<Int32>] {
+        let start: SIMD3<Int32> = .zero
+        let end = (dimensions &+ largeBlockSize &- 1) / largeBlockSize
+        
+        var output: [SIMD3<Int32>] = []
+        for sectorZ in start.z..<end.z {
+          for sectorY in start.y..<end.y {
+            for sectorX in start.x..<end.x {
+              output.append(SIMD3(sectorX, sectorY, sectorZ))
+            }
           }
         }
+        return output
       }
       
+      let tasks = createTasks()
       if tasks.count < 4 {
         // Fall back to this if the multithreaded version is slow on a
         // particular platform (e.g. Windows).

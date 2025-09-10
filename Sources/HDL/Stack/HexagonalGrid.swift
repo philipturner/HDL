@@ -94,14 +94,27 @@ struct HexagonalMask: LatticeMask {
     normal0.lowHalf -= 0.5 * SIMD2(normal0[1], normal0[0])
     let normal = unsafeBitCast(normal0, to: SIMD3<Float>.self)
     
+    mask = Self.createMask(
+      dimensions: dimensions,
+      origin: origin,
+      normal: normal)
+  }
+  
+  private static func createMask(
+    dimensions: SIMD3<Int32>,
+    origin: SIMD3<Float>,
+    normal: SIMD3<Float>
+  ) -> [UInt16] {
     // Initialize the mask with everything in the one volume, and filled. The
     // value should be overwritten somewhere in the inner loop.
-    mask = Array(repeating: 0x0FFF, count: Int(
-      dimensions.x * dimensions.y * dimensions.z))
+    nonisolated(unsafe)
+    var mask = [UInt16](
+      repeating: 0x0FFF,
+      count: Int(dimensions.x * dimensions.y * dimensions.z))
     if all(normal .== 0) {
       // This cannot be evaluated. It is a permissible escape hatch to create a
       // mask with no intersection.
-      return
+      return mask
     }
     
     // Hexagonal masks are not hyper-optimized like cubic masks. There hasn't
@@ -125,22 +138,26 @@ struct HexagonalMask: LatticeMask {
     let voxelCount16 = dimensions16[0] * dimensions16[1] * dimensions16[2]
     let voxelCount32 = dimensions32[0] * dimensions32[1] * dimensions32[2]
     
-    var largeBlockSize: Int32
-    if voxelCount32 >= 8 {
-      largeBlockSize = 32
-    } else if voxelCount16 >= 8 {
-      largeBlockSize = 16
-    } else if voxelCount8 >= 8 {
-      largeBlockSize = 8
-    } else if voxelCount4 >= 4 {
-      largeBlockSize = 4
-    } else {
-      largeBlockSize = 1024
+    func createLargeBlockSize() -> Int32 {
+      if voxelCount32 >= 8 {
+        return 32
+      } else if voxelCount16 >= 8 {
+        return 16
+      } else if voxelCount8 >= 8 {
+        return 8
+      } else if voxelCount4 >= 4 {
+        return 4
+      } else {
+        return 1024
+      }
     }
+    
+    let largeBlockSize = createLargeBlockSize()
     let boundsBlock = (dimensions &+ largeBlockSize &- 1) / largeBlockSize
     
     // TODO: Fix the multiple errors that spawn when marking this function
     // as @Sendable.
+    @Sendable
     func execute(block: SIMD3<Int32>) {
       let start = block &* largeBlockSize
       let end = start &+ largeBlockSize
@@ -169,17 +186,22 @@ struct HexagonalMask: LatticeMask {
       }
     }
     
-    let start: SIMD3<Int32> = .zero
-    let end = boundsBlock
-    var tasks: [SIMD3<Int32>] = []
-    for sectorZ in start.z..<end.z {
-      for sectorY in start.y..<end.y {
-        for sectorX in start.x..<end.x {
-          tasks.append(SIMD3(sectorX, sectorY, sectorZ))
+    func createTasks() -> [SIMD3<Int32>] {
+      let start: SIMD3<Int32> = .zero
+      let end = boundsBlock // TODO: Encapsulate this as well.
+      
+      var output: [SIMD3<Int32>] = []
+      for sectorZ in start.z..<end.z {
+        for sectorY in start.y..<end.y {
+          for sectorX in start.x..<end.x {
+            output.append(SIMD3(sectorX, sectorY, sectorZ))
+          }
         }
       }
+      return output
     }
     
+    let tasks = createTasks()
     if tasks.count < 4 {
       for task in tasks {
         execute(block: task)
@@ -189,6 +211,8 @@ struct HexagonalMask: LatticeMask {
         execute(block: tasks[z])
       }
     }
+    
+    return mask
   }
   
   static func &= (lhs: inout Self, rhs: Self) {

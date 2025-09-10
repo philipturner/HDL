@@ -14,7 +14,7 @@ private func fmt(_ start: Double, _ end: Double) -> String {
 }
 
 final class LatticeTests: XCTestCase {
-  static let printPerformanceSummary = false
+  static let printPerformanceSummary = true
   
   // Expected performance on original benchmarked computer (M1 Max):
   //

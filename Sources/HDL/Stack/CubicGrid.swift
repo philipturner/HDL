@@ -45,11 +45,16 @@ struct CubicMask: LatticeMask {
   var mask: [UInt8]
   
   /// Create a mask using a plane.
-  init(dimensions: SIMD3<Int32>, origin: SIMD3<Float>, normal: SIMD3<Float>) {
+  init(
+    dimensions: SIMD3<Int32>,
+    origin: SIMD3<Float>,
+    normal: SIMD3<Float>
+  ) {
     // Initialize the mask with everything in the one volume, and filled. The
     // value should be overwritten somewhere in the inner loop.
-    mask = Array(repeating: .max, count: Int(
-      dimensions.x * dimensions.y * dimensions.z))
+    mask = [UInt8](
+      repeating: 0xFF,
+      count: Int(dimensions.x * dimensions.y * dimensions.z))
     if all(normal .== 0) {
       // This cannot be evaluated. It is a permissible escape hatch to create a
       // mask with no intersection.

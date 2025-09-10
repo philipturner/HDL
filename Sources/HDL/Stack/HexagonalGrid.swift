@@ -84,9 +84,8 @@ struct HexagonalMask: LatticeMask {
   /// Create a mask using a plane.
   ///
   /// The dimensions for this grid will appear very lopsided. `x` increments by
-  /// one roughly every 2 hexagons in the `h` direction. Meanwhile, `y`
-  /// increments by one exactly every hexagon in the `k` direction. This is the
-  /// most direct way to represent the underlying storage.
+  /// one every 3 hexagons in the `h` direction. Meanwhile, `y`
+  /// increments by one exactly every hexagon in the `k` direction.
   init(
     dimensions: SIMD3<Int32>,
     origin: SIMD3<Float>,
@@ -154,12 +153,8 @@ struct HexagonalMask: LatticeMask {
         return 1024
       }
     }
-    
     let largeBlockSize = createLargeBlockSize()
-    let boundsBlock = (dimensions &+ largeBlockSize &- 1) / largeBlockSize
     
-    // TODO: Fix the multiple errors that spawn when marking this function
-    // as @Sendable.
     @Sendable
     func execute(block: SIMD3<Int32>) {
       let start = block &* largeBlockSize
@@ -191,7 +186,7 @@ struct HexagonalMask: LatticeMask {
     
     func createTasks() -> [SIMD3<Int32>] {
       let start: SIMD3<Int32> = .zero
-      let end = boundsBlock // TODO: Encapsulate this as well.
+      let end = (dimensions &+ largeBlockSize &- 1) / largeBlockSize
       
       var output: [SIMD3<Int32>] = []
       for sectorZ in start.z..<end.z {

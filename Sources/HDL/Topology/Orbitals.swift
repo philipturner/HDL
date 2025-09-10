@@ -23,15 +23,6 @@ extension Topology {
     }
   }
   
-  // TODO: Revise dependent code to access the underlying storage directly,
-  // improving performance. This change can be postponed until the new Sort
-  // algorithm is finished, just like the cleanups to CubicGrid.
-  //
-  // Consider making similar optimizations to Topology.map. In fact, analyze
-  // the entire latency makeup of 'Reconstruction' to identify bottlenecks
-  // besides Topology.match. Perhaps use multithreading to speed up some of
-  // the worst parts. Now this is definitely out of scope for the current focus
-  // on Topology.sort.
   public struct OrbitalStorage: Collection, Equatable, Sendable {
     public typealias Index = Int
     public typealias Element = SIMD3<Float>

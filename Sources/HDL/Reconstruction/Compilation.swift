@@ -20,14 +20,13 @@ struct Compilation {
   
   mutating func compile() -> [SIMD2<UInt32>] {
     removeMethylSites()
+    print()
     
     // Loop over this a few times (typically less than 10).
     for i in 0..<100 {
-      let checkpoint0 = CACurrentMediaTime()
-      let carbonSites = createCarbonSites()
-      let checkpoint1 = CACurrentMediaTime()
-      display(checkpoint0, checkpoint1, "\(i) - createCarbonSites")
+      let carbonSites = createCarbonSites(i: i)
       
+      let checkpoint1 = CACurrentMediaTime()
       let hydrogenSites = createHydrogenSites(
         bonds: carbonSites.bonds)
       let checkpoint2 = CACurrentMediaTime()

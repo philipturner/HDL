@@ -59,8 +59,11 @@ extension Compilation {
     fatalError("Could not remove methyl sites.")
   }
   
-  func createCarbonSites() -> CarbonSiteMap {
+  func createCarbonSites(i: Int) -> CarbonSiteMap {
+    let checkpoint0 = CACurrentMediaTime()
     let matches = createAtomMatches()
+    let checkpoint1 = CACurrentMediaTime()
+    display(checkpoint0, checkpoint1, "\(i) - createCarbonSites/createAtomMatches")
     
     var output = CarbonSiteMap()
     for i in atoms.indices {
@@ -79,6 +82,9 @@ extension Compilation {
       let centerType = UInt8(match.count - 1)
       output.centerTypes.append(centerType)
     }
+    let checkpoint2 = CACurrentMediaTime()
+    display(checkpoint1, checkpoint2, "\(i) - createCarbonSites/CarbonSiteMap")
+    
     return output
   }
 }

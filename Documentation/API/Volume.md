@@ -1,7 +1,5 @@
 # Volume
 
-> TODO: Document which mode is the default (`Concave` vs. `Convex`) on a fresh `Volume`, without either keyword declared as the outer scope. We typically wrap isolated planes in a `Convex`, to isolate the `Origin` shift. This says nothing about how the `Convex` scopes are combined with each other.
-
 The following keywords may be called inside a `Volume`.
 
 ```swift
@@ -48,3 +46,27 @@ Volume { }
 ```
 
 Encapsulate a set of planes, so that everything inside the scope is removed from the stack upon exiting. This must be called inside `Lattice` and may be called inside another `Volume`.
+
+## Difference Between Concave, Convex, and Volume
+
+Inside the library code, there is a global singleton that updates when a scope starts or ends. For example, it would update at the opening and closing brackets of `Volume`. This scope information allows a recursive stack to be held as the DSL is parsed. The three flavors of scope differ in how they affect destruction or merging of other scopes, for example at the closing bracket.
+
+```swift
+enum LatticeScopeType {
+  case concave
+  case convex
+  case volume
+  
+  var modifiesPredecessor: Bool {
+    self != .volume
+  }
+  
+  var usesLogicalAnd: Bool {
+    self == .concave
+  }
+}
+```
+
+The stack may only begin recording information (`Origin`, `Plane`, `Replace`) once the lattice constant, working grid size, and atom types are known. This is why `Bounds` and `Material` must be called before `Volume`. The global singleton keeps recording commands until it's notified that the `Lattice` reached its closing bracket. Then, the `.atoms` property materializes and a new `Lattice` can be started.
+
+The embedded DSL design has two implications. First, it is not thread-safe. Multiple threads modifying the same global singleton will create a data race. Second, `Lattice` instances cannot be declared recursively inside of each other. Only one lattice can be recorded at a time.

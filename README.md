@@ -65,13 +65,17 @@ Atomic numbers can be any element from Group III - VII, Period II - IV of the pe
 let lattice = Lattice<Basis> { h, k, l in
   Bounds { ... }
   Material { ... }
+  
+  Volume {
+    ...
+  }
 }
 
 // Property to retrieve the geometry.
 let atoms = lattice.atoms
 ```
 
-Creates a lattice of crystal unit cells to edit. Coordinates are represented in numbers of crystal unit cells.
+Creates a lattice of crystal unit cells to edit. Coordinates are represented in numbers of crystal unit cells. In the trailing closure of `Lattice`, a group of keywords can be written, which constitute a DSL.
 
 ```swift
 struct Topology {

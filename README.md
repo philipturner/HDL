@@ -2,7 +2,6 @@
 
 Remaining goals for this PR:
 - Make sure the library works correctly and efficiently on Windows.
-  - Run an isolated smoke test of the `DispatchQueue.concurrentPerform` latency.
 
 Domain-specific language for molecular nanotechnology. This repository includes a geometry and bond topology compiler.
 

@@ -13,7 +13,7 @@ struct Compilation {
     removeMethylSites()
     
     // Loop over this a few times (typically less than 10).
-    for i in 0..<100 {
+    for _ in 0..<100 {
       let carbonSites = createCarbonSites()
       let hydrogenSites = createHydrogenSites(
         bonds: carbonSites.bonds)

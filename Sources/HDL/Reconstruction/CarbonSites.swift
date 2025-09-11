@@ -14,7 +14,7 @@ extension Compilation {
   // Remove methyl groups and floating atoms from the list.
   mutating func removeMethylSites() {
     // Loop over this a few times (typically less than 10).
-    for i in 0..<100 {
+    for _ in 0..<100 {
       let matches = createAtomMatches()
       
       var removedAtoms: [UInt32] = []

@@ -47,7 +47,7 @@ Encapsulate a set of planes, so that everything inside the scope is removed from
 
 ## Difference Between Concave, Convex, and Volume
 
-Inside the library code, there is a global singleton that updates when a scope starts or ends. For example, it would update at the opening and closing brackets of `Volume`. This scope information allows a recursive stack to be held as the DSL is parsed. The three flavors of scope differ in how they affect destruction or merging of other scopes, for example at the closing bracket.
+In the library code, a global singleton is notified when each scope starts or ends. For example, the singleton updates at the opening and closing brackets of `Volume`. This scope information allows a recursive stack to be held as the DSL is parsed. The three flavors of scope differ in how they affect destruction or merging of other scopes, for example at the closing bracket.
 
 ```swift
 enum LatticeScopeType {

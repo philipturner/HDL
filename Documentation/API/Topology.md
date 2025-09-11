@@ -64,11 +64,11 @@ Match the `source` atoms to target atom indices, where the targets reside in the
 
 If the total number of atoms within the search radius exceeds the `maximumNeighborCount`, results are undefined. The internal matching algorithm relies on a given amount of memory being allocated. This memory temporarily holds references to other atoms. After all qualifying atoms are found, they are sorted in order of ascending distance. If the memory capacity is exceeded, there is nowhere to store the remaining references, even if one contains the closest atom.
 
-If you specify a specific search radius, you should be able to calculate the expected neighbor count. Each material has a finite number of atoms per cubic nanometer. The density in atoms/nm<sup>3</sup> can be multiplied by the volume of a sphere with the given radius. If you are unsure exactly how many atoms to expect, you can provide a generous upper bound for memory capacity.
+For a given search radius, you can calculate the expected neighbor count. Each material has a finite number of atoms per cubic nanometer. The density in atoms/nm<sup>3</sup> can be multiplied by the volume of a sphere with the given radius. If you are unsure exactly how many atoms to expect, you can provide a generous upper bound for memory capacity.
 
-For `covalentBondScale`, bond length is determined by summing the covalent radii. The pairwise sum does not always equal the bond length predicted by the lattice constant. The default scale of 1.5 provides enough tolerance for 50% error in approximated bond length.
+In the `.covalentBondLength` mode, bond length is determined by summing the covalent radii. The pairwise sum does not always equal the bond length predicted by the lattice constant. The default scale of 1.5 provides enough tolerance for 50% error in approximated bond length.
 
-`maximumNeighborCount` is 8 by default. This means most `match()` invocations searching beyond a single covalent bond length will fail. You may increase the limit for returned neighbors, but doing so may increase compile time or memory consumption.
+`maximumNeighborCount` is 8 by default. This means most `match()` invocations searching beyond a single covalent bond length will fail. You may increase the limit for returned neighbors, but doing so may increase compile time or memory consumption. The largest permitted value is 254.
 
 You are encouraged to sort the topology before calling `match()`. Otherwise, the search algorithm may degrade from $O(n)$ to $O(n^2)$. The overhead of sorting is significant and often takes more time than just running the match. Therefore, the internal implementation only performs sorting when the atom count is ~10,000. This is a performance sweet spot for highly ordered distributions (e.g. atoms directly fetched from a crystal lattice). However, it may not be a sweet spot for extremely disordered distributions.
 

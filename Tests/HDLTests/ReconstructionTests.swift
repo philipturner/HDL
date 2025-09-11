@@ -167,7 +167,7 @@ final class ReconstructionTests: XCTestCase {
     var topology = reconstruction.compile()
     let end = Profiler.time()
     if Self.printPerformanceSummary {
-      // expected: 3.1 ms
+      // minimum latency: 2.5 ms
       let elapsedSeconds = end - start
       let elapsedMilliseconds = 1000 * elapsedSeconds
       let formatted = String(format: "%.1f", elapsedMilliseconds)
@@ -219,7 +219,7 @@ final class ReconstructionTests: XCTestCase {
     var topology = reconstruction.compile()
     let end = Profiler.time()
     if Self.printPerformanceSummary {
-      // expected: 6.6 ms
+      // minimum latency: 5.7 ms
       let elapsedSeconds = end - start
       let elapsedMilliseconds = 1000 * elapsedSeconds
       let formatted = String(format: "%.1f", elapsedMilliseconds)

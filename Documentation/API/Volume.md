@@ -16,7 +16,7 @@ Scope where every plane's "one" volume merges through OR in [disjunctive normal 
 Origin { SIMD3<Float> }
 ```
 
-Translate the origin by a vector relative to the current origin. Modifications to the origin are undone when leaving the current scope. This may not be called in the top-level scope.
+Translate the origin by a vector relative to the current origin. Modifications to the origin are undone when leaving the current scope.
 
 ```swift
 Plane { SIMD3<Float> }
@@ -65,6 +65,6 @@ enum LatticeScopeType {
 }
 ```
 
-The stack may only begin recording information (`Origin`, `Plane`, `Replace`) once the lattice constant, working grid size, and atom types are known. This is why `Bounds` and `Material` must be called before `Volume`. The global singleton keeps recording commands until it's notified that the `Lattice` reached its closing bracket. Then, the `.atoms` property materializes and a new `Lattice` can be started.
+The stack may only begin recording information (`Origin`, `Plane`, `Replace`) once the packing arrangement, working grid size, and atom types are known. This is why `Bounds` and `Material` must be called before `Volume`. The global singleton keeps recording commands until it's notified that the `Lattice` reached its closing bracket. Then, the `.atoms` property materializes and a new `Lattice` can be started.
 
 The embedded DSL design has two implications. First, it is not thread-safe. Multiple threads modifying the same global singleton will create a data race. Second, `Lattice` instances cannot be declared recursively inside of each other. Only one lattice can be recorded at a time.

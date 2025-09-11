@@ -14,68 +14,45 @@ private func fmt(_ start: Double, _ end: Double) -> String {
 }
 
 final class LatticeTests: XCTestCase {
-  static let printPerformanceSummary = true
+  static let printPerformanceSummary = false
   
-  // Expected performance on original benchmarked computer (M1 Max):
+  //  -    atoms: 36,154
+  //  -  lattice:  5.0 ms
+  //  -    match:  3.3 ms
+  //  - orbitals:  1.0 ms
+  //  -    total:  9.3 ms
   //
-  // gold surface 2  |  93 ms
-  // gold surface    |   9 ms
-  // silicon probe 2 | 160 ms
-  // silicon probe   |  12 ms
+  //  -    atoms: 21,324
+  //  -  lattice:  9.9 ms
+  //  -    match:  1.9 ms
+  //  - orbitals:  0.6 ms
+  //  -    total: 12.4 ms
   //
-  // total: 10.0 ms
-  // total: 11.6 ms
-  // total: 69.0 ms
-  
-  // With latest version of the code base (2 years later) + Swift 5.8:
-  //
-  // gold surface 2  |  74 ms
-  // gold surface    |   9 ms
-  // silicon probe 2 | 151 ms
-  // silicon probe   |  11 ms
-  //
-  // total:  9.1 ms
-  // total: 12.4 ms
-  // total: 65.1 ms
-  
-  // After removing a troublesome producer-follower optimization, and
-  // continuing to check for regressions:
-  //
-  // grid init:
-  // gold surface 2  | 44.6 ms
-  // gold surface    |  3.1 ms
-  // silicon probe 2 |  3.2 ms
-  // silicon probe   |  1.3 ms
-  //
-  // intersect:
-  // gold surface 2  |   6.6 ms
-  // gold surface    |   2.3 ms
-  // silicon probe 2 | 132.4 ms
-  // silicon probe   |   8.0 ms
-  //
-  // lattice:  4.4 ms
-  // lattice:  9.4 ms
-  // lattice: 17.2 ms
-  //
-  // match:  4.0 ms
-  // match:  2.2 ms
-  // match: 39.7 ms
-  //
-  // orbitals: 1.0 ms
-  // orbitals: 0.6 ms
-  // orbitals: 8.4 ms
-  
-  // After removing inlining bottlenecks from Sort:
-  //
-  // match:  3.4 ms
-  // match:  1.9 ms
-  // match: 35.1 ms
-  
-  // After changing OrbitalStorage capacity to 2:
-  //
-  // orbitals: 1.0 ms
-  // orbitals: 0.6 ms
-  // orbitals: 8.8 ms
+  //  -    atoms: 360,350
+  //  -  lattice: 16.3 ms
+  //  -    match: 31.4 ms
+  //  - orbitals:  9.5 ms
+  //  -    total: 57.2 ms
+  //  gold surface 2:
+  //  - overall:   79.918 ms
+  //  - grid init: 51.311 ms
+  //  - intersect: 5.601 ms
+  //  - replace:   12.934 ms
+  //  gold surface:
+  //  - overall:   7.528 ms
+  //  - grid init: 3.220 ms
+  //  - intersect: 2.302 ms
+  //  - replace:   1.250 ms
+  //  silicon probe 2:
+  //  - overall:   153.381 ms
+  //  - grid init: 3.134 ms
+  //  - intersect: 134.456 ms
+  //  - replace:   15.032 ms
+  //  silicon probe:
+  //  - overall:   11.285 ms
+  //  - grid init: 1.487 ms
+  //  - intersect: 8.954 ms
+  //  - replace:   239.625 μs
   
 #if RELEASE
   func testGoldSurface() throws {
@@ -143,13 +120,13 @@ final class LatticeTests: XCTestCase {
       print("- replace:   \(fmt(replaceStart, replaceEnd))")
     }
     
-    // Before optimizations: ~0.318 seconds
-    // After optimization 1: ~0.066 seconds
-    // After optimization 2: ~0.059 seconds
-    // After optimization 3: ~0.044 seconds
-    // After optimization 5: ~0.017 seconds
-    // After optimization 6: ~0.009 seconds
-    // 35.3x speedup
+    // Before optimizations: 0.318 seconds
+    // After optimization 1: 0.066 seconds
+    // After optimization 2: 0.059 seconds
+    // After optimization 3: 0.044 seconds
+    // After optimization 5: 0.017 seconds
+    // After optimization 6: 0.009 seconds
+    // Current state:        0.008 seconds
   }
   
   func testSiliconProbe() throws {
@@ -244,12 +221,12 @@ final class LatticeTests: XCTestCase {
       print("- replace:   \(fmt(replaceStart, replaceEnd))")
     }
     
-    // Before optimizations: ~0.300 seconds
-    // After optimization 1: ~0.047 seconds
-    // After optimization 3: ~0.031 seconds
-    // After optimization 5: ~0.024 seconds
-    // After optimization 6: ~0.012 seconds
-    // 25.0x speedup
+    // Before optimizations: 0.300 seconds
+    // After optimization 1: 0.047 seconds
+    // After optimization 3: 0.031 seconds
+    // After optimization 5: 0.024 seconds
+    // After optimization 6: 0.012 seconds
+    // Current state:        0.011 seconds
   }
   
   func testGoldSurface2() throws {
@@ -306,7 +283,7 @@ final class LatticeTests: XCTestCase {
     // After optimization 4: 0.822 seconds
     // After optimization 5: 0.148 seconds
     // After optimization 6: 0.093 seconds
-    // 48.1x speedup
+    // Current state:        0.080 seconds
   }
   
   func testSiliconProbe2() throws {
@@ -490,12 +467,12 @@ final class LatticeTests: XCTestCase {
       print("- replace:   \(fmt(replaceStart, replaceEnd))")
     }
     
-    // Before optimizations: ~9.121 seconds
-    // After optimization 3: ~0.525 seconds
-    // After optimization 4: ~0.452 seconds
-    // After optimization 5: ~0.426 seconds
-    // After optimization 6: ~0.160 seconds
-    // 57.0x speedup
+    // Before optimizations: 9.121 seconds
+    // After optimization 3: 0.525 seconds
+    // After optimization 4: 0.452 seconds
+    // After optimization 5: 0.426 seconds
+    // After optimization 6: 0.160 seconds
+    // Current state:        0.153 seconds
   }
     
   // The infamous nanofactory back board that took ~1000 ms to compile.
@@ -723,10 +700,31 @@ final class LatticeTests: XCTestCase {
   // - orbitals: 14.5 ms
   // -    total: 69.0 ms
   
+  // Current state:
+  //
+  // -    atoms: 36,154
+  // -  lattice:  5.0 ms
+  // -    match:  3.3 ms
+  // - orbitals:  1.0 ms
+  // -    total:  9.3 ms
+  //
+  // -    atoms: 21,324
+  // -  lattice:  9.9 ms
+  // -    match:  1.9 ms
+  // - orbitals:  0.6 ms
+  // -    total: 12.4 ms
+  //
+  // -    atoms: 360,350
+  // -  lattice: 16.3 ms
+  // -    match: 31.4 ms
+  // - orbitals:  9.5 ms
+  // -    total: 57.2 ms
+  
   // Overall speedup:
-  // lattice 1 -  62.4 ms -> 10.0 ms (6.24x)
-  // lattice 2 -  61.9 ms -> 11.6 ms (5.33x)
-  // lattice 3 - 537.2 ms -> 69.0 ms (7.79x)
+  //
+  // lattice 1 -  62.4 ms ->  9.3 ms (6.71x)
+  // lattice 2 -  61.9 ms -> 12.4 ms (4.99x)
+  // lattice 3 - 537.2 ms -> 57.2 ms (9.39x)
   
 #endif
 }

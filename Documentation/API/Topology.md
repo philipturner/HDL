@@ -1,7 +1,5 @@
 # Topology
 
-The following APIs are available for `Topology`.
-
 ```swift
 extension Topology {
   enum MapNode {

@@ -1,7 +1,5 @@
 # Volume
 
-The following keywords may be called inside a `Volume`.
-
 ```swift
 Concave { }
 ```

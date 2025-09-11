@@ -1,14 +1,12 @@
 # Lattice
 
-The following keywords may be called inside a `Lattice`.
-
 ```swift
 protocol Basis
 Cubic: Basis
 Hexagonal: Basis
 ```
 
-Coordinate spaces for defining vectors in.
+The two possible packing arrangements for tetravalent atoms. The hexagonal arrangement has many similarities with 2D graphite lattices (three-fold connectivity) and cubic (111) surfaces.
 
 ```swift
 Bounds { SIMD3<Float> }

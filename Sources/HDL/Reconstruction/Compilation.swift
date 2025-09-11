@@ -5,26 +5,12 @@
 //  Created by Philip Turner on 7/2/25.
 //
 
-import QuartzCore
-
-func display(_ start: Double, _ end: Double, _ name: String)  {
-  let seconds = end - start
-  let milliseconds = seconds * 1e3
-  var repr = String(format: "%.3f", milliseconds)
-  while repr.count < "xxxx.xxx".count {
-    repr = " " + repr
-  }
-  
-  print(repr, "ms", "|", name)
-}
-
 struct Compilation {
   var atoms: [SIMD4<Float>]
   let material: MaterialType
   
   mutating func compile() -> [SIMD2<UInt32>] {
     removeMethylSites()
-    print()
     
     // Loop over this a few times (typically less than 10).
     for i in 0..<100 {
@@ -33,42 +19,20 @@ struct Compilation {
         bonds: carbonSites.bonds)
       
       // Check whether there are still 3-way collisions.
-      let checkpoint0 = CACurrentMediaTime()
-      let boolean = hydrogenSites.hydrogensToAtomsMap.contains(where: { $0.count > 2 })
-      let checkpoint1 = CACurrentMediaTime()
-      display(checkpoint0, checkpoint1, "\(i) - H->C map contains")
-      
-      if boolean {
-        let checkpoint2 = CACurrentMediaTime()
+      if hydrogenSites.hydrogensToAtomsMap.contains(where: { $0.count > 2 }) {
         let plugs = plugThreeWayCollisions(
           siteMap: hydrogenSites)
-        let checkpoint3 = CACurrentMediaTime()
-        display(checkpoint2, checkpoint3, "\(i) - plugThreeWayCollisions")
-        
         self.atoms += plugs
-        let checkpoint4 = CACurrentMediaTime()
-        display(checkpoint3, checkpoint4, "\(i) - self.atoms += plugs")
       } else {
         var dimerProcessor = DimerProcessor()
         dimerProcessor.atomsToHydrogensMap = hydrogenSites.atomsToHydrogensMap
         dimerProcessor.hydrogensToAtomsMap = hydrogenSites.hydrogensToAtomsMap
         
-        let checkpoint2 = CACurrentMediaTime()
         let hydrogenChains = dimerProcessor.createHydrogenChains(
           centerTypes: carbonSites.centerTypes)
-        let checkpoint5 = CACurrentMediaTime()
-        display(checkpoint2, checkpoint5, "\(i) - createHydrogenChains")
-        
         let dimerBonds = dimerProcessor.destroyCollisions(
           hydrogenChains: hydrogenChains)
-        let checkpoint6 = CACurrentMediaTime()
-        display(checkpoint5, checkpoint6, "\(i) - destroyCollisions")
-        
-        let output = carbonSites.bonds + dimerBonds
-        let checkpoint7 = CACurrentMediaTime()
-        display(checkpoint6, checkpoint7, "\(i) - carbonSites.bonds + dimerBonds")
-        
-        return output
+        return carbonSites.bonds + dimerBonds
       }
     }
     

@@ -6,7 +6,7 @@
 //
 
 import HDL
-import Numerics
+import QuaternionModule
 import XCTest
 
 struct CBNTripodLeg: CBNTripodComponent {
@@ -93,7 +93,7 @@ struct CBNTripodLeg: CBNTripodComponent {
   
   mutating func compilationPass0() {
     let atoms = createLattice()
-    topology.insert(atoms: atoms)
+    topology.atoms += atoms
   }
   
   mutating func compilationPass1() {
@@ -109,7 +109,7 @@ struct CBNTripodLeg: CBNTripodComponent {
         insertedBonds.append(bond)
       }
     }
-    topology.insert(bonds: insertedBonds)
+    topology.bonds += insertedBonds
     
     /*
      C2-C3=1.4015         C3-C2=1.4015
@@ -156,13 +156,15 @@ struct CBNTripodLeg: CBNTripodComponent {
     let cfBondLength: Float = 1.3563 / 10 // xTB
     
     let atomsToAtomsMap = topology.map(.atoms, to: .atoms)
-    let orbitals = topology.nonbondingOrbitals(hybridization: .sp2)
+    let orbitalLists = topology.nonbondingOrbitals(hybridization: .sp2)
     
     var insertedAtoms: [Atom] = []
     var insertedBonds: [SIMD2<UInt32>] = []
     for i in topology.atoms.indices {
       let atom = topology.atoms[i]
-      if let orbital = orbitals[i].first {
+      let orbitalList = orbitalLists[i]
+      
+      if let orbital = orbitalList.first {
         if orbital.x < 0 {
           // Add a hydrogen to the left.
           let position = atom.position + orbital * chBondLength
@@ -207,7 +209,7 @@ struct CBNTripodLeg: CBNTripodComponent {
       }
       
       let neighbors = atomsToAtomsMap[i]
-      precondition(neighbors.count == 1)
+      XCTAssertEqual(neighbors.count, 1)
       let neighbor = topology.atoms[Int(neighbors.first!)]
       var delta = atom.position - neighbor.position
       delta /= (delta * delta).sum().squareRoot()
@@ -216,8 +218,8 @@ struct CBNTripodLeg: CBNTripodComponent {
       let position = neighbor.position + delta * bondLength
       topology.atoms[i].position = position
     }
-    topology.insert(atoms: insertedAtoms)
-    topology.insert(bonds: insertedBonds)
+    topology.atoms += insertedAtoms
+    topology.bonds += insertedBonds
   }
   
   mutating func compilationPass3() {
@@ -278,10 +280,10 @@ struct CBNTripodLeg: CBNTripodComponent {
         }
       }
     }
-    precondition(nitrogenID != -1)
+    XCTAssertNotEqual(nitrogenID, -1)
     
-    topology.insert(atoms: insertedAtoms)
-    topology.insert(bonds: insertedBonds)
+    topology.atoms += insertedAtoms
+    topology.bonds += insertedBonds
     
     // Shift the entire molecule according to the nitrogen's position.
     let nitrogen = topology.atoms[nitrogenID]
@@ -300,7 +302,7 @@ struct CBNTripodLeg: CBNTripodComponent {
       let neighbors = atomsToAtomsMap[i]
       switch atom.atomicNumber {
       case 1:
-        precondition(neighbors.count == 1)
+        XCTAssertEqual(neighbors.count, 1)
         hybridizations.append(.sp3)
       case 6:
         if neighbors.count == 3 {
@@ -314,13 +316,13 @@ struct CBNTripodLeg: CBNTripodComponent {
         // This is unexpectedly sp2 hybridization because of the lone pair. It
         // works to our advantage because we are removing hydrogens by the rule
         // of whether they're attached to an sp2 or sp3 atom.
-        precondition(neighbors.count == 3)
+        XCTAssertEqual(neighbors.count, 3)
         hybridizations.append(.sp2)
       case 9:
-        precondition(neighbors.count == 1)
+        XCTAssertEqual(neighbors.count, 1)
         hybridizations.append(.sp3)
       case 14:
-        precondition(neighbors.count == 4)
+        XCTAssertEqual(neighbors.count, 4)
         hybridizations.append(.sp3)
       default:
         fatalError("Unexpected atomic number.")
@@ -376,7 +378,8 @@ extension CBNTripodLeg {
     if element == .carbon {
       let targetOrbital = SIMD3<Float>(
         -Float(3.0 / 4).squareRoot(), -Float(1.0 / 4).squareRoot(), 0)
-      let rotation = Quaternion(from: orbitals[0], to: targetOrbital)
+      let rotation = CBNTripodUtilities
+        .quaternion(from: orbitals[0], to: targetOrbital)
       orbitals = orbitals.map(rotation.act(on:))
     } else {
       // For some reason, the lone pair from the amine adopts an sp2-like
@@ -384,7 +387,8 @@ extension CBNTripodLeg {
       // from the predicted 109.5° angle.
       let targetOrbital = SIMD3<Float>(
         0, Float(1.0 / 4).squareRoot(), -Float(3.0 / 4).squareRoot())
-      let rotation = Quaternion(from: orbitals[2], to: targetOrbital)
+      let rotation = CBNTripodUtilities
+        .quaternion(from: orbitals[2], to: targetOrbital)
       orbitals = orbitals.map(rotation.act(on:))
     }
     

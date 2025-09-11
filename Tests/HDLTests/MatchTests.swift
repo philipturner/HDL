@@ -1,6 +1,5 @@
-import XCTest
 import HDL
-import Numerics
+import XCTest
 
 // This file contains a performance test for topology.match(), which differs
 // significantly from the other performance tests. It was moved into a separate
@@ -271,9 +270,9 @@ final class MatchTests: XCTestCase {
       
       // Match carbons against carbons.
       do {
-        let start = cross_platform_media_time()
+        let start = Profiler.time()
         let matches = topology.match(topology.atoms)
-        let end = cross_platform_media_time()
+        let end = Profiler.time()
         summary.ccMetrics.append(
           SIMD3(
             topology.atoms.count,
@@ -291,35 +290,43 @@ final class MatchTests: XCTestCase {
             insertedBonds.append(SIMD2(UInt32(i), UInt32(j)))
           }
         }
-        topology.insert(bonds: insertedBonds)
+        topology.bonds += insertedBonds
         topology.remove(atoms: removedAtoms)
       }
       
-      // Define the hydrogen placement distance and the search radius for a
-      // subsequent step.
-      var ccBondLength = Constant(.square) { .elemental(.carbon) }
-      ccBondLength *= Float(3).squareRoot() / 4
+      // Utility function for materializing the C-C bond length, according to
+      // the diamond lattice constant.
+      func createCCBondLength() -> Float {
+        var output = Constant(.square) { .elemental(.carbon) }
+        output *= Float(3).squareRoot() / 4
+        return output
+      }
       
-      // Generate hydrogens and de-duplicate them.
+      // Generate the hydrogens.
       var hydrogenTopology = Topology()
       do {
-        let orbitals = topology.nonbondingOrbitals()
+        let orbitalLists = topology.nonbondingOrbitals()
+        let ccBondLength = createCCBondLength()
         
         var insertedAtoms: [Atom] = []
         for i in topology.atoms.indices {
           let atom = topology.atoms[i]
-          for orbital in orbitals[i] {
+          let orbitalList = orbitalLists[i]
+          for orbital in orbitalList {
             let position = atom.position + orbital * ccBondLength
             let hydrogen = Atom(position: position, element: .hydrogen)
             insertedAtoms.append(hydrogen)
           }
         }
-        hydrogenTopology.insert(atoms: insertedAtoms)
-        
-        let start = cross_platform_media_time()
+        hydrogenTopology.atoms += insertedAtoms
+      }
+      
+      // De-duplicate the hydrogens.
+      do {
+        let start = Profiler.time()
         let matches = hydrogenTopology.match(
           hydrogenTopology.atoms, algorithm: .absoluteRadius(0.020))
-        let end = cross_platform_media_time()
+        let end = Profiler.time()
         summary.hhMetrics.append(
           SIMD3(
             hydrogenTopology.atoms.count,
@@ -342,11 +349,11 @@ final class MatchTests: XCTestCase {
       
       // Locate the carbons attached to each hydrogen collision site.
       do {
-        let start = cross_platform_media_time()
+        let start = Profiler.time()
         _ = topology.match(
           hydrogenTopology.atoms,
-          algorithm: .absoluteRadius(1.1 * ccBondLength))
-        let end = cross_platform_media_time()
+          algorithm: .absoluteRadius(1.1 * createCCBondLength()))
+        let end = Profiler.time()
         summary.hcMetrics.append(
           SIMD3(
             hydrogenTopology.atoms.count,
@@ -356,8 +363,8 @@ final class MatchTests: XCTestCase {
     }
   }
   
-  #if RELEASE
-  func testFlatSheetScaling() {
+#if RELEASE
+  func testFlatSheetScaling() throws {
     func reprUsPerAtom(_ microseconds: Int, _ atoms: Int) -> String {
       let units = "µs/atom"
       let value = Double(microseconds) / Double(atoms)
@@ -411,22 +418,22 @@ final class MatchTests: XCTestCase {
       atomCountStats.append("- atoms: \(lattice.atoms.count)")
       
       do {
-        let start = cross_platform_media_time()
+        let start = Profiler.time()
         var topology = Topology()
-        topology.insert(atoms: lattice.atoms)
+        topology.atoms += lattice.atoms
         topology.sort()
-        let end = cross_platform_media_time()
+        let end = Profiler.time()
         
         let microseconds = Int((end - start) * 1e6)
         let repr = reprUsPerAtom(microseconds, lattice.atoms.count)
         sortStats.append("- sort: \(repr)")
       }
       do {
-        let start = cross_platform_media_time()
+        let start = Profiler.time()
         var topology = Topology()
-        topology.insert(atoms: lattice.atoms)
+        topology.atoms += lattice.atoms
         let matches = topology.match(topology.atoms)
-        let end = cross_platform_media_time()
+        let end = Profiler.time()
         
         let microseconds = Int((end - start) * 1e6)
         let repr = reprUsPerAtom(microseconds, lattice.atoms.count)
@@ -451,7 +458,7 @@ final class MatchTests: XCTestCase {
       }
     }
   }
-  #endif
+#endif
 }
 
 // MARK: - Performance Summary
@@ -798,3 +805,140 @@ private struct MatchSummary {
 // cutoff=8000 | 0.202 | 0.267 | 0.213 | 0.219 | 0.224 | 0.192 | 0.178 | 0.338 | 0.389 | 0.569
 // cutoff=50k  | 0.188 | 0.250 | 0.200 | 0.216 | 0.175 | 0.171 | 0.167 | 0.187 | 0.214 | 0.584
 // cutoff=150k | 0.159 | 0.201 | 0.197 | 0.222 | 0.192 | 0.175 | 0.178 | 0.156 | 0.225 | 0.360
+
+// MARK: - After Removing Inlining Bottlenecks from Sort
+
+// Before:
+//   - sort: 0.056 µs/atom
+//   - sort: 0.047 µs/atom
+//   - sort: 0.055 µs/atom
+//
+// After:
+//  - atoms: 80400
+//  - atoms: 160400
+//  - atoms: 240400
+//  - sort: 0.043 µs/atom
+//  - sort: 0.041 µs/atom
+//  - sort: 0.042 µs/atom
+//  - match: 0.108 µs/atom
+//  - match: 0.098 µs/atom
+//  - match: 0.102 µs/atom
+//
+//  Match Performance Report
+//
+//                     C-C
+//  --------------- | ----- | ------- | -----
+//      18 x     18 |    14 |       0 | 0.778
+//      18 x     18 |     4 |       0 | 0.222
+//      95 x     95 |    18 |       1 | 0.189
+//     280 x    280 |    63 |      15 | 0.225
+//     621 x    621 |   153 |      77 | 0.246
+//    1166 x   1166 |   184 |     271 | 0.158
+//    1963 x   1963 |   224 |     770 | 0.114
+//    3060 x   3060 |   344 |    1872 | 0.112
+//    4505 x   4505 |   495 |    4059 | 0.110
+//    8631 x   8631 |  1018 |   14898 | 0.118
+//   34353 x  34353 |  4403 |  236025 | 0.128
+//  114121 x 114121 | 15602 | 2604720 | 0.137
+//
+//                  H-H
+//  ------------- | ---- | ----- | -----
+//     16 x    16 |    5 |     0 | 0.312
+//     16 x    16 |    3 |     0 | 0.188
+//     76 x    76 |   12 |     1 | 0.158
+//    184 x   184 |   37 |     6 | 0.201
+//    340 x   340 |   57 |    23 | 0.168
+//    544 x   544 |  101 |    59 | 0.186
+//    796 x   796 |  127 |   126 | 0.160
+//   1096 x  1096 |  162 |   240 | 0.148
+//   1444 x  1444 |  262 |   417 | 0.181
+//   2284 x  2284 |  288 |  1043 | 0.126
+//   5956 x  5956 |  872 |  7094 | 0.146
+//  13540 x 13540 | 1405 | 36666 | 0.104
+//
+//                   H-C
+//  ------------- | ---- | ------ | -----
+//    16 x     10 |    4 |      0 | 0.316
+//    16 x     10 |    3 |      0 | 0.237
+//    64 x     75 |   12 |      0 | 0.173
+//   136 x    248 |   35 |      6 | 0.191
+//   232 x    577 |   75 |     26 | 0.205
+//   352 x   1110 |  134 |     78 | 0.214
+//   496 x   1895 |  190 |    187 | 0.196
+//   664 x   2980 |  240 |    395 | 0.171
+//   856 x   4413 |  326 |    755 | 0.168
+//  1312 x   8515 |  573 |   2234 | 0.171
+//  3256 x  34165 | 2475 |  22248 | 0.235
+//  7192 x 113837 | 7870 | 163743 | 0.275
+//
+// H-C, 3256 x 34165,
+// - The "performance sweet spot"
+// - RMS atom count = 10547
+// - Sorting marginally harms performance
+//   - 2161 ms -> 2330 ms
+// - We still enable sorting here to keep a concrete threshold of 10000
+//
+// H-H, 13540 x 13540
+// - Above the sweet spot
+// - RMS atom count = 13540
+// - Sorting significantly improves performance
+//   - 2942 ms -> 1329 ms
+
+// MARK: - Current State
+
+//  - atoms: 80400
+//  - atoms: 160400
+//  - atoms: 240400
+//  - sort: 0.032 µs/atom
+//  - sort: 0.031 µs/atom
+//  - sort: 0.032 µs/atom
+//  - match: 0.088 µs/atom
+//  - match: 0.088 µs/atom
+//  - match: 0.093 µs/atom
+//
+//  Match Performance Report
+//
+//                     C-C
+//  --------------- | ----- | ------- | -----
+//      18 x     18 |    16 |       0 | 0.889
+//      18 x     18 |     4 |       0 | 0.222
+//      95 x     95 |    17 |       1 | 0.179
+//     280 x    280 |    53 |      15 | 0.189
+//     621 x    621 |   107 |      77 | 0.172
+//    1166 x   1166 |   175 |     271 | 0.150
+//    1963 x   1963 |   234 |     770 | 0.119
+//    3060 x   3060 |   348 |    1872 | 0.114
+//    4505 x   4505 |   495 |    4059 | 0.110
+//    8631 x   8631 |  1013 |   14898 | 0.117
+//   34353 x  34353 |  4326 |  236025 | 0.126
+//  114121 x 114121 | 14866 | 2604720 | 0.130
+//
+//                  H-H
+//  ------------- | ---- | ----- | -----
+//     16 x    16 |    5 |     0 | 0.312
+//     16 x    16 |    3 |     0 | 0.188
+//     76 x    76 |   12 |     1 | 0.158
+//    184 x   184 |   31 |     6 | 0.168
+//    340 x   340 |   52 |    23 | 0.153
+//    544 x   544 |  104 |    59 | 0.191
+//    796 x   796 |  140 |   126 | 0.176
+//   1096 x  1096 |  180 |   240 | 0.164
+//   1444 x  1444 |  191 |   417 | 0.132
+//   2284 x  2284 |  271 |  1043 | 0.119
+//   5956 x  5956 |  941 |  7094 | 0.158
+//  13540 x 13540 | 1805 | 36666 | 0.133
+//
+//                   H-C
+//  ------------- | ---- | ------ | -----
+//    16 x     10 |    4 |      0 | 0.316
+//    16 x     10 |    3 |      0 | 0.237
+//    64 x     75 |   10 |      0 | 0.144
+//   136 x    248 |   37 |      6 | 0.201
+//   232 x    577 |   76 |     26 | 0.208
+//   352 x   1110 |  138 |     78 | 0.221
+//   496 x   1895 |  179 |    187 | 0.185
+//   664 x   2980 |  306 |    395 | 0.218
+//   856 x   4413 |  290 |    755 | 0.149
+//  1312 x   8515 |  601 |   2234 | 0.180
+//  3256 x  34165 | 2412 |  22248 | 0.229
+//  7192 x 113837 | 8080 | 163743 | 0.282

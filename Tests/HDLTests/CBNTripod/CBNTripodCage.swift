@@ -6,7 +6,7 @@
 //
 
 import HDL
-import Numerics
+import QuaternionModule
 import XCTest
 
 struct CBNTripodCage: CBNTripodComponent {
@@ -88,7 +88,7 @@ struct CBNTripodCage: CBNTripodComponent {
   // Create the initial structure based on the lattice.
   mutating func compilationPass0() {
     let atoms = createLattice()
-    topology.insert(atoms: atoms)
+    topology.atoms += atoms
   }
   
   // Form C-C and Ge-C bonds, then make the structure a little closer to the
@@ -112,7 +112,7 @@ struct CBNTripodCage: CBNTripodComponent {
         insertedBonds.append(bond)
       }
     }
-    topology.insert(bonds: insertedBonds)
+    topology.bonds += insertedBonds
     
     // Move the germanium atom slightly upward.
     for i in topology.atoms.indices {
@@ -145,43 +145,19 @@ struct CBNTripodCage: CBNTripodComponent {
       guard germaniumID >= 0 else {
         continue
       }
-      precondition(carbonID >= 0)
+      XCTAssertGreaterThanOrEqual(carbonID, 0)
       let germanium = topology.atoms[germaniumID]
       let carbon = topology.atoms[carbonID]
       
-//      print()
-      func logDelta(_ delta: SIMD3<Float>, _ element: Element) {
-//        let length = (delta * delta).sum().squareRoot()
-//        let ideal = (element == .carbon) ? ccBondLength : geCBondLength
-//        print(length, element.description, "-", length - ideal)
-      }
-      func logAngles() {
-//        var geCDelta = atom.position - germanium.position
-//        var ccDelta = atom.position - carbon.position
-//        geCDelta /= (geCDelta * geCDelta).sum().squareRoot()
-//        ccDelta /= (ccDelta * ccDelta).sum().squareRoot()
-//
-//        let dot1 = (ccDelta * -geCDelta).sum()
-//        let dot2 = ccDelta.y
-//        let angle1 = 180 - Float.acos(dot1) * 180 / .pi
-//        let angle2 = Float.acos(dot2) * 180 / .pi
-//        print("-", angle1 - 109.47, angle2)
-      }
-      
       // Iterate until both bonds reach equilibrium length.
-      logAngles()
       for _ in 0..<5 {
         var geCDelta = atom.position - germanium.position
-        logDelta(geCDelta, .germanium)
         geCDelta /= (geCDelta * geCDelta).sum().squareRoot()
         atom.position = germanium.position + geCDelta * geCBondLength
         
         var ccDelta = atom.position - carbon.position
-        logDelta(ccDelta, .carbon)
         ccDelta /= (ccDelta * ccDelta).sum().squareRoot()
         atom.position = carbon.position + ccDelta * ccBondLength
-        
-        logAngles()
       }
       topology.atoms[i] = atom
     }
@@ -216,7 +192,7 @@ struct CBNTripodCage: CBNTripodComponent {
     }
     
     do {
-      let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)
+      let orbitalLists = topology.nonbondingOrbitals(hybridization: .sp3)
       
       var insertedAtoms: [Atom] = []
       var insertedBonds: [SIMD2<UInt32>] = []
@@ -227,7 +203,7 @@ struct CBNTripodCage: CBNTripodComponent {
         }
         topology.atoms[i].atomicNumber = 6
         
-        let orbital = orbitals[i].first!
+        let orbital = orbitalLists[i].first!
         let carbonPosition = atom.position + orbital * ccBondLength
         let carbon = Atom(position: carbonPosition, element: .carbon)
         let carbonID = topology.atoms.count + insertedAtoms.count
@@ -235,7 +211,8 @@ struct CBNTripodCage: CBNTripodComponent {
         insertedBonds.append(SIMD2(UInt32(i), UInt32(carbonID)))
         
         let ground = SIMD3<Float>(0, -1, 0)
-        let groundRotation = Quaternion<Float>(from: -orbital, to: ground)
+        let groundRotation = CBNTripodUtilities
+          .quaternion(from: -orbital, to: ground)
         let axis = groundRotation.axis
         let rotation = Quaternion(angle: 2 * .pi / 3, axis: axis)
         
@@ -254,8 +231,8 @@ struct CBNTripodCage: CBNTripodComponent {
         insertedAtoms.append(hydrogen)
         insertedBonds.append(SIMD2(UInt32(carbonID), UInt32(hydrogenID)))
       }
-      topology.insert(atoms: insertedAtoms)
-      topology.insert(bonds: insertedBonds)
+      topology.atoms += insertedAtoms
+      topology.bonds += insertedBonds
     }
   }
   
@@ -265,7 +242,7 @@ struct CBNTripodCage: CBNTripodComponent {
     // - C-H bond length is 1.1120 Å.
     let chBondLength: Float = 1.1120 / 10
     let atomsToAtomsMap = topology.map(.atoms, to: .atoms)
-    let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)
+    let orbitalLists = topology.nonbondingOrbitals(hybridization: .sp3)
     
     var insertedAtoms: [Atom] = []
     var insertedBonds: [SIMD2<UInt32>] = []
@@ -287,7 +264,8 @@ struct CBNTripodCage: CBNTripodComponent {
         continue
       }
       
-      for orbital in orbitals[i] {
+      let orbitalList = orbitalLists[i]
+      for orbital in orbitalList {
         let position = atom.position + orbital * chBondLength
         let hydrogen = Atom(position: position, element: .hydrogen)
         let hydrogenID = topology.atoms.count + insertedAtoms.count
@@ -295,8 +273,8 @@ struct CBNTripodCage: CBNTripodComponent {
         insertedBonds.append(SIMD2(UInt32(i), UInt32(hydrogenID)))
       }
     }
-    topology.insert(atoms: insertedAtoms)
-    topology.insert(bonds: insertedBonds)
+    topology.atoms += insertedAtoms
+    topology.bonds += insertedBonds
   }
   
   // Add the carbon dimer to the germanium.
@@ -311,7 +289,7 @@ struct CBNTripodCage: CBNTripodComponent {
     let cGeBondLength: Float = (1.4700 - 1.4990 + 1.9350) / 10
     
     do {
-      let orbitals = topology.nonbondingOrbitals(hybridization: .sp3)
+      let orbitalLists = topology.nonbondingOrbitals(hybridization: .sp3)
       
       var germaniumID: Int = -1
       for i in topology.atoms.indices {
@@ -321,33 +299,44 @@ struct CBNTripodCage: CBNTripodComponent {
       }
       
       let germanium = topology.atoms[germaniumID]
-      let orbital = orbitals[germaniumID].first!
+      let orbital = orbitalLists[germaniumID].first!
       let carbonPosition1 = germanium.position + orbital * cGeBondLength
       let carbon1 = Atom(position: carbonPosition1, element: .carbon)
       let carbonID1 = topology.atoms.count
-      topology.insert(atoms: [carbon1])
-      topology.insert(bonds: [SIMD2(UInt32(germaniumID), UInt32(carbonID1))])
+      topology.atoms.append(carbon1)
+      
+      let bond = SIMD2(
+        UInt32(germaniumID),
+        UInt32(carbonID1))
+      topology.bonds.append(bond)
     }
     
     // Test out the new sp1 orbital generation functionality by adding the
     // second carbon in a separate pass.
     do {
-      let orbitals = topology.nonbondingOrbitals(hybridization: .sp1)
+      let orbitalLists = topology.nonbondingOrbitals(hybridization: .sp)
       
       var carbonID1: Int = -1
       for i in topology.atoms.indices {
-        if topology.atoms[i].atomicNumber == 6 && orbitals[i].count == 1 {
+        let atom = topology.atoms[i]
+        let orbitalList = orbitalLists[i]
+        if atom.atomicNumber == 6,
+           orbitalList.count == 1 {
           carbonID1 = i
         }
       }
       
       let carbon1 = topology.atoms[carbonID1]
-      let orbital = orbitals[carbonID1].first!
+      let orbital = orbitalLists[carbonID1].first!
       let carbonPosition2 = carbon1.position + orbital * ccBondLength
       let carbon2 = Atom(position: carbonPosition2, element: .carbon)
       let carbonID2 = topology.atoms.count
-      topology.insert(atoms: [carbon2])
-      topology.insert(bonds: [SIMD2(UInt32(carbonID1), UInt32(carbonID2))])
+      topology.atoms.append(carbon2)
+      
+      let bond = SIMD2(
+        UInt32(carbonID1),
+        UInt32(carbonID2))
+      topology.bonds.append(bond)
     }
   }
   
@@ -460,20 +449,11 @@ extension CBNTripodCage {
     // legs points toward +Z.
     let basisX = SIMD3<Float>(1, 0, -1) / Float(2).squareRoot()
     let basisY = SIMD3<Float>(1, 1, 1) / Float(3).squareRoot()
-    precondition((basisX * basisY).sum().magnitude < 1e-3)
+    XCTAssertLessThan((basisX * basisY).sum().magnitude, 1e-3)
     
-    func cross<T: Real & SIMDScalar>(
-      _ x: SIMD3<T>, _ y: SIMD3<T>
-    ) -> SIMD3<T> {
-      // Source: https://en.wikipedia.org/wiki/Cross_product#Computing
-      let s1 = x[1] * y[2] - x[2] * y[1]
-      let s2 = x[2] * y[0] - x[0] * y[2]
-      let s3 = x[0] * y[1] - x[1] * y[0]
-      return SIMD3(s1, s2, s3)
-    }
-    let basisZ = -cross(basisX, basisY)
+    let basisZ = -CBNTripodUtilities.cross(basisX, basisY)
     let basisZLength = (basisZ * basisZ).sum().squareRoot()
-    precondition((basisZLength - 1).magnitude < 1e-3)
+    XCTAssertLessThan((basisZLength - 1).magnitude, 1e-3)
     
     for i in atoms.indices {
       var atom = atoms[i]
@@ -491,7 +471,7 @@ extension CBNTripodCage {
         germaniumID = i
       }
     }
-    precondition(germaniumID != -1)
+    XCTAssertNotEqual(germaniumID, -1)
     
     // Center the cage so the germanium is at (0, 0, 0).
     let germaniumPosition = atoms[germaniumID].position

@@ -5,15 +5,10 @@
 //  Created by Philip Turner on 10/26/23.
 //
 
-// MARK: - Types
-
 public enum MaterialType {
   case elemental(Element)
   case checkerboard(Element, Element)
 }
-
-
-// MARK: - Keywords
 
 public struct Material {
   @discardableResult

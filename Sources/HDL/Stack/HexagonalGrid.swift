@@ -67,9 +67,12 @@ struct HexagonalCell {
     dotProduct1 += delta_z1 * scaledNormal.z
     
     var mask: SIMD16<Int32> = .zero
-    mask.lowHalf.replace(with: SIMD8(repeating: .max), where: dotProduct0 .> 0)
-    mask.highHalf.lowHalf
-      .replace(with: SIMD4(repeating: .max), where: dotProduct1 .> 0)
+    mask.lowHalf.replace(
+      with: SIMD8(repeating: .max),
+      where: dotProduct0 .> 0)
+    mask.highHalf.lowHalf.replace(
+      with: SIMD4(repeating: .max),
+      where: dotProduct1 .> 0)
     let compressed = SIMD16<UInt16>(truncatingIfNeeded: mask)
     return (compressed & HexagonalCell.flags).wrappedSum()
   }
@@ -81,27 +84,39 @@ struct HexagonalMask: LatticeMask {
   /// Create a mask using a plane.
   ///
   /// The dimensions for this grid will appear very lopsided. `x` increments by
-  /// one roughly every 2 hexagons in the `h` direction. Meanwhile, `y`
-  /// increments by one exactly every hexagon in the `k` direction. This is the
-  /// most direct way to represent the underlying storage.
+  /// one every 3 hexagons in the `h` direction. Meanwhile, `y`
+  /// increments by one exactly every hexagon in the `k` direction.
   init(
     dimensions: SIMD3<Int32>,
     origin: SIMD3<Float>,
     normal untransformedNormal0: SIMD3<Float>
   ) {
-    var normal0 = unsafeBitCast(
-      (untransformedNormal0), to: SIMD4<Float>.self)
-    normal0.lowHalf -= 0.5 * SIMD2(normal0[1], normal0[0])
-    let normal = unsafeBitCast(normal0, to: SIMD3<Float>.self)
+    var normal0 = untransformedNormal0
     
+    let subtractedVector = 0.5 * SIMD2(normal0.y, normal0.x)
+    normal0.x -= subtractedVector.x
+    normal0.y -= subtractedVector.y
+    mask = Self.createMask(
+      dimensions: dimensions,
+      origin: origin,
+      normal: normal0)
+  }
+  
+  private static func createMask(
+    dimensions: SIMD3<Int32>,
+    origin: SIMD3<Float>,
+    normal: SIMD3<Float>
+  ) -> [UInt16] {
     // Initialize the mask with everything in the one volume, and filled. The
     // value should be overwritten somewhere in the inner loop.
-    mask = Array(repeating: 0x0FFF, count: Int(
-      dimensions.x * dimensions.y * dimensions.z))
+    nonisolated(unsafe)
+    var mask = [UInt16](
+      repeating: 0x0FFF,
+      count: Int(dimensions.x * dimensions.y * dimensions.z))
     if all(normal .== 0) {
       // This cannot be evaluated. It is a permissible escape hatch to create a
       // mask with no intersection.
-      return
+      return mask
     }
     
     // Hexagonal masks are not hyper-optimized like cubic masks. There hasn't
@@ -125,20 +140,22 @@ struct HexagonalMask: LatticeMask {
     let voxelCount16 = dimensions16[0] * dimensions16[1] * dimensions16[2]
     let voxelCount32 = dimensions32[0] * dimensions32[1] * dimensions32[2]
     
-    var largeBlockSize: Int32
-    if voxelCount32 >= 8 {
-      largeBlockSize = 32
-    } else if voxelCount16 >= 8 {
-      largeBlockSize = 16
-    } else if voxelCount8 >= 8 {
-      largeBlockSize = 8
-    } else if voxelCount4 >= 4 {
-      largeBlockSize = 4
-    } else {
-      largeBlockSize = 1024
+    func createLargeBlockSize() -> Int32 {
+      if voxelCount32 >= 8 {
+        return 32
+      } else if voxelCount16 >= 8 {
+        return 16
+      } else if voxelCount8 >= 8 {
+        return 8
+      } else if voxelCount4 >= 4 {
+        return 4
+      } else {
+        return 1024
+      }
     }
-    let boundsBlock = (dimensions &+ largeBlockSize &- 1) / largeBlockSize
+    let largeBlockSize = createLargeBlockSize()
     
+    @Sendable
     func execute(block: SIMD3<Int32>) {
       let start = block &* largeBlockSize
       let end = start &+ largeBlockSize
@@ -148,11 +165,10 @@ struct HexagonalMask: LatticeMask {
         // actual floating-point value should start at -0.5.
         for y in start.y..<min(end.y, dimensions.y) {
           let parityOffset: Float = (y & 1 == 0) ? 1.5 : 0.0
-          let loopOffset: Int32 = (y & 1 == 0) ? -1 : 0
           var baseAddress = (z &* dimensions.y &+ y)
           baseAddress = baseAddress &* dimensions.x
           
-          for x in start.x..<min(end.x, dimensions.x + loopOffset) {
+          for x in start.x..<min(end.x, dimensions.x) {
             var lowerCorner = SIMD3(Float(x) * 3 + parityOffset,
                                     Float(y) - 1,
                                     Float(z))
@@ -168,17 +184,22 @@ struct HexagonalMask: LatticeMask {
       }
     }
     
-    let start: SIMD3<Int32> = .zero
-    let end = boundsBlock
-    var tasks: [SIMD3<Int32>] = []
-    for sectorZ in start.z..<end.z {
-      for sectorY in start.y..<end.y {
-        for sectorX in start.x..<end.x {
-          tasks.append(SIMD3(sectorX, sectorY, sectorZ))
+    func createTasks() -> [SIMD3<Int32>] {
+      let start: SIMD3<Int32> = .zero
+      let end = (dimensions &+ largeBlockSize &- 1) / largeBlockSize
+      
+      var output: [SIMD3<Int32>] = []
+      for sectorZ in start.z..<end.z {
+        for sectorY in start.y..<end.y {
+          for sectorX in start.x..<end.x {
+            output.append(SIMD3(sectorX, sectorY, sectorZ))
+          }
         }
       }
+      return output
     }
     
+    let tasks = createTasks()
     if tasks.count < 4 {
       for task in tasks {
         execute(block: task)
@@ -188,6 +209,8 @@ struct HexagonalMask: LatticeMask {
         execute(block: tasks[z])
       }
     }
+    
+    return mask
   }
   
   static func &= (lhs: inout Self, rhs: Self) {
@@ -238,17 +261,34 @@ struct HexagonalGrid: LatticeGrid {
     }
     repeatingUnit.highHalf.highHalf = SIMD4(repeating: 0)
     
-    var transformedBounds = transformHKLtoHH2KL(bounds)
-    transformedBounds = SIMD3(transformedBounds.x * 1 / 3,
-                              transformedBounds.y * 2 + 1,
-                              transformedBounds.z)
-    
-    // Prevent floating-point error from causing incorrect rounding.
-    guard let boundsX = Int(exactly: bounds.x) else {
-      fatalError("Bounds x should always be an integer.")
+    func createBoundsX() -> Float {
+      // Prevent floating-point error from causing incorrect rounding.
+      guard let boundsX = Int(exactly: bounds.x) else {
+        fatalError("Bounds x should always be an integer.")
+      }
+      
+      // Map:
+      // 0 1 2 3 4 5 6
+      // 0 1 1 1 2 2 2
+      //
+      // This would have already rounded up in floating-point arithmetic:
+      // 1 -> 0.333 -> 1
+      // 2 -> 0.667 -> 1
+      // 3 -> 1.000 -> 1
+      // 4 -> 1.333 -> 2
+      //
+      // We map this to an integer operation that results in the same effect.
+      // It looks counterintuitive. This is needed to ensure floating point
+      // error doesn't change the result (e.g. multiplying by 0.33333333).
+      let divided: Int = (boundsX + 2) / 3
+      return Float(divided)
     }
-    transformedBounds.x = Float((boundsX + 2) / 3)
     
+    let transformedBounds = SIMD3<Float>(
+      createBoundsX(),
+      bounds.y + 1,
+      bounds.z)
+      
     dimensions = SIMD3<Int32>(transformedBounds.rounded(.up))
     dimensions.replace(with: SIMD3.zero, where: dimensions .< 0)
     atomicNumbers = Array(repeating: repeatingUnit, count: Int(
@@ -295,11 +335,10 @@ struct HexagonalGrid: LatticeGrid {
     for z in 0..<dimensions.z {
       for y in 0..<dimensions.y {
         let parityOffset: Float = (y & 1 == 0) ? 1.5 : 0.0
-        let loopOffset: Int32 = (y & 1 == 0) ? -1 : 0
         var baseAddress = (z &* dimensions.y &+ y)
         baseAddress = baseAddress &* dimensions.x
         
-        for x in 0..<dimensions.x + loopOffset {
+        for x in 0..<dimensions.x {
           var lowerCorner = SIMD3<Float>(SIMD3(x, y, z))
           lowerCorner.x *= 3
           lowerCorner.x += parityOffset
@@ -351,13 +390,6 @@ struct HexagonalGrid: LatticeGrid {
 private func transformHH2KLtoHKL(_ input: SIMD3<Float>) -> SIMD3<Float> {
   var output = SIMD3(1, 0, 0) * input.x
   output += SIMD3(1, 2, 0) * input.y
-  output += SIMD3(0, 0, 1) * input.z
-  return output
-}
-
-private func transformHKLtoHH2KL(_ input: SIMD3<Float>) -> SIMD3<Float> {
-  var output = SIMD3(1, 0, 0) * input.x
-  output += SIMD3(-0.5, 0.5, 0) * input.y
   output += SIMD3(0, 0, 1) * input.z
   return output
 }

@@ -1,24 +1,19 @@
-// swift-tools-version: 5.8
-// The swift-tools-version declares the minimum version of Swift required to build this package.
+// swift-tools-version: 6.1
 
 import PackageDescription
 
 let package = Package(
   name: "HDL",
   products: [
-    // Products define the executables and libraries a package produces, making them visible to other packages.
     .library(
       name: "HDL",
       targets: ["HDL"]),
   ],
   dependencies: [
-    .package(url: "https://github.com/apple/swift-atomics.git", .upToNextMajor(from: "1.2.0")),
+    .package(url: "https://github.com/apple/swift-atomics.git", .upToNextMajor(from: "1.3.0")),
     .package(url: "https://github.com/philipturner/swift-numerics", branch: "Quaternions"),
-    .package(url: "https://github.com/apple/swift-system", from: "1.0.0"),
   ],
   targets: [
-    // Targets are the basic building blocks of a package, defining a module or a test suite.
-    // Targets can depend on other targets in this package and products from dependencies.
     .target(
       name: "HDL",
       dependencies: [
@@ -29,7 +24,6 @@ let package = Package(
       dependencies: [
         "HDL",
         .product(name: "Numerics", package: "swift-numerics"),
-        .product(name: "SystemPackage", package: "swift-system"),
       ]),
   ]
 )

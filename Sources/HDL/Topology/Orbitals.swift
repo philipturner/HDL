@@ -1,6 +1,6 @@
 //
 //  Orbitals.swift
-//  
+//  HDL
 //
 //  Created by Philip Turner on 12/24/23.
 //
@@ -8,34 +8,36 @@
 import Dispatch
 
 extension Topology {
-  public enum OrbitalHybridization {
-    case sp1
+  public enum OrbitalHybridization: Sendable {
+    case sp
     case sp2
     case sp3
     
     // Private API for generating nonbonding orbitals.
     var piBondCount: Int {
       switch self {
-      case .sp1: return 2
+      case .sp: return 2
       case .sp2: return 1
       case .sp3: return 0
       }
     }
   }
   
-  public struct OrbitalStorage: Collection, Equatable {
-    @usableFromInline var storage: SIMD16<Float>
-    
+  public struct OrbitalStorage: Collection, Equatable, Sendable {
     public typealias Index = Int
-    
     public typealias Element = SIMD3<Float>
+    
+    // Make it easier to go all the way when optimizing, accessing the
+    // underlying storage directly instead of relying on compiler-generated
+    // functions from the Sequence protocol.
+    public var storage: SIMD8<Float>
     
     @_transparent
     public var startIndex: Int { 0 }
     
     @_transparent
     public var endIndex: Int {
-      Int(storage[15])
+      Int(storage[7])
     }
     
     @_transparent
@@ -49,13 +51,9 @@ extension Topology {
         var vec4: SIMD4<Float>
         switch position {
         case 0:
-          vec4 = storage.lowHalf.lowHalf
+          vec4 = storage.lowHalf
         case 1:
-          vec4 = storage.lowHalf.highHalf
-        case 2:
-          vec4 = storage.highHalf.lowHalf
-        case 3:
-          vec4 = storage.highHalf.highHalf
+          vec4 = storage.highHalf
         default:
           fatalError("Invalid position: \(position)")
         }
@@ -64,52 +62,58 @@ extension Topology {
     }
   }
   
-  // After reducing the overhead of array slice generation, elide the creation
-  // of the atoms-to-atoms map. Just use the connections buffer directly.
   public func nonbondingOrbitals(
     hybridization: OrbitalHybridization = .sp3
   ) -> [OrbitalStorage] {
     let connectionsMap = map(.atoms, to: .atoms)
-    var storageBuffer = [OrbitalStorage](
-      repeating: .init(storage: .zero), count: atoms.count)
     
     let taskSize: Int = 5_000
-    let taskCount = (atoms.count + taskSize - 1) / taskSize
+    let safeAtoms = atoms
+    let safeBonds = bonds
+    nonisolated(unsafe)
+    var storageBuffer = [OrbitalStorage](
+      repeating: OrbitalStorage(storage: .zero),
+      count: atoms.count)
     
+    @Sendable
     func execute(taskID: Int) {
       let scalarStart = taskID &* taskSize
-      let scalarEnd = min(scalarStart &+ taskSize, atoms.count)
+      let scalarEnd = min(scalarStart &+ taskSize, safeAtoms.count)
       for atomID in scalarStart..<scalarEnd {
         let (orbitalCount, orbital1, orbital2) = addOrbitals(
-          atoms: atoms,
+          atoms: safeAtoms,
           atomID: atomID,
-          bonds: bonds,
+          bonds: safeBonds,
           connectionsMap: connectionsMap,
           hybridization: hybridization)
         
         var storage = OrbitalStorage(storage: .zero)
-        storage.storage.lowHalf.lowHalf = SIMD4(orbital1, 0)
-        storage.storage.lowHalf.highHalf = SIMD4(orbital2, 0)
-        storage.storage[15] = Float(orbitalCount)
+        storage.storage.lowHalf = SIMD4(orbital1, 0)
+        storage.storage.highHalf = SIMD4(orbital2, 0)
+        storage.storage[7] = Float(orbitalCount)
         storageBuffer[atomID] = storage
       }
     }
     
+    let taskCount = (atoms.count + taskSize - 1) / taskSize
     if taskCount == 0 {
       
     } else if taskCount == 1 {
-      for taskID in 0..<taskCount {
-        execute(taskID: taskID)
-      }
+      execute(taskID: 0)
     } else {
       DispatchQueue.concurrentPerform(iterations: taskCount) { z in
         execute(taskID: z)
       }
     }
-
+    
     return storageBuffer
   }
 }
+
+private typealias OrbitalReturn = (
+  orbitalCount: Int,
+  orbital1: SIMD3<Float>,
+  orbital2: SIMD3<Float>)
 
 @inline(__always)
 private func addOrbitals(
@@ -118,7 +122,7 @@ private func addOrbitals(
   bonds: [SIMD2<UInt32>],
   connectionsMap: [Topology.MapStorage],
   hybridization: Topology.OrbitalHybridization
-) -> (Int, SIMD3<Float>, SIMD3<Float>) {
+) -> OrbitalReturn {
   let atom = atoms[atomID]
   let atomicNumber = UInt8(atom.w)
   let valence: Int
@@ -159,7 +163,7 @@ private func addOrbitals(
   
   let neighborIDs = connectionsMap[atomID].storage
   switch (hybridization, neighborIDs[7]) {
-  case (.sp1, 1): break
+  case (.sp, 1): break
   case (.sp2, 2): break
   case (.sp3, 2): break
   case (.sp3, 3): break
@@ -199,8 +203,9 @@ private func addOrbitals(
     
     // Branch on whether the situation resembles a sidewall carbon.
     if hybridization == .sp3 && neighborIDs[7] == 2 {
-      var crossProduct: SIMD3<Float> = .zero
       let axis = deltas[1] - deltas[0]
+      
+      var crossProduct: SIMD3<Float> = .zero
       crossProduct.x = axis.y * normal.z - axis.z * normal.y
       crossProduct.y = axis.z * normal.x - axis.x * normal.z
       crossProduct.z = axis.x * normal.y - axis.y * normal.x
@@ -212,17 +217,22 @@ private func addOrbitals(
       }
       crossProduct /= crossProductSquared.squareRoot()
       
-      // The order of the returned bonds is ambiguous, but it will be
-      // deterministic after calling 'sort()'.
+      // The order of the returned bonds is almost random, with no defined
+      // rules for precedence of cartesian direction. However, none of the
+      // tests fail when the order is reversed.
       let normalWeight = -Float(1.0 / 3).squareRoot()
       let crossProductWeight = Float(2.0 / 3).squareRoot()
-      return (2,
-      normal * normalWeight - crossProduct * crossProductWeight,
-      normal * normalWeight + crossProduct * crossProductWeight)
+      return OrbitalReturn(
+        orbitalCount: 2,
+        orbital1: normal * normalWeight - crossProduct * crossProductWeight,
+        orbital2: normal * normalWeight + crossProduct * crossProductWeight)
     } else {
       // In the remaining cases, simply return something pointing opposite
       // to the average of the deltas.
-      return (1, -normal, .zero)
+      return OrbitalReturn(
+        orbitalCount: 1,
+        orbital1: -normal,
+        orbital2: .zero)
     }
   }
 }

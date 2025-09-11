@@ -6,7 +6,7 @@
 //
 
 import HDL
-import Numerics
+import QuaternionModule
 
 struct GrapheneThiol {
   var topology: Topology = .init()
@@ -23,7 +23,7 @@ struct GrapheneThiol {
         Replace { .empty }
       }
     }
-    topology.insert(atoms: lattice.atoms)
+    topology.atoms += lattice.atoms
   }
   
   mutating func compilationPass1() {
@@ -54,7 +54,6 @@ struct GrapheneThiol {
     }
   }
   
-  // NOTE: Perform a precondition here in the unit test.
   mutating func compilationPass2() {
     // Graphene's covalent bond length is 1.42 Å.
     let covalentBondLength: Float = 1.42 / 10
@@ -68,10 +67,9 @@ struct GrapheneThiol {
         insertedBonds.append(bond)
       }
     }
-    topology.insert(bonds: insertedBonds)
+    topology.bonds += insertedBonds
   }
   
-  // NOTE: Perform a precondition here in the unit test.
   mutating func compilationPass3() {
     // From the MM4 alkene paper, the C-H bond length in graphene is 1.103 Å.
     // This is very close to the length of bonds to sp3 carbon.
@@ -83,13 +81,17 @@ struct GrapheneThiol {
     let chBondLength: Float = 1.103 / 10
     let csBondLength: Float = 1.814 / 10
     let shBondLength: Float = 1.332 / 10
-    let orbitals = topology.nonbondingOrbitals(hybridization: .sp2)
+    let orbitalLists = topology.nonbondingOrbitals(hybridization: .sp2)
     
-    var centerOfMass: SIMD3<Double> = .zero
-    for atom in topology.atoms {
-      centerOfMass += SIMD3(atom.position)
+    func createCenterOfMass() -> SIMD3<Float> {
+      var output: SIMD3<Double> = .zero
+      for atom in topology.atoms {
+        output += SIMD3(atom.position)
+      }
+      output /= Double(topology.atoms.count)
+      return SIMD3<Float>(output)
     }
-    centerOfMass /= Double(topology.atoms.count)
+    let centerOfMass = createCenterOfMass()
     
     let thiolRotation = Quaternion<Float>(
       angle: 109.5 * .pi / 180, axis: [0, 0, 1])
@@ -97,10 +99,11 @@ struct GrapheneThiol {
     var insertedAtoms: [Atom] = []
     var insertedBonds: [SIMD2<UInt32>] = []
     for i in topology.atoms.indices {
-      for orbital in orbitals[i] {
-        let atom = topology.atoms[i]
-        let atomDelta = atom.position - SIMD3<Float>(centerOfMass)
-        
+      let atom = topology.atoms[i]
+      let atomDelta = atom.position - centerOfMass
+      
+      let orbitalList = orbitalLists[i]
+      for orbital in orbitalList {
         if abs(atomDelta.x) > 0.4 && abs(atomDelta.y) > 0.4 {
           let sulfurID = topology.atoms.count + insertedAtoms.count
           insertedBonds.append(SIMD2(UInt32(i), UInt32(sulfurID)))
@@ -139,7 +142,7 @@ struct GrapheneThiol {
         }
       }
     }
-    topology.insert(atoms: insertedAtoms)
-    topology.insert(bonds: insertedBonds)
+    topology.atoms += insertedAtoms
+    topology.bonds += insertedBonds
   }
 }

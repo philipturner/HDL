@@ -35,7 +35,9 @@ struct CubicCell {
     dotProduct0 += delta_z0 * scaledNormal.z
     
     var mask0: SIMD8<Int32> = .zero
-    mask0.replace(with: SIMD8(repeating: .max), where: dotProduct0 .> 0)
+    mask0.replace(
+      with: SIMD8(repeating: .max),
+      where: dotProduct0 .> 0)
     let compressed = SIMD8<UInt8>(truncatingIfNeeded: mask0)
     return (compressed & CubicCell.flags).wrappedSum()
   }
@@ -45,11 +47,16 @@ struct CubicMask: LatticeMask {
   var mask: [UInt8]
   
   /// Create a mask using a plane.
-  init(dimensions: SIMD3<Int32>, origin: SIMD3<Float>, normal: SIMD3<Float>) {
+  init(
+    dimensions: SIMD3<Int32>,
+    origin: SIMD3<Float>,
+    normal: SIMD3<Float>
+  ) {
     // Initialize the mask with everything in the one volume, and filled. The
     // value should be overwritten somewhere in the inner loop.
-    mask = Array(repeating: .max, count: Int(
-      dimensions.x * dimensions.y * dimensions.z))
+    mask = [UInt8](
+      repeating: 0xFF,
+      count: Int(dimensions.x * dimensions.y * dimensions.z))
     if all(normal .== 0) {
       // This cannot be evaluated. It is a permissible escape hatch to create a
       // mask with no intersection.
@@ -74,11 +81,15 @@ struct CubicMask: LatticeMask {
     #else
     mask.withUnsafeMutableBufferPointer { buffer in
       let opaque = OpaquePointer(buffer.baseAddress.unsafelyUnwrapped)
+      nonisolated(unsafe)
       let mask8 = UnsafeMutablePointer<UInt8>(opaque)
+      nonisolated(unsafe)
       let mask16 = UnsafeMutablePointer<UInt16>(opaque)
+      nonisolated(unsafe)
       let mask32 = UnsafeMutablePointer<UInt32>(opaque)
       let dims = dimensions
       
+      @Sendable
       @inline(__always)
       func intersect1(sector: SIMD3<Int32>) {
         let floatX = Float(sector.x)
@@ -101,6 +112,7 @@ struct CubicMask: LatticeMask {
         }
       }
       
+      @Sendable
       @inline(__always)
       func intersect2(sector: SIMD3<Int32>) {
         var loopBounds = (dimensions &- sector &+ 1) / 2
@@ -145,6 +157,7 @@ struct CubicMask: LatticeMask {
         }
       }
       
+      @Sendable
       @inline(__always)
       func intersect4(sector: SIMD3<Int32>) {
         var loopBounds = (dimensions &- sector &+ 3) / 4
@@ -189,55 +202,9 @@ struct CubicMask: LatticeMask {
         }
       }
       
-      #if false
-      let sectorsX = (dimensions.x &+ 7) / 8
-      let sectorsY = (dimensions.y &+ 7) / 8
-      let sectorsZ = (dimensions.z &+ 7) / 8
-      for sectorZ in 0..<sectorsZ {
-        for sectorY in 0..<sectorsY {
-          for sectorX in 0..<sectorsX {
-            let permX = SIMD8<UInt8>(0, 0, 0, 0, 1, 1, 1, 1)
-            let permY = SIMD8<UInt8>(0, 0, 1, 1, 0, 0, 1, 1)
-            let permZ = SIMD8<UInt8>(0, 1, 0, 1, 0, 1, 0, 1)
-            var trialX = SIMD8(repeating: Float(sectorX) * 8 - origin.x)
-            var trialY = SIMD8(repeating: Float(sectorY) * 8 - origin.y)
-            var trialZ = SIMD8(repeating: Float(sectorZ) * 8 - origin.z)
-            trialX += SIMD8<Float>(permX) * 8
-            trialY += SIMD8<Float>(permY) * 8
-            trialZ += SIMD8<Float>(permZ) * 8
-            
-            var dotProduct = trialX * normal.x
-            dotProduct += trialY * normal.y
-            dotProduct += trialZ * normal.z
-            let allNegative = all(dotProduct .< 0)
-            let allPositive = all(dotProduct .> 0)
-            
-            let sector = SIMD3(sectorX, sectorY, sectorZ) &* 8
-            if allPositive {
-              // already initialized to 1111_1111
-            } else if allNegative {
-              let xFirst = sector.x / 4
-              let xSecond = min(dims.x &- 4, sector.x &+ 4) / 4
-              for z in sector.z..<min(dims.z, sector.z &+ 8) {
-                for y in sector.y..<min(dims.y, sector.y &+ 8) {
-                  let base = z &* dims.y &+ y
-                  let address1 = base &* (dims.x / 4) &+ xFirst
-                  let address2 = base &* (dims.x / 4) &+ xSecond
-                  mask32[Int(address1)] = .zero
-                  mask32[Int(address2)] = .zero
-                }
-              }
-            } else {
-              intersect4(sector: sector)
-            }
-          }
-        }
-      }
-      #else
-      
       let largeBlockSize: Int32 = 32
-      let boundsBlock = (dimensions &+ largeBlockSize &- 1) / largeBlockSize
       
+      @Sendable
       @inline(never)
       func execute(block: SIMD3<Int32>) {
         let start = block &* (largeBlockSize / 8)
@@ -287,20 +254,23 @@ struct CubicMask: LatticeMask {
         }
       }
       
-      let start: SIMD3<Int32> = .zero
-      let end = boundsBlock
-      var tasks: [SIMD3<Int32>] = []
-      for sectorZ in start.z..<end.z {
-        for sectorY in start.y..<end.y {
-          for sectorX in start.x..<end.x {
-            tasks.append(SIMD3(sectorX, sectorY, sectorZ))
+      func createTasks() -> [SIMD3<Int32>] {
+        let start: SIMD3<Int32> = .zero
+        let end = (dimensions &+ largeBlockSize &- 1) / largeBlockSize
+        
+        var output: [SIMD3<Int32>] = []
+        for sectorZ in start.z..<end.z {
+          for sectorY in start.y..<end.y {
+            for sectorX in start.x..<end.x {
+              output.append(SIMD3(sectorX, sectorY, sectorZ))
+            }
           }
         }
+        return output
       }
       
+      let tasks = createTasks()
       if tasks.count < 4 {
-        // Fall back to this if the multithreaded version is slow on a
-        // particular platform (e.g. Windows).
         for task in tasks {
           execute(block: task)
         }
@@ -309,7 +279,6 @@ struct CubicMask: LatticeMask {
           execute(block: tasks[z])
         }
       }
-      #endif
     }
     #endif
   }

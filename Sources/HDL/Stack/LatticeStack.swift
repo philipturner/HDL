@@ -7,6 +7,7 @@
 
 struct LatticeStackDescriptor {
   // The global descriptor resets as soon as it is used.
+  nonisolated(unsafe)
   static var global: LatticeStackDescriptor = .init()
   
   // The user may only set each of these once.
@@ -54,7 +55,8 @@ class LatticeStack {
   }
   
   // The getter will never return 'nil', so it is okay to force-unwrap. It is
-  // only nullable to the setter can be used to destroy it.
+  // only nullable so the setter can be used to destroy it.
+  nonisolated(unsafe)
   static var global: LatticeStack?
   
   init(

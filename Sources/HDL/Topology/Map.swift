@@ -1,6 +1,6 @@
 //
 //  Map.swift
-//  HDLTests
+//  HDL
 //
 //  Created by Philip Turner on 1/2/24.
 //
@@ -9,17 +9,19 @@ import Atomics
 import Dispatch
 
 extension Topology {
-  public enum MapNode {
+  public enum MapNode: Sendable {
     case atoms
     case bonds
   }
   
-  public struct MapStorage: Collection, Equatable {
-    @usableFromInline var storage: SIMD8<Int32>
-    
+  public struct MapStorage: Collection, Equatable, Sendable {
     public typealias Index = Int
-    
     public typealias Element = UInt32
+    
+    // Make it easier to go all the way when optimizing, accessing the
+    // underlying storage directly instead of relying on compiler-generated
+    // functions from the Sequence protocol.
+    public var storage: SIMD8<Int32>
     
     @_transparent
     public var startIndex: Int { 0 }
@@ -50,39 +52,17 @@ extension Topology {
     _ sourceNode: MapNode,
     to targetNode: MapNode
   ) -> [MapStorage] {
-    switch (sourceNode, targetNode) {
-    case (.atoms, _):
-      let connectionsMap = createConnnectionsMap(targetNode: targetNode)
-      return unsafeBitCast(connectionsMap, to: [_].self)
-    case (.bonds, .atoms):
-      var outputStorage: [MapStorage] = []
-      outputStorage.reserveCapacity(bonds.count)
-      for i in bonds.indices {
-        let bond = bonds[i]
-        var vector = SIMD8<Int32>.zero
-        vector[0] = Int32(truncatingIfNeeded: bond[0])
-        vector[1] = Int32(truncatingIfNeeded: bond[1])
-        vector[7] = 2
-        outputStorage.append(MapStorage(storage: vector))
-      }
-      return outputStorage
-    case (.bonds, .bonds):
-      fatalError("Bonds to bonds map is not supported.")
-    }
-  }
-}
-
-extension Topology {
-  private func createConnnectionsMap(
-    targetNode: MapNode
-  ) -> [SIMD8<Int32>] {
-    var connectionsMap = [SIMD8<Int32>](
-      repeating: .init(repeating: -1), count: atoms.count)
-    guard atoms.count > 0 else {
-      return []
+    // Keeping the first argument around to preserve the DSL-like syntax of
+    // explicitly specifying the start and end nodes.
+    guard sourceNode == .atoms else {
+      fatalError("The source node must always be atoms.")
     }
     
-    // Optimization: try atomics with smaller numbers of bits
+    var connectionsMap = [SIMD8<Int32>](
+      repeating: .init(repeating: -1), count: atoms.count)
+    
+    // Optimization: use atomics with 16 bits instead of 32 bits
+    nonisolated(unsafe)
     let atomicPointer: UnsafeMutablePointer<Int16.AtomicRepresentation> =
       .allocate(capacity: atoms.count)
     let atomicOpaque = OpaquePointer(atomicPointer)
@@ -92,29 +72,41 @@ extension Topology {
     connectionsMap.withUnsafeMutableBufferPointer {
       let connectionsPointer = $0.baseAddress.unsafelyUnwrapped
       let connectionsOpaque = OpaquePointer(connectionsPointer)
+      nonisolated(unsafe)
       let connectionsCasted = UnsafeMutablePointer<Int32>(connectionsOpaque)
       
       bonds.withUnsafeBufferPointer {
-        let opaque = OpaquePointer($0.baseAddress.unsafelyUnwrapped)
-        let casted = UnsafePointer<UInt32>(opaque)
+        let bondsPointer = $0.baseAddress.unsafelyUnwrapped
+        let bondsOpaque = OpaquePointer(bondsPointer)
+        nonisolated(unsafe)
+        let bondsCasted = UnsafePointer<UInt32>(bondsOpaque)
         
         let taskSize: Int = 5_000
-        let taskCount = (2 * bonds.count + taskSize - 1) / taskSize
+        let safeBondCount = bonds.count
         
+        @Sendable
         func execute(taskID: Int) {
           let scalarStart = taskID &* taskSize
-          let scalarEnd = min(scalarStart &+ taskSize, 2 * bonds.count)
+          let scalarEnd = min(scalarStart &+ taskSize, 2 * safeBondCount)
           
           for i in scalarStart..<scalarEnd {
-            let atomID = Int(truncatingIfNeeded: casted[i])
+            let atomID = Int(truncatingIfNeeded: bondsCasted[i])
             var idToWrite: Int32
+            
             if targetNode == .atoms {
-              let otherID = (i % 2 == 0) ? casted[i &+ 1] : casted[i &- 1]
+              var otherID: UInt32
+              if i % 2 == 0 {
+                otherID = bondsCasted[i &+ 1]
+              } else {
+                otherID = bondsCasted[i &- 1]
+              }
+              
               idToWrite = Int32(truncatingIfNeeded: otherID)
             } else {
               idToWrite = Int32(truncatingIfNeeded: i / 2)
             }
             
+            // The use of atomics here makes the order nondeterministic.
             let pointer = atomicPointer.advanced(by: atomID)
             let atomic = UnsafeAtomic<Int16>(at: pointer)
             let lane = atomic.loadThenWrappingIncrement(ordering: .relaxed)
@@ -127,10 +119,11 @@ extension Topology {
           }
         }
         
-        if taskCount <= 1 {
-          for taskID in 0..<taskCount {
-            execute(taskID: taskID)
-          }
+        let taskCount = (2 * bonds.count + taskSize - 1) / taskSize
+        if taskCount == 0 {
+          
+        } else if taskCount == 1 {
+          execute(taskID: 0)
         } else {
           DispatchQueue.concurrentPerform(iterations: taskCount) { z in
             execute(taskID: z)
@@ -149,6 +142,6 @@ extension Topology {
     }
     
     atomicPointer.deallocate()
-    return connectionsMap
+    return unsafeBitCast(connectionsMap, to: [MapStorage].self)
   }
 }

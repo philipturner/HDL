@@ -43,7 +43,7 @@ To delete atoms, use `Replace { .empty }`. Removed atoms cannot be restored by a
 Volume { }
 ```
 
-Encapsulate a set of planes, so that everything inside the scope is removed from the stack upon exiting. This must be called inside `Lattice` and may be called inside another `Volume`.
+Encapsulate a set of planes, so that everything inside the scope is removed from the stack upon exiting. This may be called at the top level or inside another `Volume`. In most cases, it is best to only call once, at the top level.
 
 ## Difference Between Concave, Convex, and Volume
 

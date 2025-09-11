@@ -28,9 +28,8 @@ struct Compilation {
     
     // Loop over this a few times (typically less than 10).
     for i in 0..<100 {
-      let carbonSites = createCarbonSites(i: i)
+      let carbonSites = createCarbonSites()
       let hydrogenSites = createHydrogenSites(
-        i: i,
         bonds: carbonSites.bonds)
       
       // Check whether there are still 3-way collisions.

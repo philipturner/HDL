@@ -6,7 +6,6 @@
 //
 
 import Dispatch
-import QuartzCore
 
 extension Topology {
   @discardableResult

@@ -5,8 +5,6 @@
 //  Created by Philip Turner on 7/5/25.
 //
 
-import QuartzCore
-
 struct CarbonSiteMap {
   var bonds: [SIMD2<UInt32>] = []
   var centerTypes: [UInt8] = []
@@ -17,10 +15,7 @@ extension Compilation {
   mutating func removeMethylSites() {
     // Loop over this a few times (typically less than 10).
     for i in 0..<100 {
-      let checkpoint0 = CACurrentMediaTime()
       let matches = createAtomMatches()
-      let checkpoint1 = CACurrentMediaTime()
-      display(checkpoint0, checkpoint1, "\(i) - removeMethylSites/createAtomMatches")
       
       var removedAtoms: [UInt32] = []
       for i in atoms.indices {
@@ -40,17 +35,12 @@ extension Compilation {
           fatalError("This should never happen.")
         }
       }
-      let checkpoint2 = CACurrentMediaTime()
-      display(checkpoint1, checkpoint2, "\(i) - removeMethylSites/removedAtoms")
       
       if removedAtoms.count > 0 {
         var topology = Topology()
         topology.atoms = atoms
         topology.remove(atoms: removedAtoms)
         self.atoms = topology.atoms
-        
-        let checkpoint3 = CACurrentMediaTime()
-        display(checkpoint2, checkpoint3, "\(i) - removeMethylSites/topology.remove(atoms:)")
       } else {
         return
       }
@@ -59,11 +49,8 @@ extension Compilation {
     fatalError("Could not remove methyl sites.")
   }
   
-  func createCarbonSites(i: Int) -> CarbonSiteMap {
-    let checkpoint0 = CACurrentMediaTime()
+  func createCarbonSites() -> CarbonSiteMap {
     let matches = createAtomMatches()
-    let checkpoint1 = CACurrentMediaTime()
-    display(checkpoint0, checkpoint1, "\(i) - createCarbonSites/createAtomMatches")
     
     var output = CarbonSiteMap()
     for i in atoms.indices {
@@ -82,9 +69,6 @@ extension Compilation {
       let centerType = UInt8(match.count - 1)
       output.centerTypes.append(centerType)
     }
-    let checkpoint2 = CACurrentMediaTime()
-    display(checkpoint1, checkpoint2, "\(i) - createCarbonSites/CarbonSiteMap")
-    
     return output
   }
 }

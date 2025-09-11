@@ -279,5 +279,62 @@ final class ReconstructionTests: XCTestCase {
     PassivationTests.checkConnectivity(topology)
     PassivationTests.checkNoOverlaps(topology)
   }
+  
+  func testWireframeCorner() throws {
+    // 40 / 4 -  16281 atoms, ~3 ms
+    // 80 / 8 - 122225 atoms, ~9 ms
+    let lattice = Lattice<Cubic> { h, k, l in
+      Bounds { 40 * (h + k + l) }
+      Material { .checkerboard(.silicon, .carbon) }
+      
+      let beamWidth: Float = 4
+      
+      Volume {
+        Concave {
+          Convex {
+            Origin { beamWidth * h }
+            Plane { h }
+          }
+          Convex {
+            Origin { beamWidth * k }
+            Plane { k }
+          }
+        }
+        
+        Concave {
+          Convex {
+            Origin { beamWidth * h }
+            Plane { h }
+          }
+          Convex {
+            Origin { beamWidth * l }
+            Plane { l }
+          }
+        }
+        
+        Concave {
+          Convex {
+            Origin { beamWidth * k }
+            Plane { k }
+          }
+          Convex {
+            Origin { beamWidth * l }
+            Plane { l }
+          }
+        }
+        
+        Replace { .empty }
+      }
+    }
+    XCTAssertEqual(lattice.atoms.count, 16281)
+    
+    // 40 / 4 -  15806 atoms, ~14 ms
+    // 80 / 8 - 121270 atoms, ~90 ms
+    var reconstruction = Reconstruction()
+    reconstruction.atoms = lattice.atoms
+    reconstruction.material = .checkerboard(.silicon, .carbon)
+    let topology = reconstruction.compile()
+    XCTAssertEqual(topology.atoms.count, 15806)
+  }
 #endif
 }

@@ -1,7 +1,6 @@
 # Hardware Description Language
 
 Remaining goals for this PR:
-- Search for unexpected latency bottlenecks in `Reconstruction` regarding `nonbondingOrbitals`.
 - Make sure the library works correctly and efficiently on Windows.
   - Update all relevant benchmark data on macOS, before comparing to Windows.
   - Run an isolated smoke test of the `DispatchQueue.concurrentPerform` latency.

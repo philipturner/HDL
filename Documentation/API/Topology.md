@@ -47,7 +47,7 @@ extension Topology {
 }
 
 func match(
-  _ source: [Atom], 
+  _ source: [Atom],
   algorithm: MatchAlgorithm = .covalentBondLength(1.5),
   maximumNeighborCount: Int = 8
 ) -> [ArraySlice<UInt32>]
@@ -113,7 +113,7 @@ mutating func remove(atoms indices: [UInt32])
 mutating func remove(bonds indices: [UInt32])
 ```
 
-Removes atoms or bonds at the specified indices. When removing an atom, the bonds connected to the atom are also removed.
+Remove atoms or bonds at the specified indices. When removing an atom, the bonds connected to the atom are also removed.
 
 An index may be specified multiple times in the input. The atom or bond will only be removed once.
 
@@ -125,7 +125,7 @@ The order of atoms and bonds is preserved after removal. The removed items are t
 mutating func sort() -> [UInt32]
 ```
 
-Sorts atoms in Morton order, then sorts bonds in ascending order based on atom indices.
+Sort atoms in Morton order, then sort bonds in ascending order based on atom indices.
 
 The topology should be sorted before entering into a simulator. Sorting causes nearby atoms to appear in consecutive memory locations. OpenMM utilizes this spatial locality to compute nonbonded forces very fast. If you forget to sort, the algorithmic complexity may increase from $O(n)$ to $O(n^2)$.
 

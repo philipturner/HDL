@@ -18,13 +18,13 @@ Bounds { 10 * h + 10 * k + 10 * l } // Cubic
 Bounds { 10 * h + 10 * (h + 2 * k) + 10 * l } // Hexagonal
 ```
 
-Sets the working set of crystal unit cells. The box spans from the world origin `[0, 0, 0]` the specified vector. This must be called in the top-level scope, before any `Volume` keywords.
+Set the working grid of crystal unit cells. The box spans from the world origin `[0, 0, 0]` the specified vector. This must be called in the top-level scope, before the `Volume` keyword.
 
-For hexagonal crystals, the bounds are a cuboid defined by transforming the input vector. It is mapped from h/k/l space to h/h2k/l space. This allows the base lattice to be cartesian, similar to cubic. The quantity in each axis direction must be an integer.
+For hexagonal crystals, the bounds are a cuboid defined by transforming the input vector. It is mapped from `h/k/l` space to `h/h2k/l` space. This allows the base lattice to be cartesian, similar to cubic. The quantity along each axis (`h`, `h2k`, `l`) must be an integer.
 
 ```swift
 Constant(ConstantType) { MaterialType }
-ConstantType.hexagon // Hexagonal - hexagon side length
+ConstantType.hexagon // Hexagonal - distance between opposite sides of a hexagon
 ConstantType.prism   // Hexagonal - prism height
 ConstantType.square  // Cubic - square side length
 
@@ -76,7 +76,12 @@ Lattice<Hexagonal> { h, k, l in
 Unit vectors representing the crystal's basis.
 
 ```swift
+enum MaterialType {
+  case elemental(Element)
+  case checkerboard(Element, Element)
+}
+
 Material { MaterialType }
 ```
 
-Specifies the atom types to fill the lattice with, and the lattice constant. This must be called in the top-level scope.
+Specify the atom types that fill the working grid. This must be called in the top-level scope, before the `Volume` keyword.

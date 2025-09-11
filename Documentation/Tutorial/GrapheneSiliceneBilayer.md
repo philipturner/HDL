@@ -173,7 +173,7 @@ Add the following dependency to your project's package manifest. Then, add `impo
 ```swift
 // Dependency
 .package(
-  url: "https://github.com/philipturner/swift-numerics", 
+  url: "https://github.com/philipturner/swift-numerics",
   branch: "Quaternions"),
 
 // Example of adding the dependency to a package.
@@ -182,7 +182,7 @@ let package = Package(
   products: ...,
   dependencies: [
     .package(
-      url: "https://github.com/philipturner/swift-numerics", 
+      url: "https://github.com/philipturner/swift-numerics",
       branch: "Quaternions"),
   ],
   targets: ...

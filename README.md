@@ -1,8 +1,5 @@
 # Hardware Description Language
 
-Remaining goals for this PR:
-- Make sure the library works correctly and efficiently on Windows.
-
 Domain-specific language for molecular nanotechnology. This repository includes a geometry and bond topology compiler.
 
 Table of Contents
@@ -66,21 +63,15 @@ Atomic numbers can be any element from Group III - VII, Period II - IV of the pe
 ```swift
 // Specify lattice edits, if any, in the trailing closure.
 let lattice = Lattice<Basis> { h, k, l in
-  Material { ... }
   Bounds { ... }
+  Material { ... }
 }
 
 // Property to retrieve the geometry.
 let atoms = lattice.atoms
 ```
 
-Encapsulates crystal plane algebra.
-
-> TODO: Perhaps use a different word than "encapsulates".
-
-Creates a lattice of crystal unit cells to edit. Coordinates are represented in numbers of crystal unit cells. The coordinate system may be mapped to a non-orthonormal coordinate system internally. Keep this in mind when processing `SIMD3<Float>` vectors. For example, avoid normalizing any vectors.
-
-> TODO: Improve the documentation, relocating the statement about vector normalization somewhere else. It is likely a symptom of not properly explaining the fundamentals of this DSL.
+Creates a lattice of crystal unit cells to edit. Coordinates are represented in numbers of crystal unit cells.
 
 ```swift
 struct Topology {
@@ -89,7 +80,7 @@ struct Topology {
 }
 ```
 
-Encapsulates low-level operations during bond topology formation:
+Encapsulates fundamental operations for bond topology formation:
 - `map` - query the bonds that reference each atom
 - `match` - $O(n)$ neighbor search
 - `nonbondingOrbitals` - positions of unpaired electrons

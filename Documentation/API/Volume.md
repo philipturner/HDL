@@ -1,5 +1,7 @@
 # Volume
 
+> TODO: Document which mode is the default (`Concave` vs. `Convex`) on a fresh `Volume`, without either keyword declared as the outer scope. We typically wrap isolated planes in a `Convex`, to isolate the `Origin` shift. This says nothing about how the `Convex` scopes are combined with each other.
+
 The following keywords may be called inside a `Volume`.
 
 ```swift
@@ -18,13 +20,13 @@ Scope where every plane's "one" volume merges through OR in [disjunctive normal 
 Origin { SIMD3<Float> }
 ```
 
-Translates the origin by a vector relative to the current origin. Modifications to the origin are undone when leaving the current scope. This may not be called in the top-level scope.
+Translate the origin by a vector relative to the current origin. Modifications to the origin are undone when leaving the current scope. This may not be called in the top-level scope.
 
 ```swift
 Plane { SIMD3<Float> }
 ```
 
-Adds a plane to the stack. The plane will be combined with other planes, and used for selecting/deleting atoms.
+Add a plane to the stack. The plane will be combined with other planes, and used for selecting/deleting atoms.
 
 A `Plane` divides the `Bounds` into two sections. The "one" volume is the side the normal vector points toward. The "zero" volume is the side the normal points away from. The "one" volume contains the atoms modified during a `Replace`. When planes combine into a `Concave`, only the crystal unit cells common to every plane's "one" volume are modifiable.
 
@@ -45,4 +47,4 @@ To delete atoms, use `Replace { .empty }`. Removed atoms cannot be restored by a
 Volume { }
 ```
 
-Encapsulates a set of planes, so that everything inside the scope is removed from the stack upon exiting. This must be called inside `Lattice` and may be called inside another `Volume`.
+Encapsulate a set of planes, so that everything inside the scope is removed from the stack upon exiting. This must be called inside `Lattice` and may be called inside another `Volume`.

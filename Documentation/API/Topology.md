@@ -125,6 +125,6 @@ mutating func sort() -> [UInt32]
 
 Sort atoms in Morton order, then sort bonds in ascending order based on atom indices.
 
-The topology should be sorted before entering into a simulator. Sorting causes nearby atoms to appear in consecutive memory locations. OpenMM utilizes this spatial locality to compute nonbonded forces very fast. If you forget to sort, the algorithmic complexity may increase from $O(n)$ to $O(n^2)$.
+The topology should be sorted before entering into a large MM simulator. For example, OpenMM relies on pre-guaranteed memory locality to compute nonbonded forces very fast. If you forget to sort, the algorithmic complexity may increase from $O(n)$ to $O(n^2)$. This rule also holds for `match()`, which was inspired by the OpenMM algorithm for matching 32-wide atom blocks.
 
-Note that the spatial locality of the crystal lattice (8&ndash;12 wide atom blocks) typically achieves the same effect as sorting. But true Morton order results in the maximum possible degree of spatial locality.
+The memory locality of the crystal lattice (8&ndash;12 wide atom blocks) typically achieves the same effect as sorting. But true Morton order results in the maximum possible degree of memory locality.

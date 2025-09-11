@@ -26,7 +26,7 @@ extension Atom {
 }
 ```
 
-`Atom` is a typealias for a four-wide SIMD vector. Each vector lane contains an IEEE 754 single-precision floating point number. The first three lanes store the X, Y, and Z coordinates in real space. The fourth lane stores the atomic number.
+`Atom` is a typealias for a four-wide SIMD vector. Each vector lane contains an IEEE 754 single-precision floating point number. The first three lanes store the X, Y, and Z coordinates in nanometers. The fourth lane stores the atomic number.
 
 ```swift
 enum Element: UInt8 {

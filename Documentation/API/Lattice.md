@@ -6,7 +6,7 @@ Cubic: Basis
 Hexagonal: Basis
 ```
 
-The two possible packing arrangements for tetravalent atoms. The hexagonal arrangement has many similarities with 2D graphite lattices (three-fold connectivity) and cubic (111) surfaces.
+The two possible packing arrangements for tetravalent atoms. The hexagonal arrangement is related to 2D graphite lattices (which have three-fold connectivity) and cubic (111) surfaces.
 
 ```swift
 Bounds { SIMD3<Float> }

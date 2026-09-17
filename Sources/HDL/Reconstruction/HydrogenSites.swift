@@ -156,15 +156,15 @@ extension Compilation {
     hydrogenData: [SIMD4<Float>]
   ) -> [UInt32] {
     var atomList: [UInt32] = []
-    atomList.reserveCapacity(3)
+    atomList.reserveCapacity(4)
     
     for j in match {
       let data = hydrogenData[Int(j)]
       let atomID = data.w.bitPattern
       atomList.append(atomID)
     }
-    if atomList.count >= 4 {
-      fatalError("4-way collisions are not handled yet.")
+    if atomList.count > 4 {
+      fatalError("5-way collisions should never happen.")
     }
     
     // Sort the atom list, in place.

@@ -12,11 +12,11 @@ extension Compilation {
     var insertedAtoms: [Atom] = []
     for hydrogenSiteID in siteMap.hydrogensToAtomsMap.indices {
       let atomList = siteMap.hydrogensToAtomsMap[hydrogenSiteID]
-      guard atomList.count == 3 else {
+      guard atomList.count == 3 || atomList.count == 4 else {
         continue
       }
       
-      // Iterate over all 3 atoms in the collision.
+      // Iterate over all atoms in the collision.
       var atomicNumbersDict: [UInt8: Int] = [:]
       for atomID in atomList {
         let atom = atoms[Int(atomID)]
@@ -40,6 +40,12 @@ extension Compilation {
             maxAtomicNumber = atomicNumber
           }
         }
+        
+        if atomList.count == 4 && maxAtomicNumberCount == 2 {
+          fatalError(
+            "Could not break tie for dominant atomic number in 4-way collision.")
+        }
+
         return maxAtomicNumber
       }
       let dominantAtomicNumber = createDominantAtomicNumber()

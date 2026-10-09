@@ -151,6 +151,7 @@ private func addOrbitals(
     
     // Always assume Group IV elements are tetravalent.
   case .tin: valence = 4
+  case .iodine: valence = 1
   case .gold: valence = 0
   case .lead: valence = 4
   case nil:

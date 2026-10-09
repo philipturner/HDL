@@ -76,7 +76,7 @@ final class StructureTests: XCTestCase {
     permittedAtomicNumbers += [1, 6, 7, 8, 9]
     permittedAtomicNumbers += [13, 14, 15, 16, 17]
     permittedAtomicNumbers += [31, 32, 33, 34, 35]
-    permittedAtomicNumbers += [50, 79, 82]
+    permittedAtomicNumbers += [50, 53, 79, 82]
     
     for atomicNumber in permittedAtomicNumbers {
       var description: String
@@ -133,6 +133,9 @@ final class StructureTests: XCTestCase {
         
       case 50:
         description = ".tin"
+        covalentRadius = 139
+      case 53:
+        description = ".iodine"
         covalentRadius = 139
       case 79:
         description = ".gold"

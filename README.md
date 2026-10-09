@@ -51,6 +51,7 @@ enum Element: UInt8 {
   case bromine = 35
   
   case tin = 50
+  case iodine = 53
   case gold = 79
   case lead = 82
   

@@ -28,6 +28,7 @@ public enum Element: UInt8, CustomStringConvertible {
   case bromine = 35
   
   case tin = 50
+  case iodine = 53
   case gold = 79
   case lead = 82
   
@@ -60,6 +61,7 @@ public enum Element: UInt8, CustomStringConvertible {
     case .bromine: return ".bromine"
       
     case .tin: return ".tin"
+    case .iodine: return ".iodine"
     case .gold: return ".gold"
     case .lead: return ".lead"
     }
@@ -93,6 +95,7 @@ public enum Element: UInt8, CustomStringConvertible {
     output[35] = 120 / 1000
     
     output[50] = 139 / 1000
+    output[53] = 139 / 1000
     output[79] = 136 / 1000
     output[82] = 146 / 1000
     return output
